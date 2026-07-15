@@ -1,0 +1,20 @@
+timestamp: 2026-07-14T23:01:00Z
+action: repo-init
+scope: root
+agent: builder
+reversible: true
+description: |
+  Consolidated buffer blaster + buffer blaster 2 into single repo.
+  Created monorepo tree, ported all specs to docs/, ported skills,
+  ported test stubs, wrote .env.example, .gitignore, package.json, README.
+  Stray mnt/ tree (containing skill files) ported into skills/ then removed.
+artifacts:
+  - docs/
+  - skills/
+  - tests/rust/test_encryption.rs
+  - tests/auth/test_demo_auth.py
+  - tests/clients/test_client_isolation.py
+  - supabase/migrations/001_initial_schema.sql
+  - .env.example
+  - .gitignore
+rollback: rm -rf docs skills tests .beads && git checkout main

@@ -1,0 +1,55 @@
+# ── Secrets ────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ── Dependencies ───────────────────────────────────────────
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+api/.venv/
+
+# ── Build artifacts ────────────────────────────────────────
+.next/
+out/
+dist/
+build/
+target/
+rust_core/**/target/
+*.so
+*.dylib
+*.dll
+!docs/**/*.dll
+
+# ── IDE / OS ───────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+nul
+
+# ── Logs ───────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+
+# ── Supabase ───────────────────────────────────────────────
+supabase/.branches
+supabase/.temp
+
+# ── Airtable assets (synced separately, large) ─────────────
+assets/airtable/
+
+# ── Vercel ─────────────────────────────────────────────────
+.vercel
+
+# ── Misc ───────────────────────────────────────────────────
+.claude/
+.beads/*.bak
