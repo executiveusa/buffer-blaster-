@@ -1,0 +1,13 @@
+operation: repository_import_and_graph
+created_at: 20260715T202659Z
+status: prepared
+scope:
+  - import uploaded monorepo into executiveusa/buffer-blaster-
+  - restore GitHub Actions workflows
+  - add opensrc dependency-source inspection commands
+  - generate docs/PROJECT_GRAPH.md
+  - remove build-time Google Fonts network dependency
+rollback: revert the initial import commit
+validation:
+  - python -m pytest tests -q
+  - cd frontend && npm ci && npm run build
