@@ -1,0 +1,11 @@
+timestamp: 2026-07-15T07:30:00Z
+action: phases-3-7-complete
+scope: frontend,api,content,supabase
+description: |
+  Frontend: Next 16 + Tailwind v4, landing page, admin console (gate +
+  dashboard + settings + clients + content + blog + analytics), demo mode.
+  Blog: 7 original backdated posts, RSS, sitemap, robots, JSON-LD.
+  Supabase: client isolation function + demo seed + blog_posts table.
+  next build green (22 routes, 0 errors). pytest 37/37 green.
+reversible: true
+rollback: git revert HEAD

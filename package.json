@@ -3,18 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "description": "Private AI content-operations platform (built to sell).",
-  "workspaces": [
-    "frontend"
-  ],
   "scripts": {
-    "dev": "npm run dev --workspace frontend",
+    "dev": "cd frontend && npm run dev",
     "dev:api": "cd api && python main.py",
     "dev:local": "concurrently \"npm run dev:api\" \"npm run dev\"",
-    "build": "npm run build --workspace frontend",
-    "start": "npm run start --workspace frontend",
-    "lint": "npm run lint --workspace frontend",
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm run start",
+    "lint": "cd frontend && npm run lint",
     "test:rust": "cd rust_core/stavarai_core && cargo test",
-    "test:api": "cd api && python -m pytest ../tests -v",
+    "test:api": "python -m pytest tests -v",
     "test": "npm run test:rust && npm run test:api",
     "db:push": "supabase db push",
     "agent:start": "echo 'Run on VPS — see docs/HANDOFF.md'"
@@ -26,3 +23,4 @@
     "node": ">=20"
   }
 }
+
