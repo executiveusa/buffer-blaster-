@@ -53,3 +53,5 @@ assets/airtable/
 # ── Misc ───────────────────────────────────────────────────
 .claude/
 .beads/*.bak
+.github/workflows/
+!/.github/

@@ -1,0 +1,10 @@
+timestamp: 2026-07-15T08:00:00Z
+action: handoff-written
+scope: docs
+description: |
+  Wrote docs/HANDOFF.md for GPT-5.6 Sol — claude-handoff format with TDD
+  specs (Given/When/Then) for phases A-E, hard guardrails, 7 gaps, skills,
+  remote repos, definition of done. CI workflows restored locally pending
+  workflow-scope push.
+reversible: true
+rollback: rm docs/HANDOFF.md
