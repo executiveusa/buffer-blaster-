@@ -1,0 +1,26 @@
+# Normalize line endings — critical for cross-platform (Windows dev + Linux VPS)
+* text=auto eol=lf
+
+# Force LF on these regardless of platform
+*.sh text eol=lf
+*.sql text eol=lf
+*.py text eol=lf
+*.rs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.env* text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

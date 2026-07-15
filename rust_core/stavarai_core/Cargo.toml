@@ -1,0 +1,22 @@
+[package]
+name = "stavarai_core"
+version = "1.0.0"
+edition = "2021"
+description = "Hot-path core for the Stavarai Platform: AES-256 encryption, session auth, rate limiter, job queue."
+license = " proprietary"
+
+[lib]
+name = "stavarai_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+aes-gcm = "0.10"
+rand = "0.8"
+sha2 = "0.10"
+base64 = "0.22"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+subtle = "2.5"          # constant-time comparison (auth)
+
+[dev-dependencies]
+# tests are pure std — no extra deps needed

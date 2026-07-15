@@ -1,0 +1,61 @@
+# Builds the Rust core on all three platforms, runs its tests, and uploads the
+# prebuilt native lib as a workflow artifact. The app's runtime loader picks up
+# the matching lib per platform — so `cargo test` is proven by CI, not by the
+# developer's local toolchain (which may not have a C linker, e.g. Windows
+# without Visual Studio Build Tools).
+
+name: build-core
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "rust_core/**"
+      - ".github/workflows/build-core.yml"
+  pull_request:
+    paths:
+      - "rust_core/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: libstavarai_core.so
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: stavarai_core.dll
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: libstavarai_core.dylib
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Run tests
+        working-directory: rust_core/stavarai_core
+        run: cargo test --target ${{ matrix.target }}
+
+      - name: Build release
+        working-directory: rust_core/stavarai_core
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Stage prebuilt lib
+        shell: bash
+        run: |
+          mkdir -p rust_core/native
+          cp rust_core/stavarai_core/target/${{ matrix.target }}/release/${{ matrix.artifact }} rust_core/native/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stavarai-core-${{ matrix.os }}
+          path: rust_core/native/

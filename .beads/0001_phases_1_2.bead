@@ -1,0 +1,10 @@
+timestamp: 2026-07-15T00:30:00Z
+action: phases-1-2-complete
+scope: rust_core,api
+description: |
+  Rust core written (CI builds it cross-platform); pure-Python fallback
+  with identical contract runs anywhere. FastAPI backend complete with
+  37/37 tests green on Windows (no compiler, no secrets).
+artifacts: [rust_core/, api/, tests/]
+reversible: true
+rollback: git revert HEAD
