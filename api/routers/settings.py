@@ -49,7 +49,7 @@ async def get_settings(_=Depends(verify_session)) -> dict:
         )
     return {
         "active_llm_provider": os.getenv("ACTIVE_LLM_PROVIDER", "anthropic"),
-        "hermes_max_children": int(os.getenv("HERMES_MAX_CHILDREN", "10")),
+        "operator_max_children": int(os.getenv("HERMES_MAX_CHILDREN", "10")),
         "demo_mode": os.getenv("NEXT_PUBLIC_DEMO_MODE", "true") == "true",
         "keys": keys,
         "integrations": integrations.status(),

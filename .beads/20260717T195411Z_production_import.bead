@@ -1,0 +1,9 @@
+operation: production_monorepo_import
+status: prepared
+base_branch: main
+target_branch: agent/production-import
+source: buffer-blaster-production-ready.zip
+rollback: close PR and delete agent/production-import
+validation:
+  - python -m pytest tests -q
+  - cd frontend && npm ci && npm run build

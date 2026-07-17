@@ -47,7 +47,7 @@ Create /opt/buffer-blaster/.env with these vars (prompt me for each value):
 - SUPABASE_SERVICE_KEY
 - HIGGSFIELD_API_KEY
 - AIRTABLE_API_KEY
-- AIRTABLE_BASE_ID=apptABTHZ91toPYKi
+- AIRTABLE_BASE_ID=AIRTABLE_BASE_ID_PLACEHOLDER
 - APIFY_API_TOKEN
 - SHOPIFY_ADMIN_API_KEY
 - HERMES_PROFILE=buffer-blaster
@@ -190,7 +190,7 @@ To activate: Set AIRTABLE_API_KEY + AIRTABLE_BASE_ID, run `sync_airtable.py`.
 - Check profile IDs are correct for the client
 
 **Airtable sync fails:**
-- Verify base ID: `apptABTHZ91toPYKi`
+- Verify base ID: `AIRTABLE_BASE_ID_PLACEHOLDER`
 - Check table name (script tries "Images" then "Gallery")
 - API token needs `data.records:read` scope
 

@@ -67,7 +67,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-bg-elevated md:flex">
         <div className="px-5 py-6">
           <Link href="/admin/dashboard" className="text-sm font-semibold tracking-tight">
-            Stavarai
+            Console
           </Link>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-text-dim">
             {isDemoMode() ? "demo mode" : "operator console"}
@@ -110,7 +110,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-border px-6 py-4 md:hidden">
-          <span className="text-sm font-semibold">Stavarai</span>
+          <span className="text-sm font-semibold">Console</span>
           <button onClick={handleLogout} className="text-text-dim">
             <LogOut className="h-4 w-4" />
           </button>

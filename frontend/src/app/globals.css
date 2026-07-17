@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ── Stavarai design tokens ───────────────────────────────────
+/* ── Content studio design tokens ───────────────────────────────────
    Dark indigo, editorial. No "AI-powered" purple gradients.
    Inspired by a quiet operations console, not a SaaS landing page.
 */
@@ -36,8 +36,8 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
 }
 
 html {
@@ -84,52 +84,52 @@ body {
 }
 
 /* ── Blog prose (rendered markdown) ─────────────────────────── */
-.prose-stavarai {
+.prose-content {
   color: var(--text-muted);
   font-size: 1.0625rem;
   line-height: 1.75;
 }
-.prose-stavarai > * + * { margin-top: 1.25em; }
-.prose-stavarai h2 {
+.prose-content > * + * { margin-top: 1.25em; }
+.prose-content h2 {
   color: var(--text);
   font-size: 1.5rem;
   font-weight: 600;
   margin-top: 2em;
   letter-spacing: -0.01em;
 }
-.prose-stavarai h3 {
+.prose-content h3 {
   color: var(--text);
   font-size: 1.2rem;
   font-weight: 600;
   margin-top: 1.75em;
 }
-.prose-stavarai a { color: var(--accent-soft); text-decoration: underline; text-underline-offset: 2px; }
-.prose-stavarai a:hover { color: var(--accent); }
-.prose-stavarai strong { color: var(--text); font-weight: 600; }
-.prose-stavarai ul, .prose-stavarai ol { padding-left: 1.4em; }
-.prose-stavarai li { margin-top: 0.4em; }
-.prose-stavarai ul li { list-style: disc; }
-.prose-stavarai ol li { list-style: decimal; }
-.prose-stavarai blockquote {
+.prose-content a { color: var(--accent-soft); text-decoration: underline; text-underline-offset: 2px; }
+.prose-content a:hover { color: var(--accent); }
+.prose-content strong { color: var(--text); font-weight: 600; }
+.prose-content ul, .prose-content ol { padding-left: 1.4em; }
+.prose-content li { margin-top: 0.4em; }
+.prose-content ul li { list-style: disc; }
+.prose-content ol li { list-style: decimal; }
+.prose-content blockquote {
   border-left: 2px solid var(--accent);
   padding-left: 1em;
   color: var(--text);
   font-style: italic;
 }
-.prose-stavarai code {
+.prose-content code {
   background: var(--bg-elevated);
   padding: 0.15em 0.4em;
   border-radius: 4px;
   font-size: 0.9em;
   font-family: var(--font-mono);
 }
-.prose-stavarai pre {
+.prose-content pre {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1em 1.25em;
   overflow-x: auto;
 }
-.prose-stavarai pre code { background: none; padding: 0; }
-.prose-stavarai hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+.prose-content pre code { background: none; padding: 0; }
+.prose-content hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
 
