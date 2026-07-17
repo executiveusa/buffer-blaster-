@@ -196,7 +196,7 @@ export default function LandingPage() {
             let’s talk.
           </p>
           <Link
-            href="mailto:hello@stavarai.example.com"
+            href="mailto:hello@example.com"
             className="mt-8 inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-dim"
           >
             Get in touch
@@ -209,7 +209,7 @@ export default function LandingPage() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 py-10 sm:flex-row">
           <p className="text-xs text-text-dim">
-            © {new Date().getFullYear()} Stavarai. Content operations.
+            © {new Date().getFullYear()} Social Content Studio. Content operations.
           </p>
           <div className="flex items-center gap-6">
             <Link href="/blog" className="text-xs text-text-dim transition hover:text-text">

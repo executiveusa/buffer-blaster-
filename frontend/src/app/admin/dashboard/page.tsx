@@ -13,7 +13,7 @@ import {
 import { getDashboard, type DashboardData } from "@/lib/api";
 import { DEMO_CLIENTS, NICHE_LABELS } from "@/lib/demo-data";
 
-const ONBOARDING_KEY = "stavarai_onboarding_done";
+const ONBOARDING_KEY = "operator_onboarding_done";
 
 const ONBOARDING_STEPS = [
   "Connect your AI provider in Settings",

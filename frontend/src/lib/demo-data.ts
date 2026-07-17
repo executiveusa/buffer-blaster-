@@ -104,7 +104,7 @@ export const DEMO_CONTENT: ContentUnit[] = [
 ];
 
 export const DEMO_DASHBOARD = {
-  greeting: "Welcome back, Stavarai.",
+  greeting: "Welcome back, operator.",
   active_clients: DEMO_CLIENTS.length,
   posts_this_week: DEMO_CONTENT.filter((u) => u.status === "approved").length,
   pending_approvals: DEMO_CONTENT.filter((u) => u.status === "pending").length,

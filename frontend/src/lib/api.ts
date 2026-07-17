@@ -18,7 +18,7 @@ import {
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-const TOKEN_KEY = "stavarai_token";
+const TOKEN_KEY = "operator_session_token";
 
 export function isDemoMode(): boolean {
   return DEMO_MODE;
@@ -120,7 +120,7 @@ export interface SettingKey {
 
 export interface SettingsData {
   active_llm_provider: string;
-  hermes_max_children: number;
+  operator_max_children: number;
   demo_mode: boolean;
   keys: SettingKey[];
 }
@@ -129,7 +129,7 @@ export async function getSettings(): Promise<SettingsData> {
   if (DEMO_MODE) {
     return {
       active_llm_provider: "anthropic",
-      hermes_max_children: 10,
+      operator_max_children: 10,
       demo_mode: true,
       keys: [
         { label: "Anthropic API Key", env: "ANTHROPIC_API_KEY", masked: "", configured: false },
