@@ -1,0 +1,46 @@
+name: Build Rust Core
+
+on:
+  pull_request:
+    paths:
+      - "rust_core/**"
+      - ".github/workflows/build-core.yml"
+  push:
+    branches: [main]
+    paths:
+      - "rust_core/**"
+      - ".github/workflows/build-core.yml"
+
+jobs:
+  rust-core:
+    name: Rust core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: rust_core/stavarai_core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust_core/stavarai_core
+      - name: Build
+        run: cargo build --release
+      - name: Test
+        run: cargo test
+      - name: Collect Linux shared library
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir -p ../../rust_core/native
+          cp target/release/libstavarai_core.so ../../rust_core/native/libstavarai_core.so
+      - name: Upload Linux shared-library artifact
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: libstavarai_core-linux-x86_64
+          path: rust_core/native/libstavarai_core.so

@@ -5,6 +5,7 @@
 //! For persistence across restarts, snapshot via [`JobQueue::snapshot`] and
 //! restore on boot — left as an exercise for the VPS deployment.
 
+use base64::Engine;
 use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};

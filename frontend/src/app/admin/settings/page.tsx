@@ -134,10 +134,10 @@ export default function SettingsPage() {
 
         {tab === "agent" && (
           <div className="space-y-4">
-            <SettingRow label="Hermes profile" value="stavarai-platform" />
+            <SettingRow label="Operator profile" value="content-ops-console" />
             <SettingRow
               label="Max concurrent children"
-              value={String(data.hermes_max_children)}
+              value={String(data.operator_max_children)}
             />
             <SettingRow
               label="Operating mode"
@@ -167,7 +167,7 @@ export default function SettingsPage() {
           <div className="space-y-3">
             <KeyList
               title="Voice Control"
-              description="Telegram bot + Meta glasses webhook. Only Stavarai’s user ID gets a response."
+              description="Telegram bot + Meta glasses webhook. Only the approved operator user ID gets a response."
               keys={data.keys.filter((k) => k.env === "TELEGRAM_BOT_TOKEN")}
               testing={testing}
               testResults={testResults}

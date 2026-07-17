@@ -2,7 +2,7 @@ import { getAllPosts } from "@/lib/blog";
 
 export const dynamic = "force-static";
 
-const SITE = "https://stavarai.example.com";
+const SITE = "https://example.com";
 
 export async function GET() {
   const posts = getAllPosts();
@@ -22,7 +22,7 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title>Stavarai — Field Notes</title>
+    <title>Field Notes</title>
     <link>${SITE}/blog</link>
     <description>Shopify growth, social strategy, and what actually converts.</description>
     <language>en-us</language>

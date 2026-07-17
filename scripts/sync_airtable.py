@@ -12,7 +12,7 @@ Usage:
 
 Env vars required:
     AIRTABLE_API_KEY
-    AIRTABLE_BASE_ID (default: apptABTHZ91toPYKi)
+    AIRTABLE_BASE_ID (default: AIRTABLE_BASE_ID_PLACEHOLDER)
     SUPABASE_URL
     SUPABASE_SERVICE_KEY
     GITHUB_TOKEN (for auto-commit)
@@ -30,9 +30,9 @@ from datetime import datetime
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
-AIRTABLE_BASE_ID = os.getenv("AIRTABLE_BASE_ID", "apptABTHZ91toPYKi")
+AIRTABLE_BASE_ID = os.getenv("AIRTABLE_BASE_ID", "AIRTABLE_BASE_ID_PLACEHOLDER")
 AIRTABLE_API_KEY = os.getenv("AIRTABLE_API_KEY", "")
-AIRTABLE_VIEW_ID = "shrncEgdjoHVI0G8w"  # gallery view from the provided URL
+AIRTABLE_VIEW_ID = "AIRTABLE_VIEW_ID_PLACEHOLDER"  # gallery view from the provided URL
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")

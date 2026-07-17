@@ -45,11 +45,11 @@ FIRECRAWL_API_KEY=                 # firecrawl.dev → Dashboard
 
 ### Client Data
 AIRTABLE_API_KEY=                  # airtable.com → Developer Hub → Personal tokens
-AIRTABLE_BASE_ID=apptABTHZ91toPYKi # Gallery base
+AIRTABLE_BASE_ID=AIRTABLE_BASE_ID_PLACEHOLDER # Gallery base
 
 ### Voice Control
 TELEGRAM_BOT_TOKEN=                # From @BotFather
-TELEGRAM_USER_ID=                  # Stavarai's Telegram user ID (integer)
+TELEGRAM_USER_ID=                  # the operator's Telegram user ID (integer)
 VISIONCLAW_WEBHOOK_SECRET=         # Shared secret for VisionClaw webhook auth
 
 ### Email (for approval notifications)

@@ -87,7 +87,7 @@ export default async function BlogPostPage({
         <p className="mt-4 text-text-muted">By {post.author}</p>
 
         <div
-          className="prose-stavarai mt-10"
+          className="prose-content mt-10"
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
 
