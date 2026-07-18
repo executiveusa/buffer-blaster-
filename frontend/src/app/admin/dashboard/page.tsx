@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -25,10 +25,24 @@ const ONBOARDING_STEPS = [
   "Watch the flywheel learn",
 ];
 
+const subscribeToOnboarding = (callback: () => void) => {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
+
+const onboardingDoneSnapshot = () =>
+  localStorage.getItem(ONBOARDING_KEY) === "1";
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [dismissedThisSession, setDismissedThisSession] = useState(false);
+  const onboardingDone = useSyncExternalStore(
+    subscribeToOnboarding,
+    onboardingDoneSnapshot,
+    () => true,
+  );
+  const showOnboarding = !onboardingDone && !dismissedThisSession;
 
   useEffect(() => {
     getDashboard()
@@ -36,16 +50,9 @@ export default function DashboardPage() {
       .catch((e) => setError(e.message));
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!localStorage.getItem(ONBOARDING_KEY)) {
-      setShowOnboarding(true);
-    }
-  }, []);
-
   function dismissOnboarding() {
     localStorage.setItem(ONBOARDING_KEY, "1");
-    setShowOnboarding(false);
+    setDismissedThisSession(true);
   }
 
   if (error) {
@@ -73,7 +80,6 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      {/* Onboarding overlay */}
       {showOnboarding && (
         <div className="mb-8 rounded-xl border border-accent/30 bg-accent/5 p-6">
           <div className="flex items-start justify-between">
@@ -106,13 +112,11 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Greeting */}
       <h1 className="text-2xl font-semibold tracking-tight">{data.greeting}</h1>
       <p className="mt-1 text-sm text-text-muted">
         Here’s where your content stands today.
       </p>
 
-      {/* Stats */}
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map((s) => {
           const Icon = s.icon;
@@ -131,7 +135,6 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Clients */}
       <div className="mt-10">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium">Clients</h2>
