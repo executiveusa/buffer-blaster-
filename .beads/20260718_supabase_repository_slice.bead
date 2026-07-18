@@ -1,0 +1,17 @@
+operation: supabase_repository_slice
+status: prepared
+base_commit: 74bef7d49156b415d69589186f9779bf77d22deb
+target_branch: agent/supabase-repositories
+objective: persist clients and approval content through Supabase when configured while preserving demo fallback
+scope:
+  - client repository
+  - content repository
+  - route integration
+  - unit tests with fake Supabase clients
+prohibited:
+  - pipeline worker changes
+  - publishing changes
+  - production migrations
+rollback: close PR and delete agent/supabase-repositories
+validation:
+  - python -m pytest tests -q
