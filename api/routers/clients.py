@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 
 from ..deps import verify_session
-from ..services import demo
 from ..db import client_isolation
+from ..db.repositories import clients as client_repository
 
 router = APIRouter(prefix="/api/admin/clients", tags=["clients"])
 
@@ -50,30 +50,24 @@ def _schema_name(slug: str) -> str:
 
 @router.get("")
 async def list_clients(_=Depends(verify_session)) -> dict:
-    return {"clients": demo.list_clients(), "total": len(demo.list_clients())}
+    items = client_repository.list()
+    return {"clients": items, "total": len(items)}
 
 
 @router.post("", status_code=201)
 async def create_client(payload: ClientCreate, _=Depends(verify_session)) -> dict:
     schema = _schema_name(payload.slug)
-    # Verify the sanitization contract holds (defence-in-depth — the regex
-    # validator already restricts slug, but the isolation function must still
-    # produce a safe identifier for any caller).
     if not re.match(r"^schema_[a-z0-9_]+$", schema):
         raise HTTPException(status_code=400, detail="invalid slug")
 
-    # In production this calls the SQL function in the client's Supabase.
-    client_isolation.create_client_schema(payload.slug)
-
-    client = demo.add_client(
-        name=payload.name, niche=payload.niche, slug=payload.slug, schema=schema
+    return client_repository.create(
+        name=payload.name, niche=payload.niche, slug=payload.slug
     )
-    return client
 
 
 @router.get("/{slug}")
 async def get_client(slug: str, _=Depends(verify_session)) -> dict:
-    client = demo.get_client(slug)
+    client = client_repository.get(slug)
     if not client:
         raise HTTPException(status_code=404, detail="client not found")
     return client
