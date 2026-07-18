@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -24,29 +24,30 @@ const NAV = [
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 
+const subscribeToToken = (callback: () => void) => {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
+
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
+  const token = useSyncExternalStore(subscribeToToken, getToken, () => null);
 
   useEffect(() => {
-    // The gate page itself must render without a token.
     if (pathname === "/admin") {
-      if (getToken()) router.replace("/admin/dashboard");
-      setReady(true);
+      if (token) router.replace("/admin/dashboard");
       return;
     }
-    if (!getToken()) {
-      router.replace("/admin");
-      return;
-    }
-    setReady(true);
-  }, [pathname, router]);
+    if (!token) router.replace("/admin");
+  }, [pathname, router, token]);
 
   function handleLogout() {
     clearToken();
     router.replace("/admin");
   }
+
+  const ready = pathname === "/admin" || Boolean(token);
 
   if (!ready) {
     return (
@@ -56,14 +57,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     );
   }
 
-  // The gate page renders standalone (no chrome).
   if (pathname === "/admin") {
     return <>{children}</>;
   }
 
   return (
     <div className="flex flex-1">
-      {/* Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-bg-elevated md:flex">
         <div className="px-5 py-6">
           <Link href="/admin/dashboard" className="text-sm font-semibold tracking-tight">
@@ -107,7 +106,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-border px-6 py-4 md:hidden">
           <span className="text-sm font-semibold">Console</span>

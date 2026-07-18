@@ -1,26 +1,37 @@
-"""LLM adapter — model-agnostic provider switching.
-
-The platform never hardcodes a model. `chat()` routes to whichever provider is
-active (ACTIVE_LLM_PROVIDER). On the VPS, install the provider SDK and the
-matching branch activates; in dev it returns a clear stub.
-"""
+"""LLM adapter — provider and model selection are configuration-driven."""
 from __future__ import annotations
 
 import os
 
 PROVIDERS = ("anthropic", "openai", "google", "ollama")
+MODEL_ENV_BY_PROVIDER = {
+    "anthropic": "ANTHROPIC_MODEL",
+    "openai": "OPENAI_MODEL",
+    "google": "GOOGLE_MODEL",
+    "ollama": "OLLAMA_MODEL",
+}
 
 
 def active_provider() -> str:
-    return os.getenv("ACTIVE_LLM_PROVIDER", "anthropic")
+    provider = os.getenv("ACTIVE_LLM_PROVIDER", "anthropic")
+    if provider not in PROVIDERS:
+        raise ValueError(f"unknown provider: {provider}")
+    return provider
+
+
+def active_model(provider: str | None = None) -> str:
+    selected_provider = provider or active_provider()
+    if selected_provider not in PROVIDERS:
+        raise ValueError(f"unknown provider: {selected_provider}")
+    env_name = MODEL_ENV_BY_PROVIDER[selected_provider]
+    model = os.getenv(env_name)
+    if not model:
+        raise RuntimeError(f"{env_name} is required for provider {selected_provider}")
+    return model
 
 
 async def chat(prompt: str, *, system: str = "", max_tokens: int = 1024) -> str:
-    """Send a chat completion to the active LLM provider.
-
-    Returns the assistant's text. In dev (no key set) it returns a stub so the
-    pipeline can be exercised end-to-end without burning tokens.
-    """
+    """Send a chat completion to the configured provider and model."""
     provider = active_provider()
     key = os.getenv(f"{provider.upper()}_API_KEY") if provider != "ollama" else "set"
 
@@ -30,20 +41,27 @@ async def chat(prompt: str, *, system: str = "", max_tokens: int = 1024) -> str:
             f"to enable live generation. Prompt was: {prompt[:80]}…"
         )
 
-    # On the VPS, dispatch to the real SDK. Kept here so the contract is clear.
+    model = active_model(provider)
     if provider == "anthropic":
-        return await _anthropic(prompt, system, max_tokens, key)
+        return await _anthropic(prompt, system, max_tokens, key, model)
     if provider == "openai":
-        return await _openai(prompt, system, max_tokens, key)
+        return await _openai(prompt, system, max_tokens, key, model)
     if provider == "google":
-        return await _google(prompt, system, max_tokens, key)
+        return await _google(prompt, system, max_tokens, key, model)
     if provider == "ollama":
-        return await _ollama(prompt, system, max_tokens)
+        return await _ollama(prompt, system, max_tokens, model)
     raise ValueError(f"unknown provider: {provider}")
 
 
-async def _anthropic(prompt: str, system: str, max_tokens: int, key: str) -> str:
+async def _anthropic(
+    prompt: str,
+    system: str,
+    max_tokens: int,
+    key: str,
+    model: str,
+) -> str:
     import httpx
+
     async with httpx.AsyncClient() as client:
         r = await client.post(
             "https://api.anthropic.com/v1/messages",
@@ -53,7 +71,7 @@ async def _anthropic(prompt: str, system: str, max_tokens: int, key: str) -> str
                 "content-type": "application/json",
             },
             json={
-                "model": "claude-3-5-sonnet-latest",
+                "model": model,
                 "max_tokens": max_tokens,
                 "system": system,
                 "messages": [{"role": "user", "content": prompt}],
@@ -64,14 +82,21 @@ async def _anthropic(prompt: str, system: str, max_tokens: int, key: str) -> str
         return r.json()["content"][0]["text"]
 
 
-async def _openai(prompt: str, system: str, max_tokens: int, key: str) -> str:
+async def _openai(
+    prompt: str,
+    system: str,
+    max_tokens: int,
+    key: str,
+    model: str,
+) -> str:
     import httpx
+
     async with httpx.AsyncClient() as client:
         r = await client.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {key}"},
             json={
-                "model": "gpt-4o",
+                "model": model,
                 "max_tokens": max_tokens,
                 "messages": [
                     {"role": "system", "content": system},
@@ -84,13 +109,19 @@ async def _openai(prompt: str, system: str, max_tokens: int, key: str) -> str:
         return r.json()["choices"][0]["message"]["content"]
 
 
-async def _google(prompt: str, system: str, max_tokens: int, key: str) -> str:
-    # Minimal Gemini text call.
+async def _google(
+    prompt: str,
+    system: str,
+    max_tokens: int,
+    key: str,
+    model: str,
+) -> str:
     import httpx
+
     async with httpx.AsyncClient() as client:
         r = await client.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-1.5-pro:generateContent?key={key}",
+            f"{model}:generateContent?key={key}",
             json={
                 "contents": [{"parts": [{"text": f"{system}\n\n{prompt}"}]}],
                 "generationConfig": {"maxOutputTokens": max_tokens},
@@ -101,14 +132,25 @@ async def _google(prompt: str, system: str, max_tokens: int, key: str) -> str:
         return r.json()["candidates"][0]["content"]["parts"][0]["text"]
 
 
-async def _ollama(prompt: str, system: str, max_tokens: int) -> str:
+async def _ollama(
+    prompt: str,
+    system: str,
+    max_tokens: int,
+    model: str,
+) -> str:
     import httpx
+
     base = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     async with httpx.AsyncClient() as client:
         r = await client.post(
             f"{base}/api/generate",
-            json={"model": "llama3", "prompt": prompt, "system": system,
-                  "stream": False, "options": {"num_predict": max_tokens}},
+            json={
+                "model": model,
+                "prompt": prompt,
+                "system": system,
+                "stream": False,
+                "options": {"num_predict": max_tokens},
+            },
             timeout=120,
         )
         r.raise_for_status()
