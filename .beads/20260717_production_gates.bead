@@ -1,0 +1,12 @@
+operation: production_gate_hardening
+status: in_review
+base_branch: main
+target_branch: agent/production-gates
+scope:
+  - fix frontend lint failures
+  - enforce frontend lint in CI
+  - move provider model IDs to environment configuration
+rollback: close the PR and delete agent/production-gates
+validation:
+  - python -m pytest tests -q
+  - cd frontend && npm ci && npm run lint && npm run build
