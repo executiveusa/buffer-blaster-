@@ -1,4 +1,9 @@
-fastapi==0.115.0
+# Pinned to a mutually compatible set. The dependabot bump pulled starlette
+# to 1.x, which broke fastapi 0.115 (Router no longer accepts on_startup).
+# FastAPI 0.123+ supports starlette 1.x. Starlette is pinned explicitly so a
+# future transitive bump can't silently break the test suite again.
+fastapi==0.123.0
+starlette>=0.45.0,<2.0
 uvicorn[standard]==0.30.0
 pydantic==2.8.0
 supabase==2.7.0

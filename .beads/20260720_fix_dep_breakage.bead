@@ -1,0 +1,17 @@
+timestamp: 2026-07-20T00:00:00Z
+action: fix-dep-breakage
+scope: api
+description: |
+  Dependabot PR #1 bumped transitive deps and pulled starlette to 1.x,
+  which is incompatible with the pinned fastapi==0.115.0 (Router.__init__
+  no longer accepts on_startup). Test suite was broken on main.
+  Fix: pin fastapi==0.123.0 (starlette 1.x compatible) + explicit
+  starlette>=0.45.0,<2.0 range to prevent future silent drift.
+  Also cleaned dead code in api/__init__.py (leftover from the
+  app.py refactor — nothing imports `api` directly, all use api.app).
+verification:
+  - python -m pytest tests -q -> 46 passed
+  - npm run lint -> clean
+  - npm run build -> 22 routes, 0 errors
+reversible: true
+rollback: git revert HEAD
