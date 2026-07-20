@@ -1,0 +1,13 @@
+timestamp: 2026-07-20T22:00:00Z
+action: postatees-deploy-scripts
+scope: scripts,docs
+description: |
+  VPS-side deploy scripts for the Postatees brand:
+  - setup-postatees.sh: user, deps, rust build, db role, venv, env template, systemd
+  - deploy-frontend-vercel.sh: Vercel project + env + deploy
+  - print-supabase-key.sh: locate the self-hosted Supabase service key
+  - docs/POSTATEES_DEPLOY.md: 10-step runbook, one command at a time
+  Architecture locked: Vercel frontend + VPS backend + existing Postgres :5434.
+  Postatees user isolates from other brands on the box.
+reversible: true
+rollback: rm scripts/setup-postatees.sh scripts/deploy-frontend-vercel.sh scripts/print-supabase-key.sh docs/POSTATEES_DEPLOY.md
