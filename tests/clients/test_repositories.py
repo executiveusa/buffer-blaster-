@@ -50,9 +50,11 @@ class FakeClient:
         return query
 
 
-def test_client_repository_uses_public_clients_when_configured(monkeypatch):
+def test_client_repository_uses_platform_schema_when_configured(monkeypatch):
+    """ClientRepository reads from the dedicated platform schema (postatees_stavarai),
+    not from public.* — which is shared with other apps on the box."""
     fake = FakeClient({"clients": [{"slug": "brand-a", "name": "Brand A"}]})
-    monkeypatch.setattr(repositories, "get_client", lambda: fake)
+    monkeypatch.setattr(repositories, "_platform_client", lambda: fake)
 
     rows = repositories.ClientRepository().list()
 
@@ -61,30 +63,33 @@ def test_client_repository_uses_public_clients_when_configured(monkeypatch):
 
 
 def test_content_repository_scopes_query_to_client_schema(monkeypatch):
-    public = FakeClient({"clients": [{"slug": "brand-a", "name": "Brand A"}]})
+    """Per-client content reads go through a schema-scoped client (namespaced
+    under postatees_stavarai.schema_{slug})."""
+    platform = FakeClient({"clients": [{"slug": "brand-a", "name": "Brand A"}]})
     isolated = FakeClient({"content_units": [{"id": "unit-1", "status": "pending"}]})
-    monkeypatch.setattr(repositories, "get_client", lambda: public)
+    monkeypatch.setattr(repositories, "_platform_client", lambda: platform)
     monkeypatch.setattr(repositories, "is_configured", lambda: True)
     monkeypatch.setattr(repositories, "_schema_client", lambda schema: isolated)
 
     result = repositories.ContentRepository().list_for_client("brand-a")
 
     schema, rows = result
-    assert schema == "schema_brand_a"
+    # Namespaced per-client schema name (postatees_stavarai.schema_brand_a)
+    assert schema == "postatees_stavarai.schema_brand_a"
     assert rows == [
         {
             "id": "unit-1",
             "status": "pending",
             "client_slug": "brand-a",
-            "schema": "schema_brand_a",
+            "schema": "postatees_stavarai.schema_brand_a",
         }
     ]
     assert isolated.queries[0][0] == "content_units"
 
 
 def test_missing_client_never_queries_another_schema(monkeypatch):
-    public = FakeClient({"clients": []})
-    monkeypatch.setattr(repositories, "get_client", lambda: public)
+    platform = FakeClient({"clients": []})
+    monkeypatch.setattr(repositories, "_platform_client", lambda: platform)
     monkeypatch.setattr(repositories, "is_configured", lambda: True)
 
     assert repositories.ContentRepository().list_for_client("missing") is None
