@@ -9,14 +9,14 @@
 ```
 Browser ──HTTPS──► <project>.vercel.app   (Vercel, Next.js)
                        │
-                       └─HTTP──► 31.220.58.212:8001   (FastAPI + Rust on this VPS)
+                       └─HTTP──► 31.220.58.212:8002   (FastAPI + Rust on this VPS)
                                     │
-                                    └─► 127.0.0.1:5434  (existing Postgres in Docker)
+                                    └─► 127.0.0.1:8001  (Supabase Kong gateway → Postgres)
 ```
 
 - Frontend on Vercel (auto-HTTPS, free tier)
-- Backend on the Postatees VPS (FastAPI + Rust core, port 8001)
-- Database in the existing self-hosted Supabase Postgres (new dedicated `postatees_stavarai` DB)
+- Backend on the Postatees VPS (FastAPI + Rust core, **port 8002** — 8000/8001/8080 are taken by the existing Supabase + Docker services)
+- Database = the **existing self-hosted Supabase stack** (no new DB created). The platform isolates per-client via schemas (`schema_{slug}`) inside the existing `postgres` DB
 - Linux user `postatees` isolates all of this from your nephew's other brands
 
 ## Prerequisites (you have all of these)
@@ -47,18 +47,19 @@ ls /root/buffer-blaster/scripts/
 
 ## Step 2 — Run the VPS-side setup (the big one, ~6 min)
 
-This single script does: create the `postatees` user, install Rust + build tools, clone the repo into `/home/postatees/`, build the Rust core, set up Python venv, build the frontend locally as a sanity check, write the `.env` template, create the dedicated DB + role, install the systemd unit. **Idempotent — safe to re-run if it fails partway.**
+This single script does: create the `postatees` user, install Rust + build tools, clone the repo into `/home/postatees/`, verify the existing Supabase stack, build the Rust core, set up Python venv, build the frontend locally as a sanity check, write the `.env` template, install the systemd unit. **Idempotent — safe to re-run if it fails partway.**
 
 ```bash
 bash /root/buffer-blaster/scripts/setup-postatees.sh
 ```
 
 What to watch for:
+- `supabase-db container found` → confirms the DB layer is up
 - `cargo test` step → all tests must pass. If any fail, **stop**.
 - `cargo build --release` → ~4 minutes. Normal.
 - `.env written to /home/postatees/stavarai-platform/api/.env (chmod 600)` → success.
 
-At the end it prints a summary with the auto-generated DB password. **Copy that summary somewhere safe** — the DB password is in the `.env` file but the summary is a useful sanity reference.
+**If you're re-running after the port-8002 fix:** pull the updated script first (`cd /root/buffer-blaster && git pull`), then re-run. It will skip the user creation, skip the Rust install (already done), skip the repo clone (already done), and pick up at the Supabase check + Rust build + systemd unit install.
 
 ---
 
@@ -102,21 +103,19 @@ Leave the rest alone — the DB URL, password, ports, and master key were auto-g
 
 ## Step 5 — Apply the database migrations
 
-The repo ships migrations in `supabase/migrations/`. Apply them via the Postgres connection we just set up. From the repo root on the VPS:
+The repo ships migrations in `supabase/migrations/`. They apply to the existing `postgres` DB inside the `supabase-db` container (per-client isolation happens via schemas, not separate databases).
 
 ```bash
 cd /root/buffer-blaster
-source /home/postatees/stavarai-platform/api/.env  # picks up DATABASE_URL
-# Apply migrations in order
 for f in supabase/migrations/0*.sql; do
   echo "→ applying $f..."
-  psql "$DATABASE_URL" -f "$f" || docker exec -i $(docker ps --format '{{.Names}}' | grep -iE 'postgres|supabase-db' | head -1) psql -U postgres -d postatees_stavarai -f "$f"
+  docker exec -i supabase-db psql -U postgres -d postgres < "$f"
 done
 ```
 
-If `psql` isn't on the host, the `docker exec` fallback runs them inside the Postgres container.
-
 Expected: 4 migrations apply (`001_initial_schema`, `002_client_isolation`, `003_seed_demo`, `004_blog_posts`) with no errors.
+
+If `003_seed_demo` calls `create_client_schema()` and succeeds, the isolation layer works — you'll see `schema_cella_coffee` and `schema_lumen_skincare` get created.
 
 ---
 
@@ -131,7 +130,7 @@ systemctl status postatees-stavarai-api --no-pager | head -20
 Should show `active (running)`. Then:
 
 ```bash
-curl http://31.220.58.212:8001/api/health
+curl http://31.220.58.212:8002/api/health
 ```
 
 Expected response:
@@ -148,18 +147,18 @@ tail -f /var/log/postatees-stavarai-api.log
 
 ---
 
-## Step 7 — Open the firewall for port 8001 (if needed)
+## Step 7 — Open the firewall for port 8002 (if needed)
 
 Hostinger's default usually leaves ports open, but if `curl` from your laptop times out:
 
 ```bash
 ufw status
-ufw allow 8001/tcp
+ufw allow 8002/tcp
 ```
 
 Then test from your Windows PowerShell:
 ```powershell
-curl http://31.220.58.212:8001/api/health
+curl http://31.220.58.212:8002/api/health
 ```
 
 ---
@@ -173,7 +172,7 @@ export VERCEL_TOKEN=vcp_one_of_your_vercel_tokens
 bash /root/buffer-blaster/scripts/deploy-frontend-vercel.sh
 ```
 
-This creates the Vercel project, sets env vars (`NEXT_PUBLIC_DEMO_MODE=false`, `NEXT_PUBLIC_API_URL=http://31.220.58.212:8001`), and deploys. Output gives you the `https://<project>.vercel.app` URL.
+This creates the Vercel project, sets env vars (`NEXT_PUBLIC_DEMO_MODE=false`, `NEXT_PUBLIC_API_URL=http://31.220.58.212:8002`), and deploys. Output gives you the `https://<project>.vercel.app` URL.
 
 ---
 
@@ -210,10 +209,10 @@ description: |
   - User: postatees (isolated)
   - App: /home/postatees/stavarai-platform
   - DB: postatees_stavarai on existing Postgres :5434
-  - API: FastAPI + Rust core on :8001 (systemd: postatees-stavarai-api)
+  - API: FastAPI + Rust core on :8002 (systemd: postatees-stavarai-api)
   - Frontend: Vercel (separate)
 verification:
-  - curl http://31.220.58.212:8001/api/health → core=rust
+  - curl http://31.220.58.212:8002/api/health → core=rust
 reversible: true
 rollback:
   - systemctl stop postatees-stavarai-api

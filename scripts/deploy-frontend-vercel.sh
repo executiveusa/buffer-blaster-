@@ -59,7 +59,7 @@ ok "linked to Vercel project"
 hdr "4/4  ENV + DEPLOY"
 
 VPS_IP="${VPS_IP:-31.220.58.212}"
-API_PORT="${API_PORT:-8001}"
+API_PORT="${API_PORT:-8002}"
 API_URL="http://$VPS_IP:$API_PORT"
 
 info "setting Vercel env vars..."

@@ -26,13 +26,14 @@ APP_USER="postatees"
 APP_HOME="/home/$APP_USER"
 APP_DIR="$APP_HOME/stavarai-platform"
 REPO_URL="https://github.com/executiveusa/buffer-blaster-.git"
-API_PORT=8001               # :8000 is already in use by another docker service
-DB_HOST="127.0.0.1"
-DB_PORT=5434                # existing self-hosted Postgres
-DB_NAME="postatees_stavarai"
-DB_USER="postatees_stavarai"
-DB_PASS="postatees_$(head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)"
+API_PORT=8002               # 8000 = docker, 8001 = supabase-kong, 8080 = docker → 8002
 VPS_IP="31.220.58.212"
+# Supabase self-hosted: Kong gateway on :8001 serves the REST API.
+# We use the EXISTING postgres DB (no new database — per-client isolation
+# happens at the schema level via create_client_schema()).
+SUPABASE_API_URL="http://127.0.0.1:8001"
+DB_HOST="127.0.0.1"
+DB_PORT=5434                # Supavisor pooler → real Postgres in supabase-db
 
 # ── Pretty output ────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; BOLD='\033[1m'; NC='\033[0m'
@@ -94,35 +95,30 @@ else
   ok "repo cloned"
 fi
 
-# ── 4. Dedicated DB + role in the existing Postgres ──────────
-hdr "4/9  DATABASE"
-info "creating database '$DB_NAME' + role '$DB_USER' in Postgres on :$DB_PORT..."
-# Find the postgres superuser container / connection.
-# Strategy: try psql on the host first (Postgres in Docker often exposes psql via the container),
-# fall back to docker exec into the postgres container.
-PSQL="psql -h $DB_HOST -p $DB_PORT -U postgres"
+# ── 4. Verify the existing Supabase stack is reachable ──────
+hdr "4/9  DATABASE (existing Supabase)"
+info "checking the self-hosted Supabase stack..."
+# We do NOT create a separate database. The platform isolates per-client via
+# schemas inside the existing `postgres` DB (see 002_client_isolation.sql).
+# We just need to confirm Supabase is up and find the container for migrations.
+PG_CONTAINER=$(docker ps --format '{{.Names}}' | grep -xE 'supabase-db' | head -1)
+if [ -z "$PG_CONTAINER" ]; then
+  fail "supabase-db container not running. Start the Supabase stack first."
+fi
+ok "supabase-db container found: $PG_CONTAINER"
 
-if command -v psql &>/dev/null && $PSQL -c 'SELECT 1' &>/dev/null; then
-  PG_OK=1
-elif docker ps --format '{{.Names}}' | grep -qiE 'postgres|supabase'; then
-  PG_CONTAINER=$(docker ps --format '{{.Names}}' | grep -iE 'postgres|supabase' | grep -iE 'db|postgres' | head -1)
-  [ -z "$PG_CONTAINER" ] && PG_CONTAINER=$(docker ps --format '{{.Names}}' | grep -iE 'postgres|supabase' | head -1)
-  PSQL="docker exec -i $PG_CONTAINER psql -U postgres"
-  PG_OK=1
+# Verify Postgres responds
+if docker exec "$PG_CONTAINER" psql -U postgres -c 'SELECT 1' >/dev/null 2>&1; then
+  ok "postgres responds inside $PG_CONTAINER"
 else
-  warn "could not find a Postgres to connect to. Skipping DB creation."
-  warn "You'll need to create database '$DB_NAME' + role '$DB_USER' manually."
-  PG_OK=0
+  fail "postgres not responding in $PG_CONTAINER. Check the Supabase stack."
 fi
 
-if [ "$PG_OK" = "1" ]; then
-  # idempotent role creation (Postgres has no CREATE ROLE IF NOT EXISTS)
-  $PSQL -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" | grep -q 1 || \
-    $PSQL -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
-  $PSQL -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1 || \
-    $PSQL -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
-  $PSQL -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" >/dev/null
-  ok "database '$DB_NAME' + role '$DB_USER' ready"
+# Probe the Kong gateway (REST API) — non-fatal if it's down, migrations use direct psql
+if curl -sf "$SUPABASE_API_URL/rest/v1/" -H 'apikey: placeholder' >/dev/null 2>&1; then
+  ok "supabase Kong gateway responding on :8001"
+else
+  warn "Kong gateway not reachable on $SUPABASE_API_URL — will use direct psql for migrations"
 fi
 
 # ── 5. Build the Rust core (this is the slow step, ~4 min) ──
@@ -186,10 +182,12 @@ PLATFORM_NAME=Stavarai
 DEMO_PASSWORD=BLASTER2026
 MASTER_ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)
 
-# Database (auto-configured by this script — don't change unless you rotated)
-SUPABASE_URL=http://$DB_HOST:$DB_PORT
+# Database — uses the EXISTING self-hosted Supabase stack on this VPS.
+# Kong gateway on :8001 serves the REST API; Supavisor pooler on :5434 routes
+# to the real Postgres in supabase-db. Per-client isolation happens at the
+# schema level via create_client_schema() — no separate DB needed.
+SUPABASE_URL=$SUPABASE_API_URL
 SUPABASE_SERVICE_KEY=REPLACE_ME        # ← run scripts/print-supabase-key.sh after this
-DATABASE_URL=postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME
 
 # LLM provider (pick ONE — set its key, blank the others)
 ACTIVE_LLM_PROVIDER=anthropic
