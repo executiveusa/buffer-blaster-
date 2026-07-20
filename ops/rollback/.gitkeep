@@ -1,0 +1,13 @@
+# Per-phase rollback contracts. One <phase-id>.json per phase. Schema:
+# {
+#   "phase_id": "...",
+#   "baseline_main_sha": "...",
+#   "deployment_id": "...",
+#   "schema_version": "...",
+#   "backup_id": "...|none",
+#   "affected_services": [...],
+#   "feature_flags": {...},
+#   "rollback_commands": ["...", "..."],
+#   "data_loss_risk": "none|low|high",
+#   "tested": true
+# }

@@ -1,0 +1,19 @@
+timestamp: 2026-07-20T12:00:00Z
+action: grinions-scaffold
+scope: governance, tooling
+agent: builder
+description: |
+  Brought the repo up to GRINIONS v1 repo-minimum:
+  - AGENTS.md (operating contract) + EMERALD_TABLETS.md (non-negotiables, 5 tiers)
+  - openspec/ (project.md, specs/production-readiness, changes/add-production-bringup
+    with proposal.md/design.md/tasks.md)
+  - ops/ (reports/, receipts/, rollback/ scaffolds + README)
+  - .ralphy/config.json (bounded-loop config, must-pass gates, never-list)
+  - .github/pull_request_template.md (GRINIONS phase-PR checklist)
+  - scripts/install-tools.sh (global RTK + jcodemunch install + skill registration)
+  - docs/HANDOFF.md updated: read order, Phase A.0 (global tools), live-not-parked
+    workflows, RTK/jcodemunch added to repos table
+verification:
+  - python -m pytest tests -q -> 46 passed
+reversible: true
+rollback: rm -rf AGENTS.md EMERALD_TABLETS.md openspec ops .ralphy && git checkout docs/HANDOFF.md && git revert HEAD
