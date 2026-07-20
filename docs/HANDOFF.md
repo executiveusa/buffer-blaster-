@@ -1,12 +1,23 @@
 # HANDOFF — Stavarai Platform → GPT-5.6 Sol
 
-> Format adapted from `willseltzer/claude-handoff`.
+> Format adapted from `willseltzer/claude-handoff`. Orchestrator: GRINIONS™ v1.
 > Audience: the next agent (you), picking up a working codebase and taking it to production.
 > Read this entire file before writing a single line of code.
 
+## Read order (do not skip)
+
+1. `EMERALD_TABLETS.md` — non-negotiables, overrides everything
+2. `AGENTS.md` — operating contract
+3. `openspec/project.md` + `openspec/changes/add-production-bringup/` — the accepted change spec (truth, not chat history)
+4. `openspec/specs/production-readiness/spec.md` — the durable capability contract
+5. This file — the phase-by-phase TDD roadmap
+6. `.beads/` — the last reversible checkpoint
+
 ---
 
-## 0. Who you are and what you're holding
+## Who you are and what you're holding
+
+---
 
 You are taking over the **Stavarai Platform** — a private, enterprise-grade AI
 content-operations system for a Shopify-brand social media agency. Two young
@@ -39,7 +50,11 @@ buffer blaster/
 ├─ content/blog/    7 original MDX posts, backdated Jun 15 – Jul 6 2026
 ├─ scripts/         client_pipeline.ts (Sandcastle), sync_airtable.py (working)
 ├─ tests/           pytest (37/37 green) + Rust integration tests
-├─ .github/workflows/  build-core.yml + test-api.yml (PARKED — see §7)
+├─ .github/workflows/  build-core.yml + test-api.yml (LIVE on main)
+├─ openspec/         GRINIONS source-of-truth specs (project, changes, capabilities)
+├─ ops/              reports/, receipts/, rollback/ — zero-context handoff artifacts
+├─ AGENTS.md, EMERALD_TABLETS.md  — operating contract + non-negotiables
+├─ scripts/install-tools.sh  — RTK + jcodemunch global install
 ├─ docs/            ALL specs: CLAUDE, PROJECT, SECRETS, TDD_SPEC, BUILT_TO_SELL, etc.
 └─ .beads/          reversible checkpoints (Steve Yegge format)
 ```
@@ -84,9 +99,43 @@ buffer blaster/
 Each item is a **Given/When/Then** spec. Write the failing test FIRST, then
 implement, then prove green, then commit with a bead. Do not skip ahead.
 
+### PHASE A.0 — Install global agent tools (RTK + jcodemunch) — DO THIS FIRST
+
+These install **globally**, so every project the agent touches benefits. Per
+`EMERALD_TABLETS.md` Tier 5, RTK prefixes every CLI command and jcodemunch is
+the default symbol-retrieval layer.
+
+```bash
+# from the repo root, on any agent machine (Linux VPS or macOS dev box)
+bash scripts/install-tools.sh
+```
+
+**RTK** (`github.com/rtk-ai/rtk`) — Rust CLI proxy. Prefix commands:
+`rtk cargo test`, `rtk npm run build`, `rtk python -m pytest`. 60–90% token
+compression on output. Verified by the smoke-test in the installer.
+
+**jcodemunch** (`github.com/jgravelle/jcodemunch-mcp`) — MCP server. Indexes
+the repo via tree-sitter; agents retrieve symbols, not whole files. After
+install: `jcodemunch index` once per session, then query for symbols.
+
+The installer also copies `skills/*` to `~/.hermes/skills` AND
+`~/.claude/skills`, and writes a `grinions-stavarai` skill pointer that tells
+any landing agent to read the repo constitution first.
+
+**Verify before continuing:**
+```bash
+rtk --version                 # present on PATH
+jcodemunch-mcp --help         # present
+ls ~/.hermes/skills           # grill-me, stop-slop, food-beverage, ugc-video, scoring
+```
+
+---
+
 ### PHASE A — VPS bring-up (do this first, unlocks everything)
 
-**A.1 Push the parked CI workflows.** On a machine with `gh auth refresh -s workflow`:
+**A.1 Confirm the CI workflows are live.** (They were pushed to main with the
+dep fix at `18e9919`.) On a machine with `gh auth refresh -s workflow` you can
+amend them; otherwise just verify:
 ```bash
 cd buffer-blaster-
 git add .github/workflows && git commit -m "ci: build core + test api" && git push
@@ -266,14 +315,19 @@ Until #7 lands, the autoresearch loop runs on competitor-outlier data as a proxy
 
 ## 7. Remote repos to connect (clone to /opt on the VPS)
 
-| Repo | Why | Path |
+| Repo | Why | Path / Install |
 |---|---|---|
+| `rtk-ai/rtk` | **GLOBAL** — Rust CLI proxy, prefix every command for 60–90% token cut | `scripts/install-tools.sh` |
+| `jgravelle/jcodemunch-mcp` | **GLOBAL** — MCP symbol-retrieval layer | `scripts/install-tools.sh` |
 | `NousResearch/hermes-agent` | The orchestrator that runs the pipeline | `/opt/hermes` |
 | `knowsuchagency/mcp2cli` | Expose Higgsfield MCP as a CLI bridge | `/opt/mcp2cli` |
 | `Intent-Lab/VisionClaw` | Meta Ray-Ban glasses voice integration | `/opt/visionclaw` |
 | `earendil-works/absurd` | Long-running-task resilience / retry | pip install |
 | `karpathy/autoresearch` | Pattern source for the A/B scoring loop | reference |
 | `executiveusa/pauli-taste-skill` | Taste rubric for design QA (gated) | `/opt/pauli-taste` |
+
+**RTK + jcodemunch install globally** (every project inherits them), via
+`scripts/install-tools.sh`. The other repos are project-scoped to `/opt`.
 
 ---
 

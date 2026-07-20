@@ -1,0 +1,19 @@
+{
+  "project": "stavarai-platform",
+  "repo": "https://github.com/executiveusa/buffer-blaster-.git",
+  "bounded_task_scope": "one-bead-per-loop",
+  "worktree_prefix": "ralphy",
+  "must_pass_before_commit": [
+    "rtk cargo test --manifest-path rust_core/stavarai_core/Cargo.toml",
+    "rtk python -m pytest tests -q",
+    "cd frontend && rtk npm run lint"
+  ],
+  "never": [
+    "merge to main directly",
+    "force-push protected branches",
+    "skip a bead before destructive ops",
+    "log BLASTER2026 or any API key",
+    "publish content without human approval"
+  ],
+  "stop_conditions_ref": "EMERALD_TABLETS.md §6"
+}

@@ -1,0 +1,7 @@
+# Post-merge verification receipts. One per phase. Includes:
+# - squash SHA verification
+# - smoke-check command + output
+# - deployment ID + target
+# - critical-route status codes
+# - migration state
+# - comparison to baseline

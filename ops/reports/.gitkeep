@@ -1,0 +1,18 @@
+# Per-phase JSON reports go here. Schema:
+# {
+#   "phase_id": "phase-A-vps-bringup",
+#   "agent": "gpt-5.6-sol",
+#   "model": "...",
+#   "started_at": "...",
+#   "ended_at": "...",
+#   "tokens": {"input": N, "output": N},
+#   "files_changed": [...],
+#   "commands": [...],
+#   "retries": N,
+#   "pr_rounds": N,
+#   "review_feedback": "...",
+#   "merge_sha": "...",
+#   "deployment_id": "...",
+#   "rollback_status": "ready|executed|not-needed",
+#   "status": "complete|blocked|rolled-back"
+# }
