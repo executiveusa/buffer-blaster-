@@ -1,9 +1,11 @@
 """Persistence repositories with a safe demo fallback.
 
-When Supabase service credentials are configured, client metadata is stored in
-``public.clients`` and content is read/updated only through the client's
-isolated ``schema_{slug}`` PostgREST schema. Without credentials, the existing
-in-memory demo store remains active for local development and previews.
+When Supabase service credentials are configured, all platform tables are
+read/written through a client scoped to the dedicated platform schema
+(``postatees_stavarai`` by default — see ``STAVARAI_SCHEMA`` env var and
+``005_postatees_namespace.sql``). Per-client content lives under
+``postatees_stavarai.schema_{slug}``. Without credentials, the in-memory demo
+store remains active for local development and previews.
 """
 from __future__ import annotations
 
@@ -11,7 +13,7 @@ import os
 from functools import lru_cache
 from typing import Any
 
-from .client_isolation import create_client_schema, schema_name_for
+from .client_isolation import PLATFORM_SCHEMA, create_client_schema, schema_name_for
 from .supabase_client import get_client, is_configured
 from ..services import demo
 
@@ -25,7 +27,7 @@ def _rows(response: Any) -> list[dict]:
 
 @lru_cache(maxsize=64)
 def _schema_client(schema: str):
-    """Create a Supabase client whose PostgREST schema is fixed per client."""
+    """Create a Supabase client whose PostgREST schema is fixed to `schema`."""
     if not is_configured():
         return None
     from supabase import create_client
@@ -38,15 +40,20 @@ def _schema_client(schema: str):
     )
 
 
+def _platform_client():
+    """Client scoped to the platform schema (postatees_stavarai)."""
+    return _schema_client(PLATFORM_SCHEMA)
+
+
 class ClientRepository:
     def list(self) -> list[dict]:
-        client = get_client()
+        client = _platform_client()
         if client is None:
             return demo.list_clients()
         return _rows(client.table("clients").select("*").order("created_at").execute())
 
     def get(self, slug: str) -> dict | None:
-        client = get_client()
+        client = _platform_client()
         if client is None:
             return demo.get_client(slug)
         rows = _rows(client.table("clients").select("*").eq("slug", slug).limit(1).execute())
@@ -58,7 +65,7 @@ class ClientRepository:
 
     def create(self, *, name: str, niche: str, slug: str) -> dict:
         schema = create_client_schema(slug)
-        client = get_client()
+        client = _platform_client()
         if client is None:
             return demo.add_client(name=name, niche=niche, slug=slug, schema=schema)
         payload = {"name": name, "niche": niche, "slug": slug}
