@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   api-tests:
@@ -25,44 +25,22 @@ jobs:
         run: python -m pytest tests -q
 
   frontend-build:
-    name: Frontend lint, build, route smoke, and dependency audit
+    name: Frontend security, lint, build, and route smoke
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - name: Generate patched lockfile
-        run: npm install --package-lock-only --ignore-scripts
-      - name: Commit patched lockfile to PR branch
-        if: github.event_name == 'pull_request'
-        working-directory: .
-        run: |
-          if git diff --quiet -- frontend/package-lock.json; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/package-lock.json
-          git commit -m "fix: refresh lockfile for Next.js security patch"
-          git push origin HEAD:${{ github.head_ref }}
       - name: Install frontend dependencies
         run: npm ci
-      - name: Capture dependency audit
-        run: npm audit --json > npm-audit.json || true
-      - name: Upload dependency audit
-        uses: actions/upload-artifact@v4
-        with:
-          name: npm-audit
-          path: frontend/npm-audit.json
-          if-no-files-found: error
+      - name: Block high-severity dependency vulnerabilities
+        run: npm audit --audit-level=high
       - name: Lint frontend
         run: npm run lint
       - name: Build frontend
