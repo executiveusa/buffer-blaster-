@@ -23,6 +23,7 @@ from .routers import (
     clients,
     content,
     dashboard,
+    discovery,
     pipeline,
     settings as settings_router,
     voice,
@@ -63,6 +64,7 @@ app.include_router(pipeline.router)
 app.include_router(content.router)
 app.include_router(blog.router)
 app.include_router(voice.router)
+app.include_router(discovery.router)
 
 
 @app.get("/api/health")
@@ -79,4 +81,3 @@ async def health() -> dict:
 @app.get("/")
 async def root() -> dict:
     return {"name": "Stavarai Platform API", "health": "/api/health"}
-
