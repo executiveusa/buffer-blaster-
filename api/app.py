@@ -3,10 +3,6 @@
 Single-admin AI content-operations platform. Every `/api/admin/*` route is
 guarded by a session token minted via `POST /api/auth/verify`.
 
-Public creator discovery routes are additive and expose only curated,
-provenance-aware creative cards. They do not expose private client data,
-credentials, or internal orchestration details.
-
 Hot-path core (encryption, sessions, rate limiter, job queue) is supplied by
 `api.services.native.get_core()` — which loads the prebuilt Rust lib if present
 on this platform, else falls back to a pure-Python implementation of the same
@@ -18,7 +14,7 @@ import os
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import (
