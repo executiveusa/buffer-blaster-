@@ -1,0 +1,13 @@
+{
+  "phase": "03-youmind-ingestion-foundation",
+  "baseline_main_sha": "217afb685cf650fed89d694cf63cd5340b238175",
+  "production_deployment": "dpl_GNd3JiaspqqmFpb7H1kHwvtUMyFg",
+  "database_changes": false,
+  "affected_services": ["offline ingestion compiler", "upstream source registry", "tests"],
+  "rollback_steps": [
+    "Revert the phase squash commit through the protected-main PR path.",
+    "Delete generated library/imported output produced by this compiler if its provenance manifest is invalid; source repositories remain untouched.",
+    "No production deployment or database rollback is required for importer output generated outside runtime paths."
+  ],
+  "data_loss_risk": "none"
+}
