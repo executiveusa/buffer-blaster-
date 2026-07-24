@@ -1,6 +1,13 @@
 {
   "phase": "05-dependency-security-gate",
   "baseline_main_sha": "689f448fb4e7163981599fc4f69669ea9b345ebb",
+  "baseline_production": {
+    "project_id": "prj_n6CJYyzdUmqHNJ8qlSJalVGerUUW",
+    "deployment_id": "dpl_8YU8jx92bEXVh2VpfbCktmYsXGqP",
+    "alias": "stavarai-platform.vercel.app",
+    "verified_status": "READY",
+    "verified_create_status": 200
+  },
   "database_changes": false,
   "dependency_changes": {
     "next": "16.2.10 -> 16.2.11",
@@ -16,9 +23,16 @@
     "post_fix_total": 0
   },
   "affected_services": ["frontend dependency graph", "GitHub Actions release gate"],
+  "rollback_commands": [
+    "git checkout main",
+    "git checkout 689f448fb4e7163981599fc4f69669ea9b345ebb -- frontend/package.json frontend/package-lock.json .github/workflows/test-api.yml",
+    "npm --prefix frontend ci",
+    "npm --prefix frontend run build"
+  ],
   "rollback_steps": [
-    "Revert the Phase 5 squash commit through the protected-main PR path.",
-    "Restore frontend/package.json and frontend/package-lock.json from baseline main SHA 689f448fb4e7163981599fc4f69669ea9b345ebb only if the patched dependency graph causes a proven regression.",
+    "Prefer reverting the Phase 5 squash commit through the protected-main PR path so history remains auditable.",
+    "If production regresses, promote baseline deployment dpl_8YU8jx92bEXVh2VpfbCktmYsXGqP only after rechecking / and /create.",
+    "Restore frontend/package.json, frontend/package-lock.json, and the prior workflow from baseline main SHA 689f448fb4e7163981599fc4f69669ea9b345ebb only if the patched dependency graph causes a proven regression.",
     "Do not remove the permanent audit gate without replacing it with an equivalent security check.",
     "No database rollback is required."
   ],
