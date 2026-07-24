@@ -20,8 +20,25 @@ jobs:
         run: python -m pip install -r api/requirements.txt
       - name: Run creator discovery tests
         run: python -m pytest tests/discovery -q --tb=short
-      - name: Run legacy Python tests
-        run: python -m pytest tests --ignore=tests/discovery -q --tb=short
+      - name: Run legacy Python tests file-by-file
+        shell: bash
+        run: |
+          set -o pipefail
+          : > failed-test.txt
+          while IFS= read -r file; do
+            echo "Testing $file"
+            if ! python -m pytest "$file" -q --tb=short; then
+              echo "$file" > failed-test.txt
+              exit 1
+            fi
+          done < <(find tests -type f -name 'test_*.py' ! -path 'tests/discovery/*' | sort)
+      - name: Upload legacy test diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: legacy-test-diagnostic
+          path: failed-test.txt
+          if-no-files-found: ignore
 
   frontend-build:
     name: Frontend lint and production build
