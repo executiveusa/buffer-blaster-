@@ -47,7 +47,7 @@ jobs:
         env:
           NEXT_PUBLIC_DEMO_MODE: "true"
         run: npm run build
-      - name: Smoke creator discovery route
+      - name: Smoke creator discovery and export routes
         env:
           NEXT_PUBLIC_DEMO_MODE: "true"
         run: |
@@ -65,3 +65,14 @@ jobs:
             --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
           echo "$RESPONSE" | grep -q '"count":3'
           echo "$RESPONSE" | grep -q 'bb-video-launch-reel-001'
+          curl -fsS -D /tmp/agent-pack.headers -o /tmp/agent-pack.zip \
+            -X POST http://127.0.0.1:3000/v1/export/icm \
+            -H 'Content-Type: application/json' \
+            --data '{"card_id":"bb-video-launch-reel-001"}'
+          grep -qi '^content-type: application/zip' /tmp/agent-pack.headers
+          grep -qi '^x-buffer-blaster-sha256:' /tmp/agent-pack.headers
+          unzip -l /tmp/agent-pack.zip | grep -q 'AGENTS.md'
+          unzip -l /tmp/agent-pack.zip | grep -q 'CONTEXT.md'
+          unzip -l /tmp/agent-pack.zip | grep -q 'manifest.json'
+          unzip -l /tmp/agent-pack.zip | grep -q 'output/.gitkeep'
+          unzip -l /tmp/agent-pack.zip | grep -q 'cards/video/cinematic-launch-reel/card.json'
