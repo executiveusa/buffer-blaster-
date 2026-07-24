@@ -22,7 +22,7 @@ jobs:
         run: python -m pytest tests -q
 
   frontend-build:
-    name: Frontend lint, build, and route smoke
+    name: Frontend lint, build, route smoke, and dependency audit
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,6 +36,14 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies
         run: npm ci
+      - name: Capture dependency audit
+        run: npm audit --json > npm-audit.json || true
+      - name: Upload dependency audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit
+          path: frontend/npm-audit.json
+          if-no-files-found: error
       - name: Lint frontend
         run: npm run lint
       - name: Build frontend
