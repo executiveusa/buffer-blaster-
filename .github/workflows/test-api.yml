@@ -34,6 +34,16 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - name: Generate patched lockfile
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Upload patched dependency files
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-lockfile
+          path: |
+            frontend/package.json
+            frontend/package-lock.json
+          if-no-files-found: error
       - name: Install frontend dependencies
         run: npm ci
       - name: Capture dependency audit
