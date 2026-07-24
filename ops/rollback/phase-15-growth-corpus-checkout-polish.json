@@ -1,0 +1,41 @@
+{
+  "phase": "15-growth-corpus-checkout-polish",
+  "baseline_main_sha": "8178ee13878c688f3c132f6968757d260ca7cb46",
+  "database_changes": false,
+  "affected_services": [
+    "verified runtime creator catalog",
+    "creator discovery/adapt/card/export routes",
+    "founding creator purchase surface",
+    "landing conversion path",
+    "mobile responsive CTA layout"
+  ],
+  "rollback_commands": [
+    "git checkout main",
+    "git revert <PHASE_15_SQUASH_SHA>",
+    "npm --prefix frontend ci",
+    "npm --prefix frontend audit --audit-level=high",
+    "npm --prefix frontend run lint",
+    "npm --prefix frontend run build",
+    "python -m pytest tests -q"
+  ],
+  "validation_commands": [
+    "GET / returns 200",
+    "GET /create returns 200",
+    "GET /founding returns 200",
+    "POST /v1/discover returns growth catalog card for travel lifestyle intent",
+    "POST /v1/adapt adapts growth catalog card",
+    "POST /v1/export/icm exports growth catalog card with provenance"
+  ],
+  "validation_proof": {
+    "github_actions_run_id": 30127233875,
+    "python_tests": "success",
+    "verified_corpus_compile": "success",
+    "dependency_audit": "success",
+    "lint": "success",
+    "production_build": "success",
+    "route_smoke": "success",
+    "vercel_preview": "ready"
+  },
+  "tested": true,
+  "data_loss_risk": "none; no database mutation"
+}

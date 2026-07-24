@@ -1,8 +1,9 @@
-import { CREATOR_CARDS, type CreatorCard } from "@/lib/creator-demo";
+import { ALL_CREATOR_CARDS } from "@/lib/creator-catalog";
+import type { CreatorCard } from "@/lib/creator-demo";
 
 const MEDIA_TERMS: Record<string, string[]> = {
   video: ["video", "reel", "tiktok", "short", "cinematic", "motion"],
-  image: ["image", "photo", "poster", "flyer", "thumbnail", "portrait", "product"],
+  image: ["image", "photo", "poster", "flyer", "thumbnail", "portrait", "product", "infographic", "slide"],
   text: ["write", "writing", "script", "caption", "copy", "story"],
   workflow: ["workflow", "campaign", "launch", "pack", "system"],
 };
@@ -49,7 +50,7 @@ function scoreCard(card: CreatorCard, intent: string) {
 export function discoverCreatorCards(intent: string, limit = 3): CreatorCard[] {
   const capped = Math.max(1, Math.min(Math.trunc(limit), 12));
   const seen = new Set<string>();
-  return [...CREATOR_CARDS]
+  return [...ALL_CREATOR_CARDS]
     .sort((a, b) => scoreCard(b, intent) - scoreCard(a, intent) || b.quality_score - a.quality_score || a.id.localeCompare(b.id))
     .filter((card) => {
       const fingerprint = `${card.category}:${card.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()}`;
