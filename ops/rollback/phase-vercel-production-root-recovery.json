@@ -1,0 +1,23 @@
+{
+  "phase": "vercel-production-root-recovery",
+  "baseline_main_sha": "2f5a41684dfe5871a59f35df4ac674e1b54225ba",
+  "failed_production": {
+    "project_id": "prj_n6CJYyzdUmqHNJ8qlSJalVGerUUW",
+    "deployment_id": "dpl_AehWVfnQr2Q3mK6nmRJVpAxuvPbd",
+    "alias": "stavarai-platform.vercel.app",
+    "observed_status": 404
+  },
+  "previous_rollback_candidate": {
+    "deployment_id": "dpl_6U5bcW5xngZMTCRECXzFZfp5Yi5f",
+    "state": "READY",
+    "public_health_unproven": true
+  },
+  "database_changes": false,
+  "affected_services": ["Vercel frontend deployment configuration"],
+  "rollback_steps": [
+    "Revert the recovery squash commit through the protected-main PR path if the new Vercel configuration causes a regression.",
+    "Promote the previously verified READY rollback deployment only if its critical routes are independently proven healthy before promotion.",
+    "No database rollback is required."
+  ],
+  "data_loss_risk": "none"
+}
