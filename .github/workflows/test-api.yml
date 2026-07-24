@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   api-tests:
     name: Python API tests
@@ -22,7 +25,7 @@ jobs:
         run: python -m pytest tests -q
 
   frontend-build:
-    name: Frontend lint, build, and route smoke
+    name: Frontend security, lint, build, and route smoke
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,6 +39,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies
         run: npm ci
+      - name: Block high-severity dependency vulnerabilities
+        run: npm audit --audit-level=high
       - name: Lint frontend
         run: npm run lint
       - name: Build frontend
