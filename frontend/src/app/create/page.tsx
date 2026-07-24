@@ -18,10 +18,8 @@ type PublicCard = {
   };
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
-
 async function discover(intent: string): Promise<PublicCard[]> {
-  const response = await fetch(`${API_BASE}/v1/discover`, {
+  const response = await fetch("/v1/discover", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ intent, limit: 3 }),
@@ -134,7 +132,7 @@ export default function CreatePage() {
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">Three useful choices. Not three hundred.</h2>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-text-muted">
-            Search and ranking come from the same discovery API used by agent integrations.
+            Search and ranking use one same-origin discovery contract; production can proxy the authoritative API without exposing an HTTP backend to the browser.
           </p>
         </div>
 
