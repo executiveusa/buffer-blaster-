@@ -53,9 +53,13 @@ def test_compiler_preserves_provenance_dedupes_and_quarantines(tmp_path: Path) -
     assert card["source"]["license"] == "MIT"
     assert card["source"]["license_verified"] is True
     assert len(card["source"]["content_hash"]) == 64
-    assert card["icm_path"].startswith("library/imported/allowed/")
+    assert card["icm_path"].startswith("cards/unclassified/allowed/")
     assert {item["reason"] for item in result["quarantine"]} == {"license-unverified", "source-not-present"}
     assert (output / "manifest.json").exists()
+    assert (output / "CONTEXT.md").exists()
+    card_dir = output / card["icm_path"]
+    assert (card_dir / "card.json").exists()
+    assert (card_dir / "CONTEXT.md").exists()
 
 
 def test_detected_cc_by_license_is_allowed(tmp_path: Path) -> None:
@@ -77,3 +81,73 @@ def test_detected_cc_by_license_is_allowed(tmp_path: Path) -> None:
     result = compile_registry(registry_path, source_root, tmp_path / "output")
     assert result["counts"]["cards"] == 1
     assert result["cards"][0]["source"]["license"] == "CC-BY-4.0"
+
+
+def test_numbered_readme_prompt_library_extracts_individual_cards(tmp_path: Path) -> None:
+    registry = {
+        "source": "YouMind-OpenLab",
+        "repositories": [
+            {
+                "repo": "YouMind-OpenLab/awesome-nano-banana-pro-prompts",
+                "kind": "prompt-library",
+                "license_status": "verified",
+                "license": "CC-BY-4.0",
+                "source_ref": "sample-commit-sha",
+            }
+        ],
+    }
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(json.dumps(registry), encoding="utf-8")
+    source_root = tmp_path / "sources"
+    source_root.mkdir()
+    readme = """
+# Prompt Library
+
+### No. 1: Wide quote card with portrait
+
+#### 📖 Description
+A reusable quote card for social media.
+
+#### 📝 Prompt
+```text
+A wide quote card with a portrait on the left and elegant quote typography on the right, using warm editorial lighting.
+```
+
+#### 🖼️ Generated Images
+image here
+
+### No. 2: Premium ecommerce hero
+
+#### 📖 Description
+A product hero composition for ecommerce.
+
+#### 📝 Prompt
+```
+Create a premium ecommerce hero image of a single product on a seamless studio backdrop with controlled rim lighting.
+```
+"""
+    write_repo(
+        source_root,
+        "awesome-nano-banana-pro-prompts",
+        "Creative Commons Attribution 4.0 International License (CC BY 4.0)",
+        {"README.md": readme},
+    )
+
+    output = tmp_path / "output"
+    result = compile_registry(registry_path, source_root, output)
+
+    assert result["counts"]["cards"] == 2
+    assert [card["title"] for card in result["cards"]] == [
+        "Wide quote card with portrait",
+        "Premium ecommerce hero",
+    ]
+    first = result["cards"][0]
+    assert first["adapter"] == "numbered-readme"
+    assert first["category"] == "Images"
+    assert first["description"] == "A reusable quote card for social media."
+    assert first["source"]["path"] == "README.md#no-1"
+    assert first["source"]["ref"] == "sample-commit-sha"
+    assert (output / first["icm_path"] / "card.json").exists()
+    context = (output / first["icm_path"] / "CONTEXT.md").read_text(encoding="utf-8")
+    assert "Repository: YouMind-OpenLab/awesome-nano-banana-pro-prompts" in context
+    assert "License: CC-BY-4.0" in context
