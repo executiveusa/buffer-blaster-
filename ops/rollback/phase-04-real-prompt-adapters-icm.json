@@ -1,0 +1,13 @@
+{
+  "phase": "04-real-prompt-adapters-icm",
+  "baseline_main_sha": "db1d47d8284864e47bec24989b2f24b2172c4178",
+  "database_changes": false,
+  "affected_services": ["offline YouMind ingestion compiler", "generated ICM card folders", "ingestion tests"],
+  "rollback_steps": [
+    "Revert the Phase 4 squash commit through the protected-main PR path.",
+    "Delete generated output beneath library/imported/youmind before regenerating with the previous compiler version.",
+    "Upstream source repositories remain read-only and untouched.",
+    "No database or production data rollback is required."
+  ],
+  "data_loss_risk": "none"
+}
