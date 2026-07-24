@@ -31,7 +31,7 @@ def test_discover_returns_three_deterministic_results() -> None:
     assert first[0]["id"] == "bb-video-launch-reel-001"
 
 
-def test_discover_api_contract() -> None:
+def test_discover_api_contract_redacts_internal_fields() -> None:
     response = client.post(
         "/v1/discover",
         json={"intent": "product photography for ecommerce", "limit": 3},
@@ -40,8 +40,13 @@ def test_discover_api_contract() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["count"] == 3
-    assert payload["cards"][0]["id"] == "bb-image-product-studio-001"
-    assert payload["cards"][0]["source"]["license_verified"] is True
+    card = payload["cards"][0]
+    assert card["id"] == "bb-image-product-studio-001"
+    assert card["source"]["license_verified"] is True
+    assert "repo" not in card["source"]
+    assert "path" not in card["source"]
+    assert "content_hash" not in card["source"]
+    assert "icm_path" not in card
 
 
 def test_card_detail_accepts_id_and_slug() -> None:
@@ -54,9 +59,21 @@ def test_card_detail_accepts_id_and_slug() -> None:
 
     response = client.get("/v1/cards/one-idea-launch-pack")
     assert response.status_code == 200
-    assert response.json()["card"]["category"] == "Workflows"
+    card = response.json()["card"]
+    assert card["category"] == "Workflows"
+    assert "icm_path" not in card
 
 
 def test_card_detail_404() -> None:
     response = client.get("/v1/cards/not-a-real-card")
     assert response.status_code == 404
+
+
+def test_existing_api_identity_contract_is_preserved() -> None:
+    health = client.get("/api/health")
+    root = client.get("/")
+
+    assert health.status_code == 200
+    assert health.json()["platform"] == "stavarai"
+    assert root.status_code == 200
+    assert root.json() == {"name": "Stavarai Platform API", "health": "/api/health"}
