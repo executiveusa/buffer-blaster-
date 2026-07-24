@@ -1,0 +1,36 @@
+{
+  "phase": "06-icm-agent-pack-export",
+  "baseline_main_sha": "6cd5550603034a4bf464b9c00a244b18758416b9",
+  "baseline_production": {
+    "project_id": "prj_n6CJYyzdUmqHNJ8qlSJalVGerUUW",
+    "deployment_id": "dpl_HDRUkMbW5rKaaJYBgNwbePvq6GHi",
+    "alias": "stavarai-platform.vercel.app",
+    "verified_status": "READY",
+    "verified_root_status": 200,
+    "verified_create_status": 200
+  },
+  "database_changes": false,
+  "affected_services": ["offline ICM bundle exporter", "export tests"],
+  "rollback_commands": [
+    "git checkout main",
+    "git revert <PHASE_06_SQUASH_SHA>",
+    "rm -f dist/buffer-blaster-a2a-library.zip dist/buffer-blaster-a2a-library.zip.receipt.json",
+    "python -m pytest tests -q",
+    "npm --prefix frontend ci && npm --prefix frontend audit --audit-level=high && npm --prefix frontend run build"
+  ],
+  "rollback_verification": {
+    "artifact_cleanup_command_is_idempotent": true,
+    "baseline_production_prechecked": true,
+    "baseline_production_root_status": 200,
+    "baseline_production_create_status": 200,
+    "database_rollback_required": false
+  },
+  "rollback_steps": [
+    "Revert the Phase 6 squash commit through the protected-main PR path; replace <PHASE_06_SQUASH_SHA> with the resulting merge SHA recorded at release time.",
+    "Delete generated ZIP and receipt artifacts with the recorded rm command; generated exports are reproducible and contain no source-of-truth data.",
+    "Run the recorded Python and frontend verification commands after the revert.",
+    "If a production rollback is needed, promote baseline deployment dpl_HDRUkMbW5rKaaJYBgNwbePvq6GHi only after rechecking / and /create.",
+    "Upstream/imported source cards remain untouched. No production database or user data rollback is required."
+  ],
+  "data_loss_risk": "none"
+}
