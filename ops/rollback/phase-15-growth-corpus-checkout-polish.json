@@ -26,6 +26,16 @@
     "POST /v1/adapt adapts growth catalog card",
     "POST /v1/export/icm exports growth catalog card with provenance"
   ],
-  "tested": false,
+  "validation_proof": {
+    "github_actions_run_id": 30127233875,
+    "python_tests": "success",
+    "verified_corpus_compile": "success",
+    "dependency_audit": "success",
+    "lint": "success",
+    "production_build": "success",
+    "route_smoke": "success",
+    "vercel_preview": "ready"
+  },
+  "tested": true,
   "data_loss_risk": "none; no database mutation"
 }
