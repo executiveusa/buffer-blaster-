@@ -1,0 +1,21 @@
+{
+  "phase": "06-icm-agent-pack-export",
+  "baseline_main_sha": "6cd5550603034a4bf464b9c00a244b18758416b9",
+  "baseline_production": {
+    "project_id": "prj_n6CJYyzdUmqHNJ8qlSJalVGerUUW",
+    "deployment_id": "dpl_HDRUkMbW5rKaaJYBgNwbePvq6GHi",
+    "alias": "stavarai-platform.vercel.app",
+    "verified_status": "READY",
+    "verified_root_status": 200,
+    "verified_create_status": 200
+  },
+  "database_changes": false,
+  "affected_services": ["offline ICM bundle exporter", "export tests"],
+  "rollback_steps": [
+    "Revert the Phase 6 squash commit through the protected-main PR path.",
+    "Delete generated dist/*.zip and matching receipt files; generated exports are reproducible artifacts, not source data.",
+    "Upstream/imported source cards remain untouched.",
+    "No production database or user data rollback is required."
+  ],
+  "data_loss_risk": "none"
+}
