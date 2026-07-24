@@ -34,10 +34,10 @@ export async function POST(request: Request) {
         return NextResponse.json(await response.json(), { status: 200 });
       }
     } catch {
-      // Fall through to the bounded demo corpus so the creator surface degrades safely.
+      // Fall through to the bundled verified corpus so the creator surface degrades safely.
     }
   }
 
   const cards = discoverDemoCards(intent, limit);
-  return NextResponse.json({ intent, count: cards.length, cards, mode: "demo-fallback" });
+  return NextResponse.json({ intent, count: cards.length, cards, mode: "verified-library-fallback" });
 }
