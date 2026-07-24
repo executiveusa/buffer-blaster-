@@ -39,7 +39,7 @@ Find the smallest relevant creative recipe for the current creator task.
 - Unknown/unclassified tasks → `cards/unclassified/`
 
 ## Context discipline
-Read the target card's `CONTEXT.md` and `card.json` only after routing. Do not put the full manifest into model context. `manifest.json` is an index for search and software, not a prompt.
+Read the target card's `CONTEXT.md` and `card.json` only after routing. Do not load the entire library into model context. Do not put the full manifest into model context. `manifest.json` is an index for search and software, not a prompt.
 
 ## Working artifacts
 Write generated or adapted work to `output/`. The `output/` directory is the mutable product layer; the card library is stable reference context.
