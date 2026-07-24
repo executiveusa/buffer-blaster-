@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   api-tests:
     name: Python API tests
@@ -29,6 +32,8 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -36,14 +41,18 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Generate patched lockfile
         run: npm install --package-lock-only --ignore-scripts
-      - name: Upload patched dependency files
-        uses: actions/upload-artifact@v4
-        with:
-          name: patched-lockfile
-          path: |
-            frontend/package.json
-            frontend/package-lock.json
-          if-no-files-found: error
+      - name: Commit patched lockfile to PR branch
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        run: |
+          if git diff --quiet -- frontend/package-lock.json; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json
+          git commit -m "fix: refresh lockfile for Next.js security patch"
+          git push origin HEAD:${{ github.head_ref }}
       - name: Install frontend dependencies
         run: npm ci
       - name: Capture dependency audit
