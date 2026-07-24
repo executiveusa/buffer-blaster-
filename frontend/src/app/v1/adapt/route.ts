@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CREATOR_CARDS } from "@/lib/creator-demo";
+import { ALL_CREATOR_CARDS } from "@/lib/creator-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   const cardId = typeof body.card_id === "string" ? body.card_id.trim() : "";
   if (!cardId) return NextResponse.json({ detail: "card_id is required" }, { status: 422 });
-  const card = CREATOR_CARDS.find((item) => item.id === cardId);
+  const card = ALL_CREATOR_CARDS.find((item) => item.id === cardId);
   if (!card) return NextResponse.json({ detail: "card not found" }, { status: 404 });
 
   const rawInputs = body.inputs && typeof body.inputs === "object" && !Array.isArray(body.inputs) ? body.inputs : {};
