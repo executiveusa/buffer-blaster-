@@ -1,0 +1,12 @@
+{
+  "phase": "09-14-creator-v1-release-train",
+  "baseline_main_sha": "a64e37d90f95a6462702060ac7700e75ba92442c",
+  "database_changes": false,
+  "persistence": "browser-localStorage only; no Supabase mutation",
+  "affected_services": ["public landing and metadata","Next.js deployment config","verified corpus compiler","creator discovery ranking","adapt API and workspace","local creator library","card API and skill contract","adapted ICM export"],
+  "rollback_commands": ["git checkout main","git revert <PHASE_09_14_SQUASH_SHA>","npm --prefix frontend ci","npm --prefix frontend audit --audit-level=high","npm --prefix frontend run lint","npm --prefix frontend run build","python -m pytest tests -q"],
+  "validation_commands": ["POST /v1/discover returns 3 cards","GET /v1/cards/ym-nbp-vintage-patent-006 returns verified source","POST /v1/adapt substitutes required inputs","POST /v1/export/icm exports adapted prompt and provenance","GET /create returns 200"],
+  "tested": true,
+  "tested_by": "GitHub Actions run 30104480757: Python tests, verified corpus compile, npm audit, lint, build, discovery/card/adapt/export smoke all passed",
+  "data_loss_risk": "none; local browser saves remain client-owned and are not deleted by server rollback"
+}

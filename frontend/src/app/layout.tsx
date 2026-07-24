@@ -3,31 +3,24 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Social Content Studio — Social content that ships",
-    template: "%s · Social Content Studio",
+    default: "Creator Studio — Discover, adapt, and own your AI workflows",
+    template: "%s · Creator Studio",
   },
   description:
-    "A content operations studio for Shopify brands. We research, write, and schedule the posts your team keeps meaning to make.",
-  metadataBase: new URL("https://example.com"),
+    "Discover a small set of useful creative recipes, adapt them to your project, save them locally, and export portable agent packs you control.",
+  metadataBase: new URL("https://stavarai-platform.vercel.app"),
   openGraph: {
-    title: "Social Content Studio — Social content that ships",
+    title: "Creator Studio — Your ideas. Your files. Your AI.",
     description:
-      "A content operations studio for Shopify brands. Research, writing, and scheduling — done.",
+      "Discover, adapt, save, and export portable creative workflows without giving up control of your prompts or files.",
     type: "website",
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className="h-full antialiased"
-    >
-      <body className="min-h-full flex flex-col bg-bg text-text">
-        {children}
-      </body>
+    <html lang="en" className="h-full antialiased">
+      <body className="min-h-full flex flex-col bg-bg text-text">{children}</body>
     </html>
   );
 }
