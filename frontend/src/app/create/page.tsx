@@ -33,11 +33,23 @@ async function discover(intent: string): Promise<PublicCard[]> {
   return payload.cards;
 }
 
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function CreatePage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PublicCard[]>([]);
   const [selected, setSelected] = useState<PublicCard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -71,6 +83,27 @@ export default function CreatePage() {
       setError("Discovery is temporarily unavailable. Please try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function exportAgentPack() {
+    if (!selected || exporting) return;
+    setExporting(true);
+    setError("");
+    try {
+      const response = await fetch("/v1/export/icm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card_id: selected.id }),
+      });
+      if (!response.ok) throw new Error("Export failed");
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "buffer-blaster-agent-pack.zip";
+      downloadBlob(await response.blob(), filename);
+    } catch {
+      setError("Agent pack export is temporarily unavailable. Please try again.");
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -132,7 +165,7 @@ export default function CreatePage() {
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">Three useful choices. Not three hundred.</h2>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-text-muted">
-            Search and ranking use one same-origin discovery contract; production can proxy the authoritative API without exposing an HTTP backend to the browser.
+            Search, select, and export a portable agent pack from one same-origin creator workflow.
           </p>
         </div>
 
@@ -176,10 +209,16 @@ export default function CreatePage() {
                   <button type="button" className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white transition hover:bg-accent-dim">
                     Use this card <ArrowRight className="h-4 w-4" aria-hidden />
                   </button>
-                  <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-3 text-sm font-medium text-text transition hover:bg-bg-card">
-                    <Download className="h-4 w-4" aria-hidden /> Export agent pack
+                  <button
+                    type="button"
+                    onClick={exportAgentPack}
+                    disabled={exporting}
+                    className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-3 text-sm font-medium text-text transition hover:bg-bg-card disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Download className="h-4 w-4" aria-hidden /> {exporting ? "Building pack…" : "Export agent pack"}
                   </button>
                 </div>
+                <p className="mt-3 text-xs text-text-dim">Exports a ZIP you can keep, inspect, version, and give to another AI agent.</p>
               </div>
 
               <div className="rounded-xl border border-border bg-bg-card p-5">
