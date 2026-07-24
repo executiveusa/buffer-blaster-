@@ -13,13 +13,13 @@
     {"repo": "YouMind-OpenLab/awesome-nano-banana-pro-prompts", "kind": "prompt-library", "license_status": "verified", "license": "CC-BY-4.0", "license_file_sha": "6e21e792436458ce62ddd07f0e84b37467684c69"},
     {"repo": "YouMind-OpenLab/awesome-gpt-image-2", "kind": "prompt-library", "license_status": "verified", "license": "CC-BY-4.0", "license_file_sha": "dfc45ed9a6970dbc28363b33934810cef92e1348"},
     {"repo": "YouMind-OpenLab/nano-banana-pro-prompts-recommend-skill", "kind": "agent-skill", "license_status": "unverified"},
-    {"repo": "YouMind-OpenLab/awesome-seedance-2-prompts", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/awesome-seedance-2-prompts", "kind": "prompt-library", "license_status": "verified", "license": "CC-BY-4.0", "license_file_sha": "6e21e792436458ce62ddd07f0e84b37467684c69"},
     {"repo": "YouMind-OpenLab/ai-image-prompts-skill", "kind": "agent-skill", "license_status": "verified", "license": "MIT", "license_file_sha": "5e536b3100fd5ff9e257d123c80ba0ddd8c1e5a9"},
-    {"repo": "YouMind-OpenLab/awesome-gemini-3-prompts", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/awesome-gemini-3-prompts", "kind": "prompt-library", "license_status": "verified", "license": "CC-BY-4.0", "license_file_sha": "6e21e792436458ce62ddd07f0e84b37467684c69"},
     {"repo": "YouMind-OpenLab/skills", "kind": "agent-skills", "license_status": "unverified"},
-    {"repo": "YouMind-OpenLab/awesome-seedream-4.5", "kind": "prompt-library", "license_status": "unverified"},
-    {"repo": "YouMind-OpenLab/awesome-grok-imagine-prompts", "kind": "prompt-library", "license_status": "unverified"},
-    {"repo": "YouMind-OpenLab/awesome-gpt-image-1.5", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/awesome-seedream-4.5", "kind": "prompt-library", "license_status": "verified", "license": "CC-BY-4.0", "license_file_sha": "6e21e792436458ce62ddd07f0e84b37467684c69"},
+    {"repo": "YouMind-OpenLab/awesome-grok-imagine-prompts", "kind": "prompt-library", "license_status": "verified", "license": "CC-BY-4.0", "license_file_sha": "0585a1660ca7c94f93c3410c69bb44c050ef0025"},
+    {"repo": "YouMind-OpenLab/awesome-gpt-image-1.5", "kind": "prompt-library", "license_status": "verified", "license": "CC-BY-4.0", "license_file_sha": "6e21e792436458ce62ddd07f0e84b37467684c69"},
     {"repo": "YouMind-OpenLab/gpt-image-2-prompts-search", "kind": "search-tool", "license_status": "unverified"},
     {"repo": "YouMind-OpenLab/Rettiwt-API-For-Browser-Extension", "kind": "supporting-tool", "license_status": "unverified"}
   ]

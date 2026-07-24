@@ -65,14 +65,21 @@ jobs:
             --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
           echo "$RESPONSE" | grep -q '"count":3'
           echo "$RESPONSE" | grep -q 'bb-video-launch-reel-001'
+          IMPORTED=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover \
+            -H 'Content-Type: application/json' \
+            --data '{"intent":"vintage patent document for an invention","limit":3}')
+          echo "$IMPORTED" | grep -q 'ym-nbp-vintage-patent-006'
+          echo "$IMPORTED" | grep -q 'YouMind OpenLab'
           curl -fsS -D /tmp/agent-pack.headers -o /tmp/agent-pack.zip \
             -X POST http://127.0.0.1:3000/v1/export/icm \
             -H 'Content-Type: application/json' \
-            --data '{"card_id":"bb-video-launch-reel-001"}'
+            --data '{"card_id":"ym-nbp-vintage-patent-006"}'
           grep -qi '^content-type: application/zip' /tmp/agent-pack.headers
           grep -qi '^x-buffer-blaster-sha256:' /tmp/agent-pack.headers
           unzip -l /tmp/agent-pack.zip | grep -q 'AGENTS.md'
           unzip -l /tmp/agent-pack.zip | grep -q 'CONTEXT.md'
           unzip -l /tmp/agent-pack.zip | grep -q 'manifest.json'
           unzip -l /tmp/agent-pack.zip | grep -q 'output/.gitkeep'
-          unzip -l /tmp/agent-pack.zip | grep -q 'cards/video/cinematic-launch-reel/card.json'
+          unzip -p /tmp/agent-pack.zip manifest.json | grep -q 'YouMind-OpenLab/awesome-nano-banana-pro-prompts'
+          unzip -p /tmp/agent-pack.zip manifest.json | grep -q 'CC-BY-4.0'
+          unzip -l /tmp/agent-pack.zip | grep -q 'cards/images/vintage-patent-document/card.json'

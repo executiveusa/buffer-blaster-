@@ -85,14 +85,15 @@ export function buildSingleCardAgentPack(card: CreatorCard): { filename: string;
   const cardPath = `cards/${category}/${slug}`;
   const cardJson = {
     ...card,
-    source: { ...card.source, content_hash: promptHash },
+    source: { ...card.source, content_hash: card.source.content_hash ?? promptHash },
+    prompt_content_hash: promptHash,
     icm_path: cardPath,
   };
-  const context = `# ${card.title}\n\n## Job\n${card.description}\n\n## Required inputs\n${card.required_inputs.map((item) => `- ${item}`).join("\n")}\n\n## Prompt\n${card.prompt}\n\n## Provenance\n- Source: ${card.source.attribution}\n- License: ${card.source.license}\n- Verified: yes\n- SHA-256: ${promptHash}\n`;
+  const context = `# ${card.title}\n\n## Job\n${card.description}\n\n## Required inputs\n${card.required_inputs.map((item) => `- ${item}`).join("\n")}\n\n## Prompt\n${card.prompt}\n\n## Provenance\n- Source: ${card.source.attribution}\n- License: ${card.source.license}\n- Verified: yes\n- Source SHA-256: ${cardJson.source.content_hash}\n- Prompt SHA-256: ${promptHash}\n`;
   const manifest = {
     schema_version: 1,
     pack_type: "single-card",
-    cards: [{ id: card.id, title: card.title, category: card.category, icm_path: cardPath, source: cardJson.source }],
+    cards: [{ id: card.id, title: card.title, category: card.category, icm_path: cardPath, source: cardJson.source, prompt_content_hash: promptHash }],
   };
   const files = [
     { name: "AGENTS.md", content: Buffer.from("# Buffer Blaster Agent Pack\n\nRead CONTEXT.md first. Load only the selected card context. Keep generated work in output/. Human review is required before publishing.\n") },
