@@ -13,6 +13,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
+SOURCE_FIELDS = ("repo", "path", "license", "license_verified", "content_hash")
 
 AGENTS_MD = """# Creator Agent Pack
 
@@ -57,6 +58,17 @@ def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+def sha256_text(value: str) -> str:
+    return sha256_bytes(value.strip().encode("utf-8"))
+
+
+def _safe_relative_path(value: str) -> PurePosixPath:
+    path = PurePosixPath(value)
+    if not value or path.is_absolute() or ".." in path.parts or "\\" in value:
+        raise ValueError(f"unsafe icm_path: {value!r}")
+    return path
+
+
 def _validate_manifest(manifest: dict) -> None:
     cards = manifest.get("cards")
     if not isinstance(cards, list):
@@ -68,9 +80,39 @@ def _validate_manifest(manifest: dict) -> None:
         for field in ("repo", "path", "license", "content_hash"):
             if not source.get(field):
                 raise ValueError(f"card {card.get('id', '<unknown>')} missing source.{field}")
-        icm_path = card.get("icm_path")
-        if not icm_path or ".." in PurePosixPath(icm_path).parts:
-            raise ValueError(f"card {card.get('id', '<unknown>')} has unsafe icm_path")
+        _safe_relative_path(card.get("icm_path", ""))
+        prompt = card.get("prompt")
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError(f"card {card.get('id', '<unknown>')} missing prompt")
+        if sha256_text(prompt) != source["content_hash"]:
+            raise ValueError(f"card {card.get('id', '<unknown>')} content hash mismatch")
+
+
+def _validate_card_artifact(manifest_card: dict, artifact: dict) -> None:
+    card_id = manifest_card.get("id", "<unknown>")
+    for field in ("id", "icm_path", "prompt"):
+        if artifact.get(field) != manifest_card.get(field):
+            raise ValueError(f"card {card_id} artifact differs from manifest field {field}")
+    artifact_source = artifact.get("source", {})
+    manifest_source = manifest_card.get("source", {})
+    for field in SOURCE_FIELDS:
+        if artifact_source.get(field) != manifest_source.get(field):
+            raise ValueError(f"card {card_id} artifact differs from manifest source.{field}")
+    if artifact_source.get("license_verified") is not True:
+        raise ValueError(f"card {card_id} artifact has unverified license")
+    if sha256_text(artifact["prompt"]) != artifact_source.get("content_hash"):
+        raise ValueError(f"card {card_id} artifact content hash mismatch")
+
+
+def _resolve_card_dir(library_root: Path, icm_path: str) -> Path:
+    relative = _safe_relative_path(icm_path)
+    root = library_root.resolve()
+    candidate = (root / Path(*relative.parts)).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"card path escapes library root: {icm_path}") from exc
+    return candidate
 
 
 def _zip_write(zf: zipfile.ZipFile, arcname: str, content: bytes) -> None:
@@ -98,12 +140,18 @@ def build_bundle(library_root: Path, output_zip: Path) -> dict:
 
     exported_cards = 0
     for card in sorted(manifest["cards"], key=lambda item: item["id"]):
-        card_dir = library_root / card["icm_path"]
-        for filename in ("card.json", "CONTEXT.md"):
-            path = card_dir / filename
-            if not path.exists():
-                raise FileNotFoundError(f"missing card artifact: {path}")
-            required_files.append((f"{card['icm_path']}/{filename}", path.read_bytes()))
+        card_dir = _resolve_card_dir(library_root, card["icm_path"])
+        card_json_path = card_dir / "card.json"
+        context_path = card_dir / "CONTEXT.md"
+        if not card_json_path.exists():
+            raise FileNotFoundError(f"missing card artifact: {card_json_path}")
+        if not context_path.exists():
+            raise FileNotFoundError(f"missing card artifact: {context_path}")
+
+        artifact = json.loads(card_json_path.read_text(encoding="utf-8"))
+        _validate_card_artifact(card, artifact)
+        required_files.append((f"{card['icm_path']}/card.json", card_json_path.read_bytes()))
+        required_files.append((f"{card['icm_path']}/CONTEXT.md", context_path.read_bytes()))
         exported_cards += 1
 
     output_zip.parent.mkdir(parents=True, exist_ok=True)
