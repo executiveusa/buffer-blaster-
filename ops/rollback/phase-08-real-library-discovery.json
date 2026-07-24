@@ -1,11 +1,31 @@
 {
   "phase": "08-real-library-discovery",
   "baseline_main_sha": "8108d3a5e02d7cdec80b4da23a66890fa35e73c0",
+  "baseline_production": {
+    "project_id": "prj_n6CJYyzdUmqHNJ8qlSJalVGerUUW",
+    "deployment_id": "dpl_ZbJYFUAMzfFa77RtXoryY2HJ8eLy",
+    "alias": "stavarai-platform.vercel.app"
+  },
   "database_changes": false,
-  "affected_services": ["creator discovery corpus", "ICM export source selection"],
+  "affected_services": ["creator discovery corpus", "ICM export source selection", "frontend CI smoke"],
+  "rollback_commands": [
+    "git checkout main",
+    "git revert --no-edit \"$(git log --grep='phase(8): use verified imported corpus for discovery and export' -n 1 --format=%H)\"",
+    "npm --prefix frontend ci",
+    "npm --prefix frontend audit --audit-level=high",
+    "npm --prefix frontend run lint",
+    "npm --prefix frontend run build"
+  ],
+  "rollback_validation": [
+    "git cat-file -e 8108d3a5e02d7cdec80b4da23a66890fa35e73c0^{commit}",
+    "git diff --check 8108d3a5e02d7cdec80b4da23a66890fa35e73c0...HEAD"
+  ],
+  "tested": true,
+  "tested_against": "baseline_main_sha and Phase 8 PR head; no database or data migration rollback required",
   "rollback_steps": [
-    "Revert the Phase 8 squash commit through the protected-main PR path.",
-    "Restore the bounded demo discovery corpus if imported-library loading regresses.",
+    "Revert the Phase 8 squash commit through the protected-main PR path using the recorded command sequence.",
+    "Run dependency audit, lint, and production build after the revert.",
+    "Verify /create and /v1/discover return the previous bounded creator corpus.",
     "No database rollback is required."
   ],
   "data_loss_risk": "none"
