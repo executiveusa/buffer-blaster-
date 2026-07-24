@@ -1,0 +1,12 @@
+{
+  "phase": "08-real-library-discovery",
+  "baseline_main_sha": "8108d3a5e02d7cdec80b4da23a66890fa35e73c0",
+  "database_changes": false,
+  "affected_services": ["creator discovery corpus", "ICM export source selection"],
+  "rollback_steps": [
+    "Revert the Phase 8 squash commit through the protected-main PR path.",
+    "Restore the bounded demo discovery corpus if imported-library loading regresses.",
+    "No database rollback is required."
+  ],
+  "data_loss_risk": "none"
+}
