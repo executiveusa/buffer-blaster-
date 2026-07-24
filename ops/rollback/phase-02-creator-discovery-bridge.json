@@ -1,0 +1,20 @@
+{
+  "phase": "02-creator-discovery-bridge",
+  "baseline_main_sha": "af95f970ec954ae3ae31069389902f1ffd0204d2",
+  "baseline_production": {
+    "project_id": "prj_n6CJYyzdUmqHNJ8qlSJalVGerUUW",
+    "deployment_id": "dpl_9pvLUywBLLGCoRyrM7VavNqSioGM",
+    "alias": "stavarai-platform.vercel.app",
+    "root_status": 200,
+    "create_status": 200,
+    "same_origin_discover_status_before_phase": 404
+  },
+  "database_changes": false,
+  "affected_services": ["Next.js creator discovery route", "creator UI API transport"],
+  "rollback_steps": [
+    "Revert the phase squash commit through the protected-main PR path.",
+    "Redeploy the baseline production SHA af95f970ec954ae3ae31069389902f1ffd0204d2 if the route bridge regresses unrelated frontend behavior.",
+    "No database rollback is required."
+  ],
+  "data_loss_risk": "none"
+}
