@@ -22,7 +22,7 @@ jobs:
         run: python -m pytest tests -q
 
   frontend-build:
-    name: Frontend lint and production build
+    name: Frontend lint, build, and route smoke
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,3 +42,21 @@ jobs:
         env:
           NEXT_PUBLIC_DEMO_MODE: "true"
         run: npm run build
+      - name: Smoke creator discovery route
+        env:
+          NEXT_PUBLIC_DEMO_MODE: "true"
+        run: |
+          npm run start -- -p 3000 > /tmp/creator-studio-next.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/create >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          RESPONSE=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover \
+            -H 'Content-Type: application/json' \
+            --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
+          echo "$RESPONSE" | grep -q '"count":3'
+          echo "$RESPONSE" | grep -q 'bb-video-launch-reel-001'
