@@ -8,16 +8,16 @@ import pytest
 from scripts.icm_bundle import build_bundle
 
 
-def make_library(root: Path, *, verified: bool = True) -> Path:
+def make_library(root: Path, *, verified: bool = True, icm_path: str = "cards/images/example/abc123") -> Path:
     library = root / "library"
-    card_path = "cards/images/example/abc123"
-    card_dir = library / card_path
+    card_dir = library / icm_path
     card_dir.mkdir(parents=True)
+    prompt = "Create a premium product photograph on a clean studio backdrop."
     card = {
         "id": "upstream-abc123",
         "title": "Example Creator Card",
         "description": "A bounded test recipe.",
-        "prompt": "Create a premium product photograph on a clean studio backdrop.",
+        "prompt": prompt,
         "category": "Images",
         "subcategory": "Upstream prompts",
         "tags": ["product", "studio"],
@@ -27,9 +27,9 @@ def make_library(root: Path, *, verified: bool = True) -> Path:
             "ref": "deadbeef",
             "license": "CC-BY-4.0",
             "license_verified": verified,
-            "content_hash": "abc123" * 10 + "abcd",
+            "content_hash": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
         },
-        "icm_path": card_path,
+        "icm_path": icm_path,
     }
     manifest = {"schema_version": 2, "source": "YouMind-OpenLab", "cards": [card], "quarantine": [], "counts": {"cards": 1, "quarantined_repositories": 0}}
     (library / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
@@ -81,4 +81,26 @@ def test_bundle_rejects_missing_card_artifact(tmp_path: Path) -> None:
     library = make_library(tmp_path)
     (library / "cards/images/example/abc123/CONTEXT.md").unlink()
     with pytest.raises(FileNotFoundError, match="missing card artifact"):
+        build_bundle(library, tmp_path / "blocked.zip")
+
+
+def test_bundle_rejects_tampered_card_artifact(tmp_path: Path) -> None:
+    library = make_library(tmp_path)
+    card_path = library / "cards/images/example/abc123/card.json"
+    artifact = json.loads(card_path.read_text(encoding="utf-8"))
+    artifact["prompt"] = "Tampered prompt that does not match the reviewed manifest."
+    card_path.write_text(json.dumps(artifact), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="artifact differs from manifest field prompt"):
+        build_bundle(library, tmp_path / "blocked.zip")
+
+
+def test_bundle_rejects_absolute_icm_path(tmp_path: Path) -> None:
+    library = make_library(tmp_path)
+    manifest_path = library / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["cards"][0]["icm_path"] = "/tmp/outside-card"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unsafe icm_path"):
         build_bundle(library, tmp_path / "blocked.zip")
