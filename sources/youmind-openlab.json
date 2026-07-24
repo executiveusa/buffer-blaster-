@@ -1,0 +1,26 @@
+{
+  "source": "YouMind-OpenLab",
+  "purpose": "Upstream registry for provenance-aware prompt and skill ingestion.",
+  "policy": {
+    "publish_only_when_license_verified": true,
+    "preserve_source_repo": true,
+    "preserve_source_path": true,
+    "preserve_source_commit": true,
+    "dedupe_by_content_hash": true,
+    "quarantine_unknown_license": true
+  },
+  "repositories": [
+    {"repo": "YouMind-OpenLab/awesome-nano-banana-pro-prompts", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/awesome-gpt-image-2", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/nano-banana-pro-prompts-recommend-skill", "kind": "agent-skill", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/awesome-seedance-2-prompts", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/ai-image-prompts-skill", "kind": "agent-skill", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/awesome-gemini-3-prompts", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/skills", "kind": "agent-skills", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/awesome-seedream-4.5", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/awesome-grok-imagine-prompts", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/awesome-gpt-image-1.5", "kind": "prompt-library", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/gpt-image-2-prompts-search", "kind": "search-tool", "license_status": "unverified"},
+    {"repo": "YouMind-OpenLab/Rettiwt-API-For-Browser-Extension", "kind": "supporting-tool", "license_status": "unverified"}
+  ]
+}

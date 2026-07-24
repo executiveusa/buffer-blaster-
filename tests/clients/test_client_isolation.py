@@ -1,8 +1,8 @@
 """TDD: client data isolation contract.
 
 Uses FastAPI's TestClient. Verifies that each client's content is tagged with
-its own `schema_{slug}` and that no cross-client leakage can occur — the
-contract enforced by `002_client_isolation.sql` in production.
+its own namespaced `schema_{slug}` and that no cross-client leakage can occur —
+the contract enforced by the platform namespace migration in production.
 """
 import re
 
@@ -10,9 +10,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
-from api.services import demo
+from api.db.client_isolation import PLATFORM_SCHEMA
 
 client = TestClient(app)
+
+
+def expected_schema(slug: str) -> str:
+    return f"{PLATFORM_SCHEMA}.schema_{slug.replace('-', '_')}"
 
 
 @pytest.fixture(autouse=True)
@@ -37,12 +41,10 @@ class TestClientIsolation:
         assert r.status_code == 201
         data = r.json()
         assert data["slug"] == "test-brand-a"
-        assert data["schema"] == "schema_test_brand_a"
+        assert data["schema"] == expected_schema("test-brand-a")
 
     def test_client_a_content_never_contains_client_b_schema(self, auth_headers):
-        """Every content unit under brand-a must carry schema_brand_a only."""
-        # Seed two clients (demo already has cella-coffee + lumen-skincare,
-        # but we add explicit ones to be deterministic).
+        """Every content unit under brand-a must carry only brand-a's schema."""
         client.post(
             "/api/admin/clients",
             json={"name": "Brand A", "niche": "food-beverage", "slug": "brand-a"},
@@ -56,14 +58,15 @@ class TestClientIsolation:
         r = client.get("/api/admin/content/brand-a", headers=auth_headers)
         assert r.status_code == 200
         body = r.json()
-        assert body["schema"] == "schema_brand_a"
+        brand_a_schema = expected_schema("brand-a")
+        assert body["schema"] == brand_a_schema
         for unit in body.get("units", []):
-            assert unit["schema"] == "schema_brand_a", (
+            assert unit["schema"] == brand_a_schema, (
                 f"leak: unit {unit['id']} has schema {unit['schema']}"
             )
 
     def test_schema_name_sanitized(self, auth_headers):
-        """A malicious slug/name must still produce a safe schema name."""
+        """A malicious slug/name must still produce a safe namespaced schema."""
         r = client.post(
             "/api/admin/clients",
             json={
@@ -75,16 +78,23 @@ class TestClientIsolation:
         )
         assert r.status_code == 201
         schema = r.json()["schema"]
-        assert re.match(r"^schema_[a-z0-9_]+$", schema)
+        assert re.match(
+            rf"^{re.escape(PLATFORM_SCHEMA)}\.schema_[a-z0-9_]+$",
+            schema,
+        )
 
     def test_isolation_function_directly(self):
         """Direct unit test of the sanitizer — defence in depth."""
         from api.db.client_isolation import schema_name_for
 
-        assert schema_name_for("brand-a") == "schema_brand_a"
-        # Every non [a-z0-9] char → '_'. The sanitizer must still produce a
-        # name matching ^schema_[a-z0-9_]+$ regardless of input.
+        assert schema_name_for("brand-a") == expected_schema("brand-a")
         out = schema_name_for("BRAND'A;DROP--")
-        assert re.match(r"^schema_[a-z0-9_]+$", out), out
+        assert re.match(
+            rf"^{re.escape(PLATFORM_SCHEMA)}\.schema_[a-z0-9_]+$",
+            out,
+        ), out
         assert "drop" in out
-        assert re.match(r"^schema_[a-z0-9_]+$", schema_name_for("anything!@#$%"))
+        assert re.match(
+            rf"^{re.escape(PLATFORM_SCHEMA)}\.schema_[a-z0-9_]+$",
+            schema_name_for("anything!@#$%"),
+        )
