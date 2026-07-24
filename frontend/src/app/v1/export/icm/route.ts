@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CREATOR_DEMO_CARDS } from "@/lib/creator-demo";
+import { CREATOR_CARDS } from "@/lib/creator-demo";
 import { buildSingleCardAgentPack } from "@/lib/icm-export";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const cardId = typeof body.card_id === "string" ? body.card_id.trim() : "";
   if (!cardId) return NextResponse.json({ detail: "card_id is required" }, { status: 422 });
 
-  const card = CREATOR_DEMO_CARDS.find((item) => item.id === cardId);
+  const card = CREATOR_CARDS.find((item) => item.id === cardId);
   if (!card) return NextResponse.json({ detail: "card not found" }, { status: 404 });
   if (!card.source.license_verified) {
     return NextResponse.json({ detail: "card license is not verified" }, { status: 409 });
