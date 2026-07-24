@@ -1,0 +1,27 @@
+{
+  "phase": "creator-discovery-v1",
+  "baseline_main_sha": "9fdb6ec6bd00f659881d8c6de336e7e6aa64f099",
+  "baseline_production": {
+    "vercel_project": "stavarai-platform",
+    "deployment_id": "dpl_6U5bcW5xngZMTCRECXzFZfp5Yi5f",
+    "deployment_url": "stavarai-platform-q9e2denz2-the-pauli-effect.vercel.app",
+    "rollback_candidate_verified": true
+  },
+  "affected_services": [
+    "frontend preview",
+    "FastAPI source code"
+  ],
+  "database_changes": false,
+  "production_deploy_performed_in_phase": false,
+  "rollback_steps": [
+    "If the squash merge causes a regression, revert the phase squash commit on main using git revert <merge_sha> and push through the normal protected-main PR path.",
+    "If a later production deployment based on this phase regresses, restore the verified Vercel rollback candidate dpl_6U5bcW5xngZMTCRECXzFZfp5Yi5f using the Vercel rollback control/API, then verify /, /blog, and /admin return expected baseline behavior.",
+    "No database rollback is required because this phase performs no schema or data mutation."
+  ],
+  "proof": {
+    "baseline_deployment_state": "READY",
+    "baseline_marked_rollback_candidate": true,
+    "preview_only_until_merge_gate": true,
+    "data_loss_risk": "none"
+  }
+}
