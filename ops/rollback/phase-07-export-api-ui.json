@@ -1,0 +1,24 @@
+{
+  "phase": "07-export-api-ui",
+  "baseline_main_sha": "710b4ff3de81222c3aca3edc7267817052b6c603",
+  "baseline_production": {
+    "project_id": "prj_n6CJYyzdUmqHNJ8qlSJalVGerUUW",
+    "deployment_id": "dpl_AzbtifVxY3huuu8ybek8FfWsaUV7",
+    "alias": "stavarai-platform.vercel.app"
+  },
+  "database_changes": false,
+  "affected_services": ["creator studio UI", "same-origin /v1/export/icm route", "frontend CI smoke"],
+  "rollback_commands": [
+    "git checkout main",
+    "git revert <PHASE_07_SQUASH_SHA>",
+    "npm --prefix frontend ci",
+    "npm --prefix frontend audit --audit-level=high",
+    "npm --prefix frontend run build"
+  ],
+  "rollback_steps": [
+    "Revert the Phase 7 squash commit through the protected-main PR path.",
+    "Verify /create and /v1/discover remain healthy after revert.",
+    "No database rollback or user-data migration is required."
+  ],
+  "data_loss_risk": "none"
+}
