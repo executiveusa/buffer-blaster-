@@ -2,10 +2,7 @@
  * API client — one code path, two modes.
  *
  * - DEMO mode (default): returns seeded data from ./demo-data. No backend.
- * - PRODUCTION: calls FastAPI at NEXT_PUBLIC_API_URL with the session token.
- *
- * The toggle is NEXT_PUBLIC_DEMO_MODE. Flip to "false" + set the API URL on
- * the VPS and the same components fetch live data.
+ * - PRODUCTION: calls FastAPI at NEXT_PUBLIC_API_URL with a session token.
  */
 import {
   DEMO_CLIENTS,
@@ -17,7 +14,6 @@ import {
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 const TOKEN_KEY = "operator_session_token";
 
 export function isDemoMode(): boolean {
@@ -46,34 +42,25 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ...(init?.headers as Record<string, string>),
   };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const r = await fetch(`${API_URL}${path}`, { ...init, headers });
-  if (!r.ok) {
-    const body = await r.json().catch(() => ({}));
-    throw new Error(body.detail || r.statusText);
+
+  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || response.statusText);
   }
-  return r.json() as Promise<T>;
+  return response.json() as Promise<T>;
 }
 
-// ── Auth ──────────────────────────────────────────────────────
-
 export async function verifyPassword(password: string): Promise<{ ok: boolean }> {
-  if (DEMO_MODE) {
-    // Demo: accept the canonical password locally.
-    if (password === "BLASTER2026") {
-      setToken("demo-" + Math.random().toString(36).slice(2));
-      return { ok: true };
-    }
-    return { ok: false };
-  }
-  const r = await apiFetch<{ session_token: string }>("/api/auth/verify", {
+  if (DEMO_MODE) return { ok: true };
+
+  const response = await apiFetch<{ session_token: string }>("/api/auth/verify", {
     method: "POST",
     body: JSON.stringify({ password }),
   });
-  setToken(r.session_token);
+  setToken(response.session_token);
   return { ok: true };
 }
-
-// ── Dashboard ─────────────────────────────────────────────────
 
 export interface DashboardData {
   greeting: string;
@@ -89,27 +76,17 @@ export async function getDashboard(): Promise<DashboardData> {
   return apiFetch<DashboardData>("/api/admin/dashboard");
 }
 
-// ── Clients ───────────────────────────────────────────────────
-
 export async function getClients(): Promise<Client[]> {
   if (DEMO_MODE) return DEMO_CLIENTS;
-  const r = await apiFetch<{ clients: Client[] }>("/api/admin/clients");
-  return r.clients;
+  const response = await apiFetch<{ clients: Client[] }>("/api/admin/clients");
+  return response.clients;
 }
-
-// ── Content ───────────────────────────────────────────────────
 
 export async function getContent(clientSlug: string): Promise<ContentUnit[]> {
-  if (DEMO_MODE) {
-    return DEMO_CONTENT.filter((u) => u.client_slug === clientSlug);
-  }
-  const r = await apiFetch<{ units: ContentUnit[] }>(
-    `/api/admin/content/${clientSlug}`,
-  );
-  return r.units;
+  if (DEMO_MODE) return DEMO_CONTENT.filter((unit) => unit.client_slug === clientSlug);
+  const response = await apiFetch<{ units: ContentUnit[] }>(`/api/admin/content/${clientSlug}`);
+  return response.units;
 }
-
-// ── Settings ──────────────────────────────────────────────────
 
 export interface SettingKey {
   label: string;
@@ -138,6 +115,8 @@ export async function getSettings(): Promise<SettingsData> {
         { label: "Buffer Access Token", env: "BUFFER_ACCESS_TOKEN", masked: "", configured: false },
         { label: "Airtable API Key", env: "AIRTABLE_API_KEY", masked: "", configured: false },
         { label: "Telegram Bot Token", env: "TELEGRAM_BOT_TOKEN", masked: "", configured: false },
+        { label: "Stripe Secret Key", env: "STRIPE_SECRET_KEY", masked: "", configured: false },
+        { label: "Stripe Founding Price", env: "STRIPE_FOUNDING_PRICE_ID", masked: "", configured: false },
       ],
     };
   }
