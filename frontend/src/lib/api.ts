@@ -75,23 +75,23 @@ export interface DashboardData {
   clients?: Client[];
 }
 
-function useSeededConsole(): boolean {
+function seededConsoleEnabled(): boolean {
   return DEMO_MODE || PUBLIC_CONSOLE;
 }
 
 export async function getDashboard(): Promise<DashboardData> {
-  if (useSeededConsole()) return { ...DEMO_DASHBOARD, clients: DEMO_CLIENTS };
+  if (seededConsoleEnabled()) return { ...DEMO_DASHBOARD, clients: DEMO_CLIENTS };
   return apiFetch<DashboardData>("/api/admin/dashboard");
 }
 
 export async function getClients(): Promise<Client[]> {
-  if (useSeededConsole()) return DEMO_CLIENTS;
+  if (seededConsoleEnabled()) return DEMO_CLIENTS;
   const response = await apiFetch<{ clients: Client[] }>("/api/admin/clients");
   return response.clients;
 }
 
 export async function getContent(clientSlug: string): Promise<ContentUnit[]> {
-  if (useSeededConsole()) return DEMO_CONTENT.filter((unit) => unit.client_slug === clientSlug);
+  if (seededConsoleEnabled()) return DEMO_CONTENT.filter((unit) => unit.client_slug === clientSlug);
   const response = await apiFetch<{ units: ContentUnit[] }>(`/api/admin/content/${clientSlug}`);
   return response.units;
 }
@@ -111,7 +111,7 @@ export interface SettingsData {
 }
 
 export async function getSettings(): Promise<SettingsData> {
-  if (useSeededConsole()) {
+  if (seededConsoleEnabled()) {
     return {
       active_llm_provider: "anthropic",
       operator_max_children: 10,
