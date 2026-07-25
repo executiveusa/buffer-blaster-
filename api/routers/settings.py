@@ -6,7 +6,6 @@ we read presence from env vars only — never the values themselves.
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -16,8 +15,6 @@ from ..services import integrations
 
 router = APIRouter(prefix="/api/admin/settings", tags=["settings"])
 
-
-# (display_name, env_var, kind)
 _KEY_FIELDS = [
     ("Anthropic API Key", "ANTHROPIC_API_KEY"),
     ("OpenAI API Key", "OPENAI_API_KEY"),
@@ -44,12 +41,10 @@ async def get_settings(_=Depends(verify_session)) -> dict:
     keys = []
     for label, env in _KEY_FIELDS:
         val = os.getenv(env, "")
-        keys.append(
-            {"label": label, "env": env, "masked": _mask(val), "configured": bool(val)}
-        )
+        keys.append({"label": label, "env": env, "masked": _mask(val), "configured": bool(val)})
     return {
         "active_llm_provider": os.getenv("ACTIVE_LLM_PROVIDER", "anthropic"),
-        "operator_max_children": int(os.getenv("HERMES_MAX_CHILDREN", "10")),
+        "operator_max_children": int(os.getenv("AGENT_MAX_CHILDREN", "10")),
         "demo_mode": os.getenv("NEXT_PUBLIC_DEMO_MODE", "true") == "true",
         "keys": keys,
         "integrations": integrations.status(),
@@ -63,9 +58,6 @@ class SettingUpdate(BaseModel):
 
 @router.put("")
 async def update_setting(payload: SettingUpdate, _=Depends(verify_session)) -> dict:
-    """Update is handled by the VPS (writes encrypted value to Supabase
-    `public.settings`). Returns the masked form so the dashboard can re-render.
-    """
     return {
         "env": payload.env,
         "masked": _mask(payload.value),
@@ -76,5 +68,4 @@ async def update_setting(payload: SettingUpdate, _=Depends(verify_session)) -> d
 
 @router.post("/test/{service}")
 async def test_service(service: str, _=Depends(verify_session)) -> dict:
-    result = integrations.test(service)
-    return result
+    return integrations.test(service)
