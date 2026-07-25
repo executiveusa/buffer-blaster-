@@ -1,17 +1,16 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Download, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Download, ShieldCheck, Sparkles } from "lucide-react";
+import { FoundingCheckoutButton } from "@/components/founding-checkout-button";
 
 const BENEFITS = [
   "Lifetime access to the founding creator tier",
   "Discover, adapt, save, and export creator workflows",
   "Portable ICM agent packs you can keep and inspect",
   "Early access to larger verified corpus batches",
-  "Founding-member price locked at $29"
+  "Founding-member price locked at $29",
 ];
 
 export default function FoundingPage() {
-  const checkoutUrl = process.env.NEXT_PUBLIC_FOUNDING_CREATOR_CHECKOUT_URL?.trim();
-
   return (
     <main className="min-h-screen bg-bg text-text">
       <header className="border-b border-border">
@@ -45,18 +44,7 @@ export default function FoundingPage() {
           <ul className="mt-7 space-y-3">
             {BENEFITS.map((benefit) => <li key={benefit} className="flex gap-3 text-sm text-text-muted"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />{benefit}</li>)}
           </ul>
-
-          {checkoutUrl ? (
-            <a href={checkoutUrl} className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-medium text-white transition hover:bg-accent-dim">
-              Become a Founding Creator <ArrowRight className="h-4 w-4" aria-hidden />
-            </a>
-          ) : (
-            <div className="mt-8 rounded-xl border border-border bg-bg-card p-4">
-              <p className="text-sm text-text">Checkout connection pending.</p>
-              <p className="mt-1 text-xs leading-relaxed text-text-dim">The purchase page is production-ready. A payment-link environment variable must be connected before money is accepted.</p>
-              <Link href="/create" className="mt-4 inline-flex items-center gap-2 text-sm text-accent-soft hover:text-text">Use Creator Studio now <ArrowRight className="h-4 w-4" aria-hidden /></Link>
-            </div>
-          )}
+          <FoundingCheckoutButton />
         </aside>
       </section>
     </main>
