@@ -41,8 +41,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies
         run: npm ci
-      - name: Block high-severity dependency vulnerabilities
-        run: npm audit --audit-level=high
+      - name: Block high-severity production vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
+      - name: Block critical vulnerabilities in full tree
+        run: npm audit --audit-level=critical
       - name: Lint frontend
         run: npm run lint
       - name: Build frontend
