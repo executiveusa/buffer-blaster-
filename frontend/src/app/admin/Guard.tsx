@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -10,9 +9,9 @@ import {
   Settings as SettingsIcon,
   PenSquare,
   LineChart,
-  LogOut,
+  ArrowLeft,
 } from "lucide-react";
-import { getToken, clearToken, isDemoMode } from "@/lib/api";
+import { isDemoMode } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -24,42 +23,8 @@ const NAV = [
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 
-const subscribeToToken = (callback: () => void) => {
-  window.addEventListener("storage", callback);
-  return () => window.removeEventListener("storage", callback);
-};
-
 export default function AdminShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const token = useSyncExternalStore(subscribeToToken, getToken, () => null);
-
-  useEffect(() => {
-    if (pathname === "/admin") {
-      if (token) router.replace("/admin/dashboard");
-      return;
-    }
-    if (!token) router.replace("/admin");
-  }, [pathname, router, token]);
-
-  function handleLogout() {
-    clearToken();
-    router.replace("/admin");
-  }
-
-  const ready = pathname === "/admin" || Boolean(token);
-
-  if (!ready) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-text-dim">
-        Loading…
-      </div>
-    );
-  }
-
-  if (pathname === "/admin") {
-    return <>{children}</>;
-  }
 
   return (
     <div className="flex flex-1">
@@ -96,22 +61,22 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </nav>
 
         <div className="border-t border-border p-3">
-          <button
-            onClick={handleLogout}
+          <Link
+            href="/"
             className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-text-muted transition hover:bg-bg-card/60 hover:text-text"
           >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </button>
+            <ArrowLeft className="h-4 w-4" />
+            Creator Studio
+          </Link>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-border px-6 py-4 md:hidden">
           <span className="text-sm font-semibold">Console</span>
-          <button onClick={handleLogout} className="text-text-dim">
-            <LogOut className="h-4 w-4" />
-          </button>
+          <Link href="/" className="text-text-dim" aria-label="Return to Creator Studio">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
         </header>
         <div className="flex-1">{children}</div>
       </div>
