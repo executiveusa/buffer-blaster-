@@ -1,11 +1,8 @@
-"""Auth router — password-gated demo access.
+"""Authentication router for live operator access.
 
-`POST /api/auth/verify` checks the password against `DEMO_PASSWORD` (default
-BLASTER2026), rate-limited to 5 attempts/min/IP. On success it mints a 256-bit
-session token. The password is never logged.
-
-Password comparison is constant-time via the core's `SessionStore.verify_password`
-(`hmac.compare_digest` in the Python backend; `subtle::ConstantTimeEq` in Rust).
+The demo frontend is publicly viewable without this route. When the live backend
+is enabled, ``DEMO_PASSWORD`` must be configured explicitly; the API never falls
+back to a committed or well-known password.
 """
 from __future__ import annotations
 
@@ -19,8 +16,6 @@ from ..deps import issue_session, rate_limit_auth
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-_DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "BLASTER2026")
-
 
 class PasswordPayload(BaseModel):
     password: str
@@ -28,7 +23,10 @@ class PasswordPayload(BaseModel):
 
 @router.post("/verify")
 async def verify(payload: PasswordPayload, request: Request, _=Depends(rate_limit_auth)):
-    if not get_core().sessions.verify_password(payload.password, _DEMO_PASSWORD):
+    configured_password = os.getenv("DEMO_PASSWORD", "").strip()
+    if not configured_password:
+        raise HTTPException(status_code=503, detail="Operator authentication is not configured")
+    if not get_core().sessions.verify_password(payload.password, configured_password):
         raise HTTPException(status_code=401, detail="Invalid password")
     token = issue_session()
     return {"session_token": token, "expires_in": 86400}

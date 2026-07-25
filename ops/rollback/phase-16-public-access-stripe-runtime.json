@@ -1,0 +1,32 @@
+{
+  "phase": "16-public-access-stripe-runtime",
+  "baseline_main_sha": "7ca32fad90b23890848bdf2cbd4c89c5eb18c40c",
+  "database_changes": false,
+  "dependency_changes": false,
+  "affected_services": [
+    "public admin entry",
+    "frontend API client authentication removal",
+    "founding creator checkout",
+    "optional Stripe runtime integration"
+  ],
+  "rollback_commands": [
+    "git checkout main",
+    "git revert <PHASE_16_SQUASH_SHA>",
+    "npm --prefix frontend ci",
+    "npm --prefix frontend audit --omit=dev --audit-level=high",
+    "npm --prefix frontend audit --audit-level=critical",
+    "npm --prefix frontend run lint",
+    "npm --prefix frontend run build",
+    "python -m pytest tests -q"
+  ],
+  "validation_commands": [
+    "GET / returns 200 without password",
+    "GET /admin redirects to /admin/dashboard without password",
+    "GET /founding returns 200",
+    "POST /api/checkout/founding returns 503 when Stripe is unconfigured",
+    "Stripe package is absent from package.json and lockfile",
+    "creator discovery/adapt/export remain operational"
+  ],
+  "tested": true,
+  "data_loss_risk": "none"
+}

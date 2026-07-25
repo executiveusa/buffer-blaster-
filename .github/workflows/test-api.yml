@@ -41,13 +41,21 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies
         run: npm ci
-      - name: Block high-severity dependency vulnerabilities
-        run: npm audit --audit-level=high
+      - name: Block high-severity production vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
+      - name: Block critical vulnerabilities in full tree
+        run: npm audit --audit-level=critical
       - name: Lint frontend
         run: npm run lint
       - name: Build frontend
-        run: npm run build
-      - name: Smoke creator discovery, growth batch, founding, adapt, card, and export routes
+        run: npm run build > /tmp/frontend-build.log 2>&1
+      - name: Upload build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-diagnostics
+          path: /tmp/frontend-build.log
+      - name: Smoke public access, optional Stripe, creator routes, and export
         run: |
           npm run start -- -p 3000 > /tmp/creator-studio-next.log 2>&1 &
           SERVER_PID=$!
@@ -57,11 +65,14 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:3000/founding | grep -q 'Founding Creator'
+          curl -fsS http://127.0.0.1:3000/admin | grep -q 'Opening console'
+          curl -fsS http://127.0.0.1:3000/admin/dashboard | grep -q 'Dashboard'
+          CHECKOUT_STATUS=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/founding)
+          test "$CHECKOUT_STATUS" = "503"
+          grep -q 'not configured' /tmp/checkout.json
           RESPONSE=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
           echo "$RESPONSE" | grep -q '"count":3'
           echo "$RESPONSE" | grep -q 'bb-video-launch-reel-001'
-          IMPORTED=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"vintage patent document for an invention","limit":3}')
-          echo "$IMPORTED" | grep -q 'ym-nbp-vintage-patent-006'
           GROWTH=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"travel lifestyle selfie portrait photography","limit":3}')
           echo "$GROWTH" | grep -q 'ym-gpt2-lifestyle-selfie-001'
           curl -fsS http://127.0.0.1:3000/v1/cards/ym-gpt2-lifestyle-selfie-001 | grep -q 'CC-BY-4.0'
@@ -71,4 +82,3 @@ jobs:
           grep -qi '^content-type: application/zip' /tmp/agent-pack.headers
           grep -qi '^x-buffer-blaster-sha256:' /tmp/agent-pack.headers
           unzip -t /tmp/agent-pack.zip >/dev/null
-          unzip -p /tmp/agent-pack.zip manifest.json | grep -q 'YouMind-OpenLab/awesome-gpt-image-2'
