@@ -1,8 +1,8 @@
 /**
- * API client — one code path, two modes.
+ * Frontend data client.
  *
- * - DEMO mode (default): returns seeded data from ./demo-data. No backend.
- * - PRODUCTION: calls FastAPI at NEXT_PUBLIC_API_URL with a session token.
+ * The public console uses seeded, read-only data by default. Set
+ * NEXT_PUBLIC_PUBLIC_CONSOLE=false to require the authenticated live backend.
  */
 import {
   DEMO_CLIENTS,
@@ -13,11 +13,16 @@ import {
 } from "./demo-data";
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
+const PUBLIC_CONSOLE = process.env.NEXT_PUBLIC_PUBLIC_CONSOLE !== "false";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "operator_session_token";
 
 export function isDemoMode(): boolean {
   return DEMO_MODE;
+}
+
+export function isPublicConsole(): boolean {
+  return PUBLIC_CONSOLE;
 }
 
 export function getToken(): string | null {
@@ -52,8 +57,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function verifyPassword(password: string): Promise<{ ok: boolean }> {
-  if (DEMO_MODE) return { ok: true };
-
+  if (DEMO_MODE || PUBLIC_CONSOLE) return { ok: true };
   const response = await apiFetch<{ session_token: string }>("/api/auth/verify", {
     method: "POST",
     body: JSON.stringify({ password }),
@@ -71,19 +75,23 @@ export interface DashboardData {
   clients?: Client[];
 }
 
+function seededConsoleEnabled(): boolean {
+  return DEMO_MODE || PUBLIC_CONSOLE;
+}
+
 export async function getDashboard(): Promise<DashboardData> {
-  if (DEMO_MODE) return { ...DEMO_DASHBOARD, clients: DEMO_CLIENTS };
+  if (seededConsoleEnabled()) return { ...DEMO_DASHBOARD, clients: DEMO_CLIENTS };
   return apiFetch<DashboardData>("/api/admin/dashboard");
 }
 
 export async function getClients(): Promise<Client[]> {
-  if (DEMO_MODE) return DEMO_CLIENTS;
+  if (seededConsoleEnabled()) return DEMO_CLIENTS;
   const response = await apiFetch<{ clients: Client[] }>("/api/admin/clients");
   return response.clients;
 }
 
 export async function getContent(clientSlug: string): Promise<ContentUnit[]> {
-  if (DEMO_MODE) return DEMO_CONTENT.filter((unit) => unit.client_slug === clientSlug);
+  if (seededConsoleEnabled()) return DEMO_CONTENT.filter((unit) => unit.client_slug === clientSlug);
   const response = await apiFetch<{ units: ContentUnit[] }>(`/api/admin/content/${clientSlug}`);
   return response.units;
 }
@@ -103,7 +111,7 @@ export interface SettingsData {
 }
 
 export async function getSettings(): Promise<SettingsData> {
-  if (DEMO_MODE) {
+  if (seededConsoleEnabled()) {
     return {
       active_llm_provider: "anthropic",
       operator_max_children: 10,
