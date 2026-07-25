@@ -65,7 +65,8 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:3000/founding | grep -q 'Founding Creator'
-          curl -sSI http://127.0.0.1:3000/admin | grep -qi '^location: /admin/dashboard'
+          curl -fsS http://127.0.0.1:3000/admin | grep -q 'Opening console'
+          curl -fsS http://127.0.0.1:3000/admin/dashboard | grep -q 'Dashboard'
           CHECKOUT_STATUS=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/founding)
           test "$CHECKOUT_STATUS" = "503"
           grep -q 'not configured' /tmp/checkout.json
