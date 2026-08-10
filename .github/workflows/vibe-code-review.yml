@@ -1,0 +1,16 @@
+name: Vibe Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  models: read
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    uses: executiveusa/open-code-review/.github/workflows/vibe-review-standard.yml@66fabe96f1675f901b704b12ce63e7e5103477d2
