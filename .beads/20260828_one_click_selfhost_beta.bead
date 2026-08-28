@@ -1,0 +1,23 @@
+timestamp: 2026-08-28T19:15:00Z
+action: one-click-selfhost-beta
+scope: production container packaging, VPS install, Vercel live-mode handoff, Supabase hot-path indexes
+baseline_main_sha: ed63663aded1f7a8c036855693a89a4ca9ca604c
+baseline_production_deployment: dpl_EotXMaFXo8zqpHghCs97PzfFAR2f
+supabase_project: cyxdevcjycmffhmwxojh
+risk: medium
+destructive: false
+data_migration: additive_indexes_only
+secret_change: false
+reversible: true
+rollback: ops/rollback/one-click-selfhost-beta.json
+verification:
+  - GitHub API/frontend CI green
+  - self-host packaging tests green
+  - canonical Vercel production READY after merge
+  - /studio returns HTTP 200
+  - Supabase performance advisors re-run after index migration
+constraints:
+  - no provider secrets in Git
+  - no public publishing without explicit human approval
+  - no TryPost vendoring into proprietary code
+  - no unrelated Supabase schema changes
