@@ -7,11 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "gauntlet": "node scripts/design-gauntlet.mjs"
+    "gauntlet": "node scripts/design-gauntlet.mjs",
+    "test:frontmatter": "node --test scripts/frontmatter.test.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "gray-matter": "^4.0.3",
     "lucide-react": "^1.24.0",
     "next": "16.2.11",
     "react": "19.2.4",
@@ -32,7 +32,8 @@
     "typescript": "^5"
   },
   "overrides": {
-    "postcss": "8.5.19",
+    "nanoid": "3.3.18",
+    "postcss": "8.5.23",
     "sharp": "0.35.0"
   }
 }

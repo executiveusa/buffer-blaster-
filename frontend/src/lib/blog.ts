@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import matter from "gray-matter";
 import readingTime from "reading-time";
+import { parseFrontmatter } from "./frontmatter.mjs";
 
 export interface BlogPostMeta {
   slug: string;
@@ -45,7 +45,7 @@ export function getAllPosts(): BlogPostMeta[] {
   const posts = files.map((file) => {
     const slug = file.replace(/\.mdx$/, "");
     const raw = fs.readFileSync(path.join(POSTS_DIR, file), "utf-8");
-    const { data, content } = matter(raw);
+    const { data, content } = parseFrontmatter(raw);
     const stats = readingTime(content);
     return {
       slug,
@@ -64,7 +64,7 @@ export function getPost(slug: string): BlogPost | null {
   const file = path.join(POSTS_DIR, `${slug}.mdx`);
   if (!fs.existsSync(file)) return null;
   const raw = fs.readFileSync(file, "utf-8");
-  const { data, content } = matter(raw);
+  const { data, content } = parseFrontmatter(raw);
   const stats = readingTime(content);
   return {
     slug,
