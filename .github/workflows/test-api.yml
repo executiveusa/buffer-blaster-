@@ -66,8 +66,10 @@ jobs:
             exit 1
           fi
           grep -q '"status":"ok"' /tmp/stavarai-health.json
+          grep -q '"approval_gate":true' /tmp/stavarai-health.json
           STATUS=$(curl -fsS -H 'x-api-key: ci-only-api-key' http://127.0.0.1:18000/api/studio/status)
-          echo "$STATUS" | grep -q '"approval_required":true'
+          echo "$STATUS" | grep -q '"approval_gate":true'
+          echo "$STATUS" | grep -q '"provider":"trypost"'
 
   frontend-build:
     name: Frontend security, gauntlet, lint, build, and route smoke
