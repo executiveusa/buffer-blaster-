@@ -39,18 +39,29 @@ app = FastAPI(
     openapi_url=None,
 )
 
-frontend_origin = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:8000")
-site_url = os.getenv("SITE_URL", "")
-allowed = {
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    frontend_origin,
-}
-if site_url:
-    allowed.add(site_url.rstrip("/"))
+def _allowed_origins() -> list[str]:
+    """Resolve browser origins without coupling the API to a public secret."""
+    origins = {
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://stavarai-platform.vercel.app",
+        "https://www.stavarai.com",
+        "https://stavarai.com",
+    }
+    site_url = os.getenv("SITE_URL", "").strip()
+    if site_url:
+        origins.add(site_url.rstrip("/"))
+    configured = os.getenv("ALLOWED_ORIGINS", "")
+    for raw in configured.split(","):
+        origin = raw.strip().rstrip("/")
+        if origin:
+            origins.add(origin)
+    return sorted(origins)
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin for origin in allowed if origin],
+    allow_origins=_allowed_origins(),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "x-api-key"],
