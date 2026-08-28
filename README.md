@@ -30,7 +30,8 @@ npm run dev
 
 - Landing page at `/`
 - Blog at `/blog`
-- Admin gate at `/admin` — password: `BLASTER2026`
+- Studio at `/studio`
+- Admin at `/admin`
 
 ### Full stack (local dev)
 
@@ -40,51 +41,66 @@ cd api && pip install -r requirements.txt && cd ..
 npm run dev:local                 # FastAPI :8000 + Next.js :3000
 ```
 
-### Production (VPS)
+### Production backend — one click
 
-See **`docs/HANDOFF.md`** for the complete VPS setup, or run `setup.sh` on a
-Linux server. Frontend deploys to Vercel.
+The canonical production shape is **Vercel frontend + self-hosted FastAPI backend**.
+Point an API hostname at a clean Ubuntu/Debian VPS, then run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/executiveusa/buffer-blaster-/main/scripts/selfhost/install.sh \
+  | sudo bash -s -- --domain api.example.com
+```
+
+The installer brings up FastAPI behind Caddy/HTTPS, generates app-owned secrets
+locally, and leaves third-party credentials blank for secure operator entry.
+
+Then follow **`docs/GEMINI_BETA_HANDOFF.md`** to connect Supabase, OpenAI, Fal,
+TryPost and switch the canonical Vercel frontend into live mode. Run
+`bash scripts/selfhost/preflight.sh` and `bash scripts/selfhost/smoke.sh` before
+beta users enter.
 
 ## Repository layout
 
 ```
-frontend/        Next.js 15 + Tailwind v4 — landing, admin, blog
-api/             FastAPI — auth, dashboard, clients, pipeline, settings, voice
-rust_core/       AES-256 encryption, session auth, rate limiter, job queue
-supabase/        Migrations — schema, client isolation, demo seed
-skills/          grill-me, stop-slop, food-beverage, ugc-video, scoring
-content/blog/    MDX posts (original, value-add)
-agents/          Hermes SOUL.md + config
-docs/            Specs, secrets contract, TDD spec, acquisition playbook
-tests/           TDD — Rust + Python
-.beads/          Reversible checkpoints (every destructive op logs one)
+frontend/        Next.js + Tailwind — landing, studio, admin, blog
+api/             FastAPI — auth, dashboard, pipeline, Studio, voice, MCP
+rust_core/       optional Rust hot path; Python fallback remains supported
+supabase/        migrations and Buffer Blaster production state
+skills/          content, UGC, scoring and agent skills
+content/blog/    MDX posts
+agents/          Hermes/orchestration configuration
+docs/            specs, secrets contract and production handoffs
+scripts/selfhost one-click VPS, preflight, smoke and Vercel live-mode helpers
+tests/           Python/Rust/frontend/packaging verification
+.beads/          reversible checkpoints
 ```
 
 ## Read these first
 
-1. `docs/CLAUDE.md` — root orientation (ICM structure, 10 core laws)
-2. `docs/PROJECT.md` — who this is for, what it does, acquisition framing
-3. `docs/SECRETS.md` — every env var, where it lives, never hardcoded
-4. `docs/TDD_SPEC.md` — every feature as a test, before code
-5. `docs/HANDOFF.md` — what runs now, what needs a VPS, the 7 gaps to fill
+1. `EMERALD_TABLETS.md` — non-negotiables
+2. `AGENTS.md` — operating contract
+3. `docs/SECRETS.md` — secrets contract
+4. `docs/HANDOFF.md` — production roadmap
+5. `docs/GEMINI_BETA_HANDOFF.md` — exact beta bring-up and proof sequence
 
 ## Core laws
 
 1. **Tests before code.** Every feature has a failing test first.
-2. **No client data mixing.** Each client gets an isolated Supabase schema.
-3. **Stop-slop on all generated text.** No "AI-powered", no "revolutionize".
-4. **LLM-agnostic.** No hardcoded model names. Swap providers in settings.
+2. **No client data mixing.** Client/workspace isolation is enforced in the data layer.
+3. **Stop-slop on generated text.** No generic filler copy.
+4. **LLM-agnostic.** Model/provider IDs stay environment-driven.
 5. **One bead per destructive op.** `.beads/` is the audit trail.
-6. **Rust for the hot path.** Auth, encryption, rate-limiting, job-queuing.
-7. **`BLASTER2026` is the only backend access.** Backend greets Stavarai by name.
+6. **Rust may accelerate the hot path, but must never be a hard runtime dependency.**
+7. **Production operator access must be explicitly configured.** The API has no committed fallback password.
+8. **No public publishing without explicit human approval.**
 
 ## Security
 
-- All API keys encrypted at rest (AES-256-GCM via Rust core)
-- Supabase RLS on every public table
-- Per-client schema isolation (verified by test)
-- Telegram bot ignores every user except Stavarai's ID
-- `.env` is gitignored and chmod 600 on the VPS
+- API keys are never committed; production secrets live in private runtime environment files/stores.
+- The self-host container runs as a non-root user behind Caddy TLS.
+- Supabase RLS/workspace controls protect production state.
+- `.env.production` is gitignored and should remain `chmod 600` on the VPS.
+- Provider/API secrets must never use a `NEXT_PUBLIC_*` name.
 
 ## License
 

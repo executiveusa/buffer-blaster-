@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from ..services.native import get_core
+from ..services.operator_sessions import SessionBackendUnavailable, invalidate_session
 from ..deps import issue_session, rate_limit_auth
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -36,5 +37,8 @@ async def verify(payload: PasswordPayload, request: Request, _=Depends(rate_limi
 async def logout(request: Request):
     header = request.headers.get("Authorization", "")
     if header.startswith("Bearer "):
-        get_core().sessions.invalidate(header.split(" ", 1)[1])
+        try:
+            invalidate_session(header.split(" ", 1)[1])
+        except SessionBackendUnavailable as exc:
+            raise HTTPException(status_code=503, detail="Authentication backend unavailable") from exc
     return {"status": "logged out"}
