@@ -1,0 +1,39 @@
+{
+  "change": "v1-production-proof",
+  "created_at": "2026-08-28T00:00:00Z",
+  "baseline_main_sha": "d42c68975f0dd2c9396cb24bde1ca8ba067a3c47",
+  "branch": "feat/ci-production-proof",
+  "scope": [
+    "API identity contract test",
+    "frontend blog frontmatter parser",
+    "frontend dependency lock",
+    "frontend CI verification"
+  ],
+  "database": {
+    "migration": "none",
+    "data_changed": false
+  },
+  "secrets": {
+    "committed": false,
+    "runtime_credentials_changed": false
+  },
+  "rollback": {
+    "method": "revert the squash-merge commit for this change",
+    "command_template": "git revert <v1-production-proof-merge-sha>",
+    "data_loss_risk": "none"
+  },
+  "verification": {
+    "status": "pending-ci",
+    "required": [
+      "python tests",
+      "frontend production npm audit",
+      "frontend critical full-tree npm audit",
+      "frontmatter parser tests",
+      "design gauntlet",
+      "lint",
+      "Next.js build",
+      "route smoke",
+      "Vercel production check"
+    ]
+  }
+}

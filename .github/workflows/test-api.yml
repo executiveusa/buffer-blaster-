@@ -45,6 +45,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Block critical vulnerabilities in full tree
         run: npm audit --audit-level=critical
+      - name: Test dependency-free frontmatter parser
+        run: npm run test:frontmatter
       - name: Run structural design gauntlet
         run: npm run gauntlet
       - name: Lint frontend
