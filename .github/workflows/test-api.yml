@@ -27,7 +27,7 @@ jobs:
         run: python scripts/build_creator_catalog.py --input library/imported/youmind --output /tmp/creator-catalog
 
   frontend-build:
-    name: Frontend security, lint, build, and route smoke
+    name: Frontend security, gauntlet, lint, build, and route smoke
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -45,6 +45,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Block critical vulnerabilities in full tree
         run: npm audit --audit-level=critical
+      - name: Run structural design gauntlet
+        run: npm run gauntlet
       - name: Lint frontend
         run: npm run lint
       - name: Build frontend
@@ -55,15 +57,26 @@ jobs:
         with:
           name: frontend-build-diagnostics
           path: /tmp/frontend-build.log
-      - name: Smoke public access, optional Stripe, creator routes, and export
+      - name: Smoke public, studio, legacy creator, and export routes
         run: |
-          npm run start -- -p 3000 > /tmp/creator-studio-next.log 2>&1 &
+          npm run start -- -p 3000 > /tmp/social-studio-next.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
           for attempt in {1..30}; do
-            if curl -fsS http://127.0.0.1:3000/create >/dev/null; then break; fi
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
             sleep 1
           done
+          curl -fsS http://127.0.0.1:3000/ | grep -q 'Make the content'
+          curl -fsS http://127.0.0.1:3000/pricing | grep -q 'Pay for the system'
+          curl -fsS http://127.0.0.1:3000/studio | grep -q 'Run social from one command'
+          curl -fsS http://127.0.0.1:3000/studio/create | grep -q 'Turn a product into an ad'
+          curl -fsS http://127.0.0.1:3000/studio/library | grep -q 'Everything you have made'
+          curl -fsS http://127.0.0.1:3000/studio/moodboards | grep -q 'Teach the studio what good looks like'
+          curl -fsS http://127.0.0.1:3000/studio/canvas | grep -q 'Build the creative flow visually'
+          curl -fsS http://127.0.0.1:3000/studio/campaigns | grep -q 'Give the agent an outcome'
+          curl -fsS http://127.0.0.1:3000/studio/calendar | grep -q 'See what goes live before it does'
+          curl -fsS http://127.0.0.1:3000/studio/analytics | grep -q 'Make the next campaign from what worked'
+          curl -fsS http://127.0.0.1:3000/studio/settings | grep -q 'Connect the engines'
           curl -fsS http://127.0.0.1:3000/founding | grep -q 'Founding Creator'
           curl -fsS http://127.0.0.1:3000/admin | grep -q 'Opening console'
           curl -fsS http://127.0.0.1:3000/admin/dashboard | grep -q 'Dashboard'
