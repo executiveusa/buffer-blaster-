@@ -1,0 +1,17 @@
+timestamp: 2026-08-28T00:00:00Z
+action: ci-production-proof
+scope: api,frontend,production-verification
+description: |
+  Restore the merged Social Studio V1 to a clean production verification path.
+  Update the stale API discovery contract for the accepted MCP route, remediate
+  high-severity frontend dependency advisories without weakening audit gates,
+  and verify the resulting production deployment. No secrets or destructive
+  database changes are part of this slice. Public publishing remains subject
+  to the existing hard human approval gate.
+verification:
+  - GitHub Actions API tests pass
+  - frontend npm audit high gate passes
+  - frontend gauntlet, lint, build, and route smoke pass
+  - production Vercel deployment is READY and runtime errors are checked
+reversible: true
+rollback: revert the squash-merge commit for this slice
