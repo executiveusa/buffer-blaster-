@@ -6,14 +6,24 @@ import { PageHeader, StatusPill } from "@/components/studio-ui";
 import { StudioShell } from "@/components/studio-shell";
 import { listSocialAccounts, scheduleDrop, type SocialAccount } from "@/lib/studio-api";
 
-const items = [
+type CalendarItem = {
+  day: number;
+  title: string;
+  platform: string;
+  time: string;
+  tone: string;
+  approved: boolean;
+  format: string;
+};
+
+const items: CalendarItem[] = [
   { day: 1, title: "Cold brew hook", platform: "Instagram", time: "9:00 AM", tone: "#d6b58e", approved: true, format: "post" },
   { day: 2, title: "Product proof", platform: "Facebook", time: "12:30 PM", tone: "#b9c5d4", approved: true, format: "post" },
   { day: 3, title: "UGC testimonial", platform: "TikTok", time: "6:00 PM", tone: "#c7b7a7", approved: false, format: "reel" },
   { day: 4, title: "Carousel", platform: "Instagram", time: "10:15 AM", tone: "#aebe9d", approved: false, format: "carousel" },
   { day: 5, title: "Offer post", platform: "LinkedIn", time: "8:30 AM", tone: "#d8c7a9", approved: true, format: "post" },
   { day: 6, title: "Founder clip", platform: "YouTube", time: "5:00 PM", tone: "#b7afca", approved: false, format: "reel" },
-] as const;
+];
 
 type Receipt = {
   external_id?: string;
@@ -26,7 +36,7 @@ function platformKey(value: string) {
 }
 
 export default function CalendarPage() {
-  const [selected, setSelected] = useState(items[2]);
+  const [selected, setSelected] = useState<CalendarItem>(items[2]);
   const [approved, setApproved] = useState(selected.approved);
   const [content, setContent] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
@@ -44,7 +54,7 @@ export default function CalendarPage() {
     return accounts.filter(account => platformKey(account.platform) === wanted && account.is_active !== false);
   }, [accounts, selected.platform]);
 
-  function choose(item: typeof items[number]) {
+  function choose(item: CalendarItem) {
     setSelected(item);
     setApproved(item.approved);
     setFormat(item.format);
