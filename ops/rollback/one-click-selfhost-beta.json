@@ -1,0 +1,34 @@
+{
+  "change": "one-click-selfhost-beta",
+  "baseline_main_sha": "ed63663aded1f7a8c036855693a89a4ca9ca604c",
+  "baseline_vercel_deployment": "dpl_EotXMaFXo8zqpHghCs97PzfFAR2f",
+  "supabase_project": "cyxdevcjycmffhmwxojh",
+  "application": [
+    "git checkout ed63663aded1f7a8c036855693a89a4ca9ca604c",
+    "docker compose -f docker-compose.prod.yml up -d --build"
+  ],
+  "vercel": [
+    "restore dpl_EotXMaFXo8zqpHghCs97PzfFAR2f if the frontend regresses",
+    "or set NEXT_PUBLIC_DEMO_MODE=true and redeploy while the live backend is diagnosed"
+  ],
+  "database": {
+    "note": "Only indexes added by buffer_blaster_beta_scale may be removed. No table/schema/data rollback is allowed.",
+    "drop_indexes": [
+      "buffer_blaster.bb_approvals_content_workspace_fk_idx",
+      "buffer_blaster.bb_campaigns_client_workspace_fk_idx",
+      "buffer_blaster.bb_creative_jobs_campaign_workspace_fk_idx",
+      "buffer_blaster.bb_content_items_campaign_workspace_fk_idx",
+      "buffer_blaster.bb_content_items_creative_job_workspace_fk_idx",
+      "buffer_blaster.bb_publish_jobs_content_workspace_fk_idx",
+      "buffer_blaster.bb_publish_jobs_approval_workspace_fk_idx",
+      "buffer_blaster.bb_publish_jobs_channel_workspace_fk_idx",
+      "buffer_blaster.bb_publish_receipts_job_workspace_fk_idx",
+      "buffer_blaster.bb_model_runs_job_workspace_fk_idx",
+      "buffer_blaster.bb_performance_events_content_workspace_fk_idx",
+      "buffer_blaster.bb_messages_conversation_workspace_fk_idx",
+      "buffer_blaster.bb_channel_connections_client_workspace_fk_idx",
+      "buffer_blaster.bb_source_assets_client_workspace_fk_idx",
+      "buffer_blaster.bb_ugc_characters_client_workspace_fk_idx"
+    ]
+  }
+}
