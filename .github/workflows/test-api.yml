@@ -44,13 +44,27 @@ jobs:
             -e MASTER_ENCRYPTION_KEY=ci-only-key \
             -e DEMO_PASSWORD=ci-only-password \
             -e BLASTER_API_KEY=ci-only-api-key \
-            -e WEB_CONCURRENCY=2 \
+            -e WEB_CONCURRENCY=1 \
             stavarai-api:ci
           trap 'docker rm -f stavarai-api-ci >/dev/null 2>&1 || true' EXIT
-          for attempt in {1..45}; do
-            if curl -fsS http://127.0.0.1:18000/api/health > /tmp/stavarai-health.json; then break; fi
+          READY=0
+          for attempt in {1..30}; do
+            if [[ "$(docker inspect -f '{{.State.Running}}' stavarai-api-ci 2>/dev/null || true)" != "true" ]]; then
+              echo "Container exited during startup"
+              docker logs stavarai-api-ci || true
+              exit 1
+            fi
+            if curl -fsS http://127.0.0.1:18000/api/health > /tmp/stavarai-health.json; then
+              READY=1
+              break
+            fi
             sleep 1
           done
+          if [[ "$READY" != "1" ]]; then
+            echo "API did not become healthy"
+            docker logs stavarai-api-ci || true
+            exit 1
+          fi
           grep -q '"status":"ok"' /tmp/stavarai-health.json
           STATUS=$(curl -fsS -H 'x-api-key: ci-only-api-key' http://127.0.0.1:18000/api/studio/status)
           echo "$STATUS" | grep -q '"approval_required":true'
