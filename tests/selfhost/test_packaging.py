@@ -11,7 +11,8 @@ def test_container_runs_as_non_root_and_has_healthcheck():
     dockerfile = read("Dockerfile")
     assert "USER stavarai" in dockerfile
     assert "HEALTHCHECK" in dockerfile
-    assert "api.main:app" in dockerfile
+    assert "api.app:app" in dockerfile
+    assert "api.main:app" not in dockerfile
     assert "--workers ${WEB_CONCURRENCY:-4}" in dockerfile
 
 
@@ -66,6 +67,13 @@ def test_live_publishing_gate_is_still_present():
     assert "approved=drop.approved" in studio
     assert "if not request.approved" in publishing
     assert '"error": "human_approval_required"' in publishing
+
+
+def test_production_cors_honors_explicit_allowed_origins():
+    app = read("api/app.py")
+    assert 'os.getenv("ALLOWED_ORIGINS", "")' in app
+    assert "allow_origins=_allowed_origins()" in app
+    assert "https://stavarai-platform.vercel.app" in app
 
 
 def test_vercel_helper_exposes_only_public_live_mode_values():
