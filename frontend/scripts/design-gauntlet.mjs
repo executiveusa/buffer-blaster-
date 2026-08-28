@@ -45,6 +45,14 @@ if (ok) pass("studio shell carries Adpanel-derived quiet-shell signals");
 const command = fs.readFileSync(path.join(root, "src/components/agent-command.tsx"), "utf8");
 if (!command.includes("SpeechRecognition") || !command.includes("Human approval required")) fail("agent command lacks voice or approval boundary");
 else pass("agent command includes voice and approval-aware intent surface");
+if (!command.includes("runAgentCommand") || !command.includes("await runAgentCommand")) fail("agent command is not wired to the studio agent API");
+else pass("agent command executes through the shared studio API when live");
+
+const calendar = fs.readFileSync(path.join(root, "src/app/studio/calendar/page.tsx"), "utf8");
+for (const signal of ["listSocialAccounts", "scheduleDrop", "social_account_id", "scheduled_at", "Simulation only"]) {
+  if (!calendar.includes(signal)) fail(`calendar missing live scheduling signal ${signal}`);
+}
+if (ok) pass("calendar resolves a real account and schedules only after explicit approval");
 
 const pricing = fs.readFileSync(path.join(root, "src/app/pricing/page.tsx"), "utf8");
 for (const price of ["39", "119", "299"]) if (!pricing.includes(price)) fail(`pricing page missing $${price}`);
