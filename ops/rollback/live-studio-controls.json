@@ -1,0 +1,20 @@
+{
+  "phase": "live-studio-controls",
+  "baseline_main_sha": "7b9fd402234d4c0998a811241845d751def67f5a",
+  "baseline_production_deployment": "dpl_HZAHS1WQ8avpXu5toHRX4cYsrw8q",
+  "data_loss_risk": "none",
+  "database_migration": false,
+  "secret_change": false,
+  "rollback": [
+    "Revert the squash-merge commit for live-studio-controls on a repair branch.",
+    "Run the existing API/frontend CI and gauntlet to prove the restored state.",
+    "Promote or redeploy the prior known-good frontend from baseline main if the new Vercel deployment is unhealthy."
+  ],
+  "acceptance": [
+    "Agent command uses the Studio API in live mode.",
+    "Calendar resolves a TryPost account before scheduling.",
+    "Scheduling requires exact content, future time, selected account, format, and explicit human approval.",
+    "Demo receipts are marked simulated.",
+    "No database or secret mutation is introduced."
+  ]
+}

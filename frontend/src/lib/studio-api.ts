@@ -19,6 +19,24 @@ export type UGCBrief = {
   aspect_ratio?: string; image_url?: string; duration?: string; generate_audio?: boolean;
 };
 
+export type AgentCommandResult = {
+  ok: boolean;
+  intent: "create_ugc" | "create_campaign" | "schedule_content" | "status";
+  entity?: string | null;
+  requires_approval: boolean;
+  next: string;
+  simulated?: boolean;
+};
+
+export type SocialAccount = {
+  id: string;
+  platform: string;
+  display_name?: string | null;
+  username?: string | null;
+  is_active?: boolean;
+  status?: string | null;
+};
+
 export function localPrompt(brief: UGCBrief): string {
   return [
     `SCENE: ${brief.idea}${brief.product ? ` Product focus: ${brief.product}.` : ""}`,
@@ -32,23 +50,60 @@ export function localPrompt(brief: UGCBrief): string {
   ].join("\n");
 }
 
+function localAgentCommand(command: string): AgentCommandResult {
+  const text = command.toLowerCase();
+  if (/schedule|publish|post now|send live/.test(text)) {
+    return { ok: true, intent: "schedule_content", entity: null, requires_approval: true, next: "/api/studio/social/schedule", simulated: true };
+  }
+  if (/status|ready|connected|connection/.test(text)) {
+    return { ok: true, intent: "status", entity: null, requires_approval: false, next: "/api/studio/status", simulated: true };
+  }
+  if (/ugc|video ad|unboxing|creator ad|testimonial/.test(text)) {
+    return { ok: true, intent: "create_ugc", entity: null, requires_approval: false, next: "/api/studio/ugc/prompt", simulated: true };
+  }
+  return { ok: true, intent: "create_campaign", entity: null, requires_approval: false, next: "/api/studio/campaigns/plan", simulated: true };
+}
+
+export async function runAgentCommand(command: string): Promise<AgentCommandResult> {
+  if (seeded()) return localAgentCommand(command);
+  return call<AgentCommandResult>("/api/studio/agent/command", { method: "POST", body: JSON.stringify({ command }) });
+}
+
 export async function createUGCPrompt(brief: UGCBrief) {
   if (seeded()) return { ok: true, prompt: localPrompt(brief), brief };
   return call<{ ok: boolean; prompt: string; brief: UGCBrief }>("/api/studio/ugc/prompt", { method: "POST", body: JSON.stringify(brief) });
 }
 
 export async function queueUGCRender(brief: UGCBrief) {
-  if (seeded()) return { ok: true, provider: "demo", request_id: `demo-${Date.now()}`, status_url: "demo://rendering", response_url: "demo://result" };
+  if (seeded()) return { ok: true, provider: "demo", simulated: true, request_id: `demo-${Date.now()}`, status_url: "demo://rendering", response_url: "demo://result" };
   return call<Record<string, unknown>>("/api/studio/ugc/render", { method: "POST", body: JSON.stringify(brief) });
 }
 
 export async function getStudioStatus() {
-  if (seeded()) return { ok: true, media: { provider: "fal", configured: false }, publisher: { provider: "trypost", configured: false }, approval_gate: true };
+  if (seeded()) return { ok: true, simulated: true, media: { provider: "fal", configured: false }, publisher: { provider: "trypost", configured: false }, approval_gate: true };
   return call<Record<string, unknown>>("/api/studio/status");
+}
+
+export async function listSocialAccounts(): Promise<{ ok: boolean; provider: string; accounts: SocialAccount[]; simulated?: boolean }> {
+  if (seeded()) {
+    return {
+      ok: true,
+      provider: "demo",
+      simulated: true,
+      accounts: [
+        { id: "demo-instagram", platform: "instagram", display_name: "Demo Instagram", username: "@demo", is_active: true, status: "connected" },
+        { id: "demo-tiktok", platform: "tiktok", display_name: "Demo TikTok", username: "@demo", is_active: true, status: "connected" },
+      ],
+    };
+  }
+  const response = await call<{ ok: boolean; provider?: string; accounts?: SocialAccount[] | { data?: SocialAccount[] } }>("/api/studio/social/accounts");
+  const raw = response.accounts;
+  const accounts = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+  return { ok: response.ok, provider: response.provider || "trypost", accounts };
 }
 
 export async function scheduleDrop(payload: Record<string, unknown>) {
   if (!payload.approved) throw new Error("Human approval is required before scheduling.");
-  if (seeded()) return { ok: true, provider: "demo", receipt: { external_id: `demo-post-${Date.now()}`, scheduled_at: payload.scheduled_at, recorded_at: new Date().toISOString() } };
+  if (seeded()) return { ok: true, provider: "demo", simulated: true, receipt: { external_id: `demo-post-${Date.now()}`, scheduled_at: payload.scheduled_at, recorded_at: new Date().toISOString() } };
   return call<Record<string, unknown>>("/api/studio/social/schedule", { method: "POST", body: JSON.stringify(payload) });
 }

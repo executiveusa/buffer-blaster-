@@ -1,0 +1,21 @@
+timestamp: 2026-08-28T17:25:00Z
+action: live-studio-controls
+scope: frontend command execution, TryPost account resolution, approval-gated scheduling
+baseline_main_sha: 7b9fd402234d4c0998a811241845d751def67f5a
+baseline_production_deployment: dpl_HZAHS1WQ8avpXu5toHRX4cYsrw8q
+risk: medium
+destructive: false
+data_migration: false
+secret_change: false
+reversible: true
+rollback: revert the squash-merge commit for this slice and restore the prior Vercel production deployment if necessary
+verification:
+  - GitHub API/frontend CI green
+  - frontend structural gauntlet confirms command API and scheduler wiring
+  - Vercel production deployment READY after merge
+  - /studio returns HTTP 200
+  - runtime error table checked after deploy
+constraints:
+  - no public publishing without explicit human approval
+  - no invented social account IDs
+  - demo receipts must remain visibly simulated
