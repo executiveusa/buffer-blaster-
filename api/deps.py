@@ -1,14 +1,19 @@
 """Shared auth + rate-limit dependencies for routers.
 
-Lives at `api.deps` (NOT `api.routers._deps`) so it can import the core without
-touching `api.app` — breaking the circular import (app imports routers,
-routers imported deps, deps imported app).
+Production sessions and login attempt counters use Redis when ``REDIS_URL`` is
+configured, so multiple Uvicorn workers share one security boundary. Local dev
+without Redis retains the existing in-process core contract.
 """
 from __future__ import annotations
 
 from fastapi import HTTPException, Request
 
-from .services.native import get_core
+from .services.operator_sessions import (
+    SessionBackendUnavailable,
+    check_auth_rate_limit,
+    issue_session as _issue_session,
+    validate_session,
+)
 
 
 def _client_ip(request: Request) -> str:
@@ -19,13 +24,18 @@ def _client_ip(request: Request) -> str:
 
 
 def issue_session() -> str:
-    return get_core().sessions.issue()
+    try:
+        return _issue_session()
+    except SessionBackendUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Authentication backend unavailable") from exc
 
 
 def rate_limit_auth(request: Request) -> None:
-    """5 attempts/min per IP on auth verify. Raises 429 on excess."""
-    key = f"auth:{_client_ip(request)}"
-    allowed, retry = get_core().rate_limiter.check(key, capacity=5.0, rate=5.0 / 60.0)
+    """Five attempts/minute per source IP; shared through Redis in production."""
+    try:
+        allowed, retry = check_auth_rate_limit(_client_ip(request))
+    except SessionBackendUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Authentication backend unavailable") from exc
     if not allowed:
         raise HTTPException(
             status_code=429,
@@ -40,6 +50,10 @@ def verify_session(request: Request) -> str:
     if not header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")
     token = header.split(" ", 1)[1]
-    if not get_core().sessions.validate(token):
+    try:
+        valid = validate_session(token)
+    except SessionBackendUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Authentication backend unavailable") from exc
+    if not valid:
         raise HTTPException(status_code=401, detail="Token expired or invalid")
     return token
