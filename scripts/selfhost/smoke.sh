@@ -31,10 +31,12 @@ import json, sys
 health = json.load(open(sys.argv[1], encoding='utf-8'))
 status = json.load(open(sys.argv[2], encoding='utf-8'))
 assert health.get('status') == 'ok', health
-assert status.get('service') == 'social-studio', status
-assert status.get('approval_required') is True, status
-print('PASS health:', health.get('service'), '| core:', health.get('core'))
-print('PASS studio:', status.get('service'), '| publisher:', status.get('publisher'))
+assert health.get('approval_gate') is True, health
+assert status.get('ok') is True, status
+assert status.get('approval_gate') is True, status
+assert status.get('publisher', {}).get('provider') == 'trypost', status
+print('PASS health | core:', health.get('core'))
+print('PASS studio | publisher:', status.get('publisher'))
 print('PASS public publishing remains approval-gated')
 PY
 
