@@ -1,78 +1,30 @@
 import Link from "next/link";
-import { ArrowRight, Download, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarDays, Check, Command, Film, Layers3, Play, Sparkles } from "lucide-react";
 
-const STEPS = [
-  ["01", "Describe the outcome", "Tell the studio what you want to make in normal language."],
-  ["02", "Choose from three", "Get a small set of relevant, provenance-aware recipes instead of a wall of prompts."],
-  ["03", "Adapt and own it", "Fill the required inputs, save locally, and export a portable agent pack you can inspect and reuse."],
-];
+const logos = ["SHOPIFY", "DTC", "CREATORS", "AGENCIES", "TEAMS"];
 
 export default function LandingPage() {
-  return (
-    <main className="flex-1">
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="absolute inset-0 hero-grid" aria-hidden />
-        <div className="absolute inset-0 glow" aria-hidden />
-        <div className="relative mx-auto max-w-5xl px-6 py-24 sm:py-36">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-text-dim">Sovereign creator workspace</p>
-          <h1 className="mt-6 max-w-4xl text-balance text-5xl font-semibold leading-[1.02] tracking-tight sm:text-7xl">
-            Your ideas. Your files. <span className="text-accent-soft">Your AI.</span>
-          </h1>
-          <p className="mt-7 max-w-2xl text-lg leading-relaxed text-text-muted">
-            Discover useful creative workflows, adapt them to your project, keep your work locally, and export portable agent packs without surrendering your prompts or process.
-          </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link href="/create" className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-dim">
-              Open Creator Studio <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
-            <Link href="/founding" className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-6 py-3 text-sm font-medium text-text transition hover:bg-bg-elevated">
-              Founding Creator · $29
-            </Link>
-          </div>
-          <p className="mt-6 text-xs text-text-dim">Bring your own AI. Keep your prompts. Keep your audience.</p>
-        </div>
-      </section>
+  return <main className="min-h-screen bg-[#f5f4f1] text-[#151613]">
+    <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8"><Link href="/" className="text-lg font-semibold tracking-[-0.04em]">Social Studio</Link><nav className="hidden items-center gap-7 text-sm text-black/55 md:flex"><Link href="#create">Create</Link><Link href="#publish">Publish</Link><Link href="#agent">Agent</Link><Link href="/pricing">Pricing</Link></nav><div className="flex items-center gap-2"><Link href="/studio" className="hidden rounded-full px-4 py-2 text-sm font-medium sm:block">Open studio</Link><Link href="/studio/create" className="rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white">Start creating</Link></div></header>
 
-      <section id="how" className="mx-auto max-w-5xl px-6 py-20 sm:py-24">
-        <div className="grid gap-6 sm:grid-cols-3">
-          {STEPS.map(([n, title, body]) => (
-            <article key={n} className="rounded-2xl border border-border bg-bg-card p-7">
-              <span className="font-mono text-xs text-text-dim">{n}</span>
-              <h2 className="mt-4 text-xl font-medium">{title}</h2>
-              <p className="mt-3 text-sm leading-relaxed text-text-muted">{body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+    <section className="mx-auto max-w-7xl px-5 pb-14 pt-16 text-center sm:px-8 sm:pt-24"><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-black/38">Create. Approve. Publish. Learn.</p><h1 className="mx-auto mt-5 max-w-5xl text-balance text-5xl font-semibold leading-[.94] tracking-[-0.07em] sm:text-7xl lg:text-[92px]">Make the content.<br/>Keep the cadence.</h1><p className="mx-auto mt-7 max-w-2xl text-balance text-base leading-7 text-black/52 sm:text-lg">One workspace for campaign planning, UGC creation, review, scheduling, and the feedback loop that makes the next batch sharper.</p><div className="mt-8 flex flex-col justify-center gap-2 sm:flex-row"><Link href="/studio" className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-medium text-white">Open the studio <ArrowRight className="h-4 w-4"/></Link><Link href="/pricing" className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-medium">See pricing</Link></div>
+    <div className="relative mx-auto mt-16 max-w-5xl overflow-hidden rounded-[28px] border border-black/8 bg-[#e9e9e6] p-3 text-left shadow-[0_30px_100px_rgba(0,0,0,.12)]"><div className="rounded-[22px] bg-[#fbfbfa] p-5 sm:p-7"><div className="flex items-center justify-between"><div><p className="text-xs text-black/38">Campaign · Summer launch</p><h2 className="mt-1 text-xl font-semibold tracking-tight">One brief → a week of content</h2></div><span className="rounded-full bg-[#e7edff] px-3 py-1.5 text-[10px] font-semibold text-[#2357ff]">AGENT PLANNING</span></div><div className="mt-7 grid gap-3 md:grid-cols-3"><MockCard icon={<Film className="h-4 w-4"/>} label="UGC testimonial" sub="9:16 · 10 sec" tone="#cdb8a0"/><MockCard icon={<Layers3 className="h-4 w-4"/>} label="Product proof" sub="Carousel · 5 frames" tone="#b8c7d8"/><MockCard icon={<CalendarDays className="h-4 w-4"/>} label="Offer post" sub="Approved · Fri 9:00" tone="#b7c7a9"/></div><div className="mt-4 grid gap-3 md:grid-cols-[1.4fr_.6fr]"><div className="rounded-2xl bg-[#10110f] p-5 text-white"><div className="flex items-center gap-2 text-xs text-white/50"><Command className="h-4 w-4 text-[#b9ff66]"/>Agent command</div><p className="mt-4 max-w-xl text-xl leading-7 tracking-[-0.03em]">“Build a 7-day launch campaign and make two UGC variants for the offer.”</p><div className="mt-5 flex flex-wrap gap-2 text-[10px]"><span className="rounded-full bg-white/10 px-3 py-1.5">PLAN</span><span className="rounded-full bg-white/10 px-3 py-1.5">CREATE</span><span className="rounded-full bg-white/10 px-3 py-1.5">SCORE</span><span className="rounded-full bg-[#b9ff66] px-3 py-1.5 text-black">WAIT FOR APPROVAL</span></div></div><div className="rounded-2xl bg-[#f1f1ee] p-5"><p className="text-xs text-black/38">Publish state</p><div className="mt-4 space-y-3"><Row text="3 posts approved" done/><Row text="2 UGC renders ready" done/><Row text="TryPost schedule receipt"/></div></div></div></div></div></section>
 
-      <section className="border-y border-border bg-bg-elevated">
-        <div className="mx-auto grid max-w-5xl gap-8 px-6 py-16 sm:grid-cols-3 sm:py-20">
-          <div className="flex gap-3"><Search className="h-5 w-5 shrink-0 text-accent-soft"/><p className="text-sm text-text-muted"><span className="text-text">Find less, choose better.</span> Discovery returns the strongest few matches instead of thousands of raw prompts.</p></div>
-          <div className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-success"/><p className="text-sm text-text-muted"><span className="text-text">Provenance stays attached.</span> Verified source and license metadata travel with exported recipes.</p></div>
-          <div className="flex gap-3"><Download className="h-5 w-5 shrink-0 text-warning"/><p className="text-sm text-text-muted"><span className="text-text">Your work stays portable.</span> Export inspectable files and agent context instead of locking your process into one model.</p></div>
-        </div>
-      </section>
+    <section className="border-y border-black/7 bg-[#ecebe8] py-8"><div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-5 text-[10px] font-semibold tracking-[0.16em] text-black/35">{logos.map(x=><span key={x}>{x}</span>)}</div></section>
 
-      <section className="mx-auto max-w-3xl px-6 py-20 text-center sm:py-24">
-        <Sparkles className="mx-auto h-6 w-6 text-accent-soft"/>
-        <h2 className="mt-6 text-3xl font-semibold tracking-tight">Start with one idea.</h2>
-        <p className="mx-auto mt-4 max-w-xl text-text-muted">Describe what you want to make. Choose a useful recipe. Adapt it. Keep it.</p>
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link href="/create" className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-medium text-white transition hover:bg-accent-dim">
-            Start creating <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
-          <Link href="/founding" className="inline-flex items-center justify-center rounded-xl border border-border px-6 py-3 text-sm font-medium text-text transition hover:bg-bg-elevated">
-            See Founding Creator
-          </Link>
-        </div>
-      </section>
+    <section id="create" className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:items-center lg:py-28"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/35">UGC production</p><h2 className="mt-4 max-w-xl text-4xl font-semibold leading-[1.02] tracking-[-0.055em] sm:text-5xl">Product in. Ad out.</h2><p className="mt-5 max-w-lg text-base leading-7 text-black/52">Give the studio the product, the offer, and a rough idea. It turns that into a clean video brief, generates a render through the configured media provider, and keeps every variant in the review queue.</p><div className="mt-7 space-y-3"><Feature text="Prompt compiler follows scene → camera → subject → environment → lighting → motion."/><Feature text="Provider-neutral media layer: swap models without rebuilding campaigns."/><Feature text="A/B variants and scoring stay attached to the asset."/></div></div><div className="studio-grid rounded-[28px] border border-black/7 bg-[#fafaf8] p-6 shadow-[0_25px_80px_rgba(0,0,0,.08)]"><div className="grid gap-4 sm:grid-cols-3 sm:items-center"><Node title="Product" body="Reference image"/><Node title="Prompt" body="UGC brief compiled" accent/><Node title="Video" body="Render queued" dark/></div></div></section>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 py-10 text-xs text-text-dim sm:flex-row">
-          <span>© {new Date().getFullYear()} Creator Studio</span>
-          <div className="flex gap-5"><Link href="/create" className="transition hover:text-text">Creator workspace</Link><Link href="/founding" className="transition hover:text-text">Founding Creator</Link></div>
-        </div>
-      </footer>
-    </main>
-  );
+    <section id="publish" className="bg-[#10110f] text-white"><div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:items-center lg:py-28"><div className="rounded-[28px] bg-white/[0.06] p-5 ring-1 ring-white/10"><div className="grid grid-cols-7 gap-2 text-center text-[9px] text-white/35">{["M","T","W","T","F","S","S"].map((x,i)=><span key={`${x}${i}`}>{x}</span>)}</div><div className="mt-3 grid grid-cols-7 gap-2">{Array.from({length:14}).map((_,i)=><div key={i} className="aspect-square rounded-xl bg-white/[0.05] p-1.5 text-[9px] text-white/28">{i+1}{[1,3,4,7,10].includes(i)&&<div className="mt-1 h-5 rounded-md bg-[#b9ff66]/80"/>}</div>)}</div></div><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">Publishing</p><h2 className="mt-4 max-w-xl text-4xl font-semibold leading-[1.02] tracking-[-0.055em] sm:text-5xl">The scheduler is infrastructure. The approval is the product rule.</h2><p className="mt-5 max-w-xl text-base leading-7 text-white/50">Connected social accounts live in the publishing kernel. The studio creates the canonical drop, adapts it, and schedules it only after an explicit human approval receipt.</p><div className="mt-7 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs text-white/65"><Check className="h-4 w-4 text-[#b9ff66]"/> No auto-publish override</div></div></div></section>
+
+    <section id="agent" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28"><div className="text-center"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/35">Agent-first</p><h2 className="mx-auto mt-4 max-w-3xl text-balance text-4xl font-semibold leading-[1.02] tracking-[-0.055em] sm:text-5xl">Use the interface. Or tell the system what outcome you want.</h2><p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-black/48">UI, REST, MCP, CLI, plugin skill, and voice all resolve to the same campaign and approval contracts.</p></div><div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[["UI","For operators who want to see the work."],["MCP","For agents that need tools, state, and receipts."],["REST API","For your own apps and automations."],["CLI","For scripts, cron jobs, and server workflows."],["Plugin","Portable instructions for agent runtimes."],["Voice","Speak the intent; the same safety rules apply."]].map(([t,b])=><article key={t} className="rounded-2xl border border-black/7 bg-white p-6"><Sparkles className="h-4 w-4 text-[#2357ff]"/><h3 className="mt-5 text-lg font-semibold">{t}</h3><p className="mt-2 text-sm leading-6 text-black/45">{b}</p></article>)}</div></section>
+
+    <section className="mx-auto max-w-5xl px-5 pb-24 text-center sm:px-8"><div className="rounded-[30px] bg-[#dfff67] px-6 py-14 sm:px-12"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/45">V1</p><h2 className="mt-3 text-4xl font-semibold tracking-[-0.055em] sm:text-5xl">Stop stitching five tools together.</h2><p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-black/55">Plan the campaign, make the creative, approve it, schedule it, and keep the learning loop in one place.</p><Link href="/studio" className="mt-7 inline-flex items-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-medium text-white">Open the studio <ArrowRight className="h-4 w-4"/></Link></div></section>
+
+    <footer className="border-t border-black/7 px-5 py-8 text-xs text-black/38 sm:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><span>Social Studio · V1</span><div className="flex gap-5"><Link href="/pricing">Pricing</Link><Link href="/studio">Studio</Link><Link href="/blog">Notes</Link></div></div></footer>
+  </main>;
 }
+
+function MockCard({icon,label,sub,tone}:{icon:React.ReactNode;label:string;sub:string;tone:string}){return <div className="overflow-hidden rounded-2xl border border-black/7 bg-white"><div className="relative aspect-[4/3]" style={{background:`linear-gradient(145deg,${tone},#f2eee8)`}}><div className="absolute inset-0 grid place-items-center"><div className="grid h-11 w-11 place-items-center rounded-full bg-white/80 shadow"><Play className="h-4 w-4 fill-black"/></div></div></div><div className="flex items-center gap-3 p-3.5"><div className="grid h-8 w-8 place-items-center rounded-lg bg-[#f0f0ed]">{icon}</div><div><p className="text-xs font-medium">{label}</p><p className="mt-0.5 text-[10px] text-black/38">{sub}</p></div></div></div>}
+function Row({text,done=false}:{text:string;done?:boolean}){return <div className="flex items-center gap-2 text-xs text-black/50"><span className={`h-2 w-2 rounded-full ${done?"bg-[#159653]":"bg-black/15"}`}/>{text}</div>}
+function Feature({text}:{text:string}){return <div className="flex items-start gap-3 text-sm leading-6 text-black/55"><span className="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-black text-white"><Check className="h-3 w-3"/></span>{text}</div>}
+function Node({title,body,accent=false,dark=false}:{title:string;body:string;accent?:boolean;dark?:boolean}){return <div className={`rounded-2xl border p-4 shadow-sm ${dark?"border-black bg-black text-white":accent?"border-[#2357ff]/20 bg-[#edf1ff]":"border-black/8 bg-white"}`}><p className="text-[10px] uppercase tracking-[0.14em] opacity-45">Stage</p><p className="mt-3 text-sm font-semibold">{title}</p><p className="mt-1 text-[11px] opacity-50">{body}</p></div>}

@@ -1,0 +1,19 @@
+{
+  "name": "social-studio",
+  "version": "1.0.0",
+  "kind": "agent-skill-plugin",
+  "entry": "SKILL.md",
+  "interfaces": {
+    "rest": "/api/studio",
+    "mcp": "/api/mcp",
+    "cli": "python -m cli.blaster"
+  },
+  "capabilities": [
+    "campaign-planning",
+    "ugc-prompting",
+    "social-account-discovery",
+    "approved-scheduling",
+    "voice-intent-routing"
+  ],
+  "publishing_requires_human_approval": true
+}
