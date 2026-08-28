@@ -76,4 +76,8 @@ def test_existing_api_identity_contract_is_preserved() -> None:
     assert health.status_code == 200
     assert health.json()["platform"] == "stavarai"
     assert root.status_code == 200
-    assert root.json() == {"name": "Stavarai Platform API", "health": "/api/health"}
+    assert root.json() == {
+        "name": "Stavarai Platform API",
+        "health": "/api/health",
+        "mcp": "/api/mcp",
+    }
