@@ -32,7 +32,14 @@ export default function SettingsPage() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    let active = true;
+    getStudioStatus()
+      .then((value) => { if (active) setStatus(value as Status); })
+      .catch((requestError) => { if (active) setError(requestError instanceof Error ? requestError.message : "Studio status unavailable."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   const connections = [
     { kind: "Media generation", name: status?.media?.provider || "Media provider", detail: status?.media?.configured ? "Configured" : "Not configured", Icon: Video, ready: Boolean(status?.media?.configured) },
