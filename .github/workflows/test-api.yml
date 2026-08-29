@@ -72,6 +72,11 @@ jobs:
           echo "$STATUS" | grep -q '"provider":null'
           echo "$STATUS" | grep -q '"enabled":false'
           echo "$STATUS" | grep -q '"required_for_core":false'
+          PRICING=$(curl -fsS -H 'x-api-key: ci-only-api-key' http://127.0.0.1:18000/api/studio/pricing)
+          echo "$PRICING" | grep -q '"trial-7"'
+          echo "$PRICING" | grep -q '"price_cents":1900'
+          RAW_RENDER=$(curl -fsS -X POST -H 'x-api-key: ci-only-api-key' -H 'Content-Type: application/json' http://127.0.0.1:18000/api/studio/ugc/render --data '{"idea":"test"}')
+          echo "$RAW_RENDER" | grep -q '"error":"guarded_factory_required"'
 
   frontend-build:
     name: Frontend security, gauntlet, lint, build, and route smoke
@@ -106,7 +111,7 @@ jobs:
         with:
           name: frontend-build-diagnostics
           path: /tmp/frontend-build.log
-      - name: Smoke public, studio, legacy creator, and export routes
+      - name: Smoke public, studio, checkout, trial, creator, and export routes
         run: |
           npm run start -- -p 3000 > /tmp/social-studio-next.log 2>&1 &
           SERVER_PID=$!
@@ -116,22 +121,37 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:3000/ | grep -q 'Find the angle'
-          curl -fsS http://127.0.0.1:3000/pricing | grep -q 'Founding Ad Batch'
+          curl -fsS http://127.0.0.1:3000/pricing | grep -q '7-Day Test Drive'
           curl -fsS http://127.0.0.1:3000/studio | grep -q 'Run social from one command'
-          curl -fsS http://127.0.0.1:3000/studio/create | grep -q 'Build batch plan'
+          curl -fsS http://127.0.0.1:3000/studio/create | grep -q 'Build ad plan'
           curl -fsS http://127.0.0.1:3000/studio/library | grep -q 'Everything you have made'
           curl -fsS http://127.0.0.1:3000/studio/moodboards | grep -q 'Teach the studio what good looks like'
           curl -fsS http://127.0.0.1:3000/studio/canvas | grep -q 'Build the creative flow visually'
           curl -fsS http://127.0.0.1:3000/studio/campaigns | grep -q 'Give the agent an outcome'
           curl -fsS http://127.0.0.1:3000/studio/calendar | grep -q 'See what goes live before it does'
-          curl -fsS http://127.0.0.1:3000/studio/analytics | grep -q 'Make the next campaign from what worked'
+          curl -fsS http://127.0.0.1:3000/studio/analytics | grep -q 'No performance evidence yet'
           curl -fsS http://127.0.0.1:3000/studio/settings | grep -q 'Connect the engines'
-          curl -fsS http://127.0.0.1:3000/founding | grep -q 'Founding Creator'
           curl -fsS http://127.0.0.1:3000/admin | grep -q 'Opening console'
           curl -fsS http://127.0.0.1:3000/admin/dashboard | grep -q 'Dashboard'
-          CHECKOUT_STATUS=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/founding)
+
+          INVALID_OFFER_STATUS=$(curl -sS -o /tmp/invalid-offer.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"not-a-real-offer"}')
+          test "$INVALID_OFFER_STATUS" = "400"
+          grep -q 'Unknown offer' /tmp/invalid-offer.json
+
+          CHECKOUT_STATUS=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"trial-7"}')
           test "$CHECKOUT_STATUS" = "503"
           grep -q 'not configured' /tmp/checkout.json
+
+          ACTIVATE_STATUS=$(curl -sS -o /tmp/activate.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/trial/activate -H 'Content-Type: application/json' --data '{"session_id":"invalid"}')
+          test "$ACTIVATE_STATUS" = "400"
+          grep -q 'Invalid checkout session' /tmp/activate.json
+
+          TRIAL_STATUS=$(curl -sS -o /tmp/trial-status.json -w '%{http_code}' http://127.0.0.1:3000/api/trial/status)
+          test "$TRIAL_STATUS" = "401"
+
+          EXECUTE_STATUS=$(curl -sS -o /tmp/trial-execute.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/trial/execute -H 'Content-Type: application/json' --data '{}')
+          test "$EXECUTE_STATUS" = "401"
+
           RESPONSE=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
           echo "$RESPONSE" | grep -q '"count":3'
           echo "$RESPONSE" | grep -q 'bb-video-launch-reel-001'
