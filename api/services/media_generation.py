@@ -20,6 +20,7 @@ class FalVideoProvider:
         self.queue_base = os.getenv("FAL_QUEUE_URL", "https://queue.fal.run").rstrip("/")
         self.image_input_field = os.getenv("FAL_IMAGE_INPUT_FIELD", "image_url").strip() or "image_url"
         self.audio_input_field = os.getenv("FAL_AUDIO_INPUT_FIELD", "").strip()
+        self.duration_type = os.getenv("FAL_DURATION_TYPE", "integer").strip().lower() or "integer"
         self.resolution = os.getenv("FAL_VIDEO_RESOLUTION", "").strip()
         self.prompt_expansion_mode = os.getenv("FAL_PROMPT_EXPANSION_MODE", "").strip()
 
@@ -57,10 +58,13 @@ class FalVideoProvider:
             return {"ok": False, "error": "invalid_video_duration", "duration": str(duration)}
         if duration_seconds <= 0:
             return {"ok": False, "error": "invalid_video_duration", "duration": str(duration)}
+        if self.duration_type not in {"integer", "string"}:
+            return {"ok": False, "error": "invalid_fal_duration_type", "duration_type": self.duration_type}
+        duration_value: int | str = str(duration_seconds) if self.duration_type == "string" else duration_seconds
 
         body: dict[str, Any] = {
             "prompt": prompt,
-            "duration": duration_seconds,
+            "duration": duration_value,
         }
         if image_url:
             body[self.image_input_field] = image_url
