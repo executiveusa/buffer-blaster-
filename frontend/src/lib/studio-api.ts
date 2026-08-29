@@ -99,7 +99,7 @@ export async function listSocialAccounts(): Promise<{ ok: boolean; provider: str
   const response = await call<{ ok: boolean; provider?: string; accounts?: SocialAccount[] | { data?: SocialAccount[] } }>("/api/studio/social/accounts");
   const raw = response.accounts;
   const accounts = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-  return { ok: response.ok, provider: response.provider || "trypost", accounts };
+  return { ok: response.ok, provider: response.provider || null, accounts };
 }
 
 export async function scheduleDrop(payload: Record<string, unknown>) {

@@ -1,15 +1,14 @@
 import pytest
-
-from api.services.publishing import PublishRequest, TryPostPublisher
+from api.services.publishing import PublishRequest, DisabledPublishingProvider, get_publisher
 
 
 @pytest.mark.asyncio
-async def test_trypost_refuses_unapproved_publish():
-    publisher = TryPostPublisher(base_url="https://example.test", token="test")
+async def test_disabled_publishing_refuses_unapproved_publish():
+    publisher = DisabledPublishingProvider()
     result = await publisher.schedule(PublishRequest(
-        content="hello",
-        platforms=[{"social_account_id": "acct_1", "content_type": "post"}],
-        scheduled_at="2026-08-29T18:00:00Z",
+        content="Test content",
+        platforms=[{"platform": "instagram"}],
+        scheduled_at="2026-09-01T12:00:00Z",
         approved=False,
     ))
     assert result["ok"] is False
@@ -17,33 +16,31 @@ async def test_trypost_refuses_unapproved_publish():
 
 
 @pytest.mark.asyncio
-async def test_trypost_builds_documented_post_payload(monkeypatch):
-    seen = {}
+async def test_disabled_publishing_status_reports_not_required_for_core():
+    publisher = get_publisher()
+    status = publisher.status()
+    assert status["enabled"] is False
+    assert status["provider"] is None
+    assert status["required_for_core"] is False
 
-    class Response:
-        status_code = 201
-        def raise_for_status(self):
-            return None
-        def json(self):
-            return {"id": "post_1", "status": "scheduled"}
 
-    class Client:
-        async def __aenter__(self): return self
-        async def __aexit__(self, *args): return False
-        async def post(self, url, headers=None, json=None):
-            seen.update({"url": url, "headers": headers, "json": json})
-            return Response()
+@pytest.mark.asyncio
+async def test_disabled_publishing_list_accounts_returns_empty():
+    publisher = get_publisher()
+    accounts = await publisher.list_accounts()
+    assert accounts["ok"] is False
+    assert accounts["error"] == "publishing_integration_disabled"
+    assert accounts["accounts"] == []
 
-    monkeypatch.setattr("api.services.publishing.httpx.AsyncClient", lambda **_: Client())
-    publisher = TryPostPublisher(base_url="https://trypost.example", token="secret")
+
+@pytest.mark.asyncio
+async def test_disabled_publishing_schedule_returns_disabled():
+    publisher = get_publisher()
     result = await publisher.schedule(PublishRequest(
-        content="launch day",
-        platforms=[{"social_account_id": "acct_1", "content_type": "reel"}],
-        scheduled_at="2026-08-29T18:00:00Z",
+        content="Test content",
+        platforms=[{"platform": "instagram"}],
+        scheduled_at="2026-09-01T12:00:00Z",
         approved=True,
     ))
-    assert result["ok"] is True
-    assert seen["url"] == "https://trypost.example/api/posts"
-    assert seen["json"]["content"] == "launch day"
-    assert seen["json"]["scheduled_at"].endswith("Z")
-    assert seen["json"]["platforms"][0]["social_account_id"] == "acct_1"
+    assert result["ok"] is False
+    assert result["error"] == "publishing_integration_disabled"

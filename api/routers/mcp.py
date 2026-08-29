@@ -24,7 +24,7 @@ MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "studio_status", "description": "Return media, publishing, approval and interface status.", "inputSchema": {"type": "object", "properties": {}}},
     {"name": "create_campaign_plan", "description": "Create a bounded social campaign plan from a brand objective.", "inputSchema": {"type": "object", "required": ["brand", "objective"], "properties": {"brand": {"type": "string"}, "objective": {"type": "string"}, "audience": {"type": "string"}, "offer": {"type": "string"}, "duration_days": {"type": "integer", "minimum": 1, "maximum": 30}, "platforms": {"type": "array", "items": {"type": "string"}}}}},
     {"name": "create_ugc_prompt", "description": "Compile a production UGC video prompt from a structured brief.", "inputSchema": {"type": "object", "required": ["idea"], "properties": {"idea": {"type": "string"}, "product": {"type": "string"}, "camera": {"type": "string"}, "subject": {"type": "string"}, "environment": {"type": "string"}, "lighting": {"type": "string"}, "style": {"type": "string"}, "motion": {"type": "string"}, "dialogue": {"type": ["string", "null"]}, "platform": {"type": "string"}, "aspect_ratio": {"type": "string"}}}},
-    {"name": "list_social_accounts", "description": "List connected social accounts from the publishing kernel.", "inputSchema": {"type": "object", "properties": {}}},
+    {"name": "list_social_accounts", "description": "List connected social accounts from the optional publishing integration.", "inputSchema": {"type": "object", "properties": {}}},
     {"name": "schedule_social_drop", "description": "Schedule an explicitly approved Social Drop through the publishing kernel.", "inputSchema": {"type": "object", "required": ["id", "content", "format", "platforms", "scheduled_at", "approved"], "properties": {"id": {"type": "string"}, "content": {"type": "string"}, "format": {"type": "string"}, "platforms": {"type": "array", "items": {"type": "object"}}, "scheduled_at": {"type": "string"}, "approved": {"type": "boolean"}, "media_urls": {"type": "array", "items": {"type": "string"}}}}},
 ]
 
@@ -70,7 +70,7 @@ async def mcp(request: Request) -> JSONResponse:
     args = message.get("params", {}).get("arguments") or {}
     try:
         if name == "studio_status":
-            value = {"media": get_media_provider().status(), "publisher": {"provider": "trypost", "configured": get_publisher().configured}, "approval_gate": True}
+            value = {"media": get_media_provider().status(), "publishing": get_publisher().status(), "approval_gate": True}
         elif name == "create_campaign_plan":
             value = _campaign_plan(CampaignBrief(**args))
         elif name == "create_ugc_prompt":
