@@ -19,6 +19,69 @@ export type UGCBrief = {
   aspect_ratio?: string; image_url?: string; duration?: string; generate_audio?: boolean;
 };
 
+export type UGCFactoryBrief = {
+  product: string;
+  audience: string;
+  pain: string;
+  mechanism: string;
+  offer?: string;
+  platform?: string;
+  actor_description?: string;
+  delivery_tone?: string;
+  visual_lane?: string;
+};
+
+export type UGCFactoryClip = {
+  clip: number;
+  duration_seconds: number;
+  purpose: string;
+  script: string;
+  script_word_count: number;
+  prompt: string;
+  seed_from_previous: boolean;
+};
+
+export type UGCFactoryPlan = {
+  ok: boolean;
+  factory_version: string;
+  brief: UGCFactoryBrief;
+  gate: { passed: boolean; checks: Array<{ name: string; passed: boolean; detail: string }> };
+  clips: UGCFactoryClip[];
+  continuity: { steps: string[]; seam_threshold_mean_abs_diff: number; claim: string };
+  icm: { template: string; stages: string[] };
+  commercial: {
+    billable_unit: string;
+    price_cents: number;
+    estimated_generation_cost_cents: number;
+    expected_paid_clip_calls: number;
+    gross_margin_cents: number;
+    gross_margin_pct: number;
+    charges_customer: boolean;
+    estimate_only: boolean;
+  };
+  approval_required_before_publish: boolean;
+};
+
+export type FactoryRenderResult = {
+  ok: boolean;
+  error?: string;
+  provider?: string;
+  model?: string;
+  request_id?: string;
+  status_url?: string;
+  response_url?: string;
+  cancel_url?: string;
+  factory_version?: string;
+  clip?: number;
+  state?: string;
+  compiled_prompt?: string;
+  script?: string;
+  purpose?: string;
+  simulated?: boolean;
+  approval_required?: boolean;
+  approval_required_before_publish?: boolean;
+};
+
 export type AgentCommandResult = {
   ok: boolean;
   intent: "create_ugc" | "create_campaign" | "schedule_content" | "status";
@@ -50,17 +113,51 @@ export function localPrompt(brief: UGCBrief): string {
   ].join("\n");
 }
 
+function wordCount(value: string) {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function localFactoryPlan(brief: UGCFactoryBrief): UGCFactoryPlan {
+  const pain = brief.pain.trim();
+  const mechanism = brief.mechanism.trim();
+  const product = brief.product.trim();
+  const clip1 = `I kept dealing with ${pain}. I thought I could ignore it, but it was getting old. Same frustration every single time.`;
+  const clip2 = `I tried ${product} because ${mechanism}. Annoying that I needed it, but the result is finally repeatable and I can stop thinking about it.`;
+  const promptFor = (script: string, continuation: boolean) => [
+    `SCENE: ${continuation ? "Continue directly from the prior clean frame and reveal the mechanism." : "Open on the customer problem and tension."} Product focus: ${product}.`,
+    "CAMERA: stable handheld talking-head framing. Composition 9:16.",
+    `SUBJECT: ${continuation ? "the same creator from the prior frame" : "a natural creator speaking like they are sharing something they use"}.`,
+    "ENVIRONMENT: believable everyday setting with ordinary details.",
+    "LIGHTING & STYLE: soft natural light; realistic.",
+    "MOTION: small natural gestures; finish on a stable frame.",
+    `DIALOGUE: "${script}" Spoken naturally, not like a staged sales read.`,
+  ].join("\n");
+  const clips: UGCFactoryClip[] = [
+    { clip: 1, duration_seconds: 10, purpose: "problem_and_tension", script: clip1, script_word_count: wordCount(clip1), prompt: promptFor(clip1, false), seed_from_previous: false },
+    { clip: 2, duration_seconds: 10, purpose: "mechanism_and_reluctant_resolution", script: clip2, script_word_count: wordCount(clip2), prompt: promptFor(clip2, true), seed_from_previous: true },
+  ];
+  return {
+    ok: true,
+    factory_version: "ugc-ad-factory-v1",
+    brief,
+    gate: { passed: true, checks: [
+      { name: "two_clip_contract", passed: true, detail: "clips=2" },
+      { name: "spoken_word_budget", passed: true, detail: `word_counts=${clips.map((clip) => clip.script_word_count).join(",")}` },
+      { name: "not_an_ad_mechanical_tells", passed: true, detail: "clear" },
+    ] },
+    clips,
+    continuity: { steps: ["generate_clip_1", "trim_clip_1_tail", "extract_final_clean_seed_frame", "generate_clip_2_from_seed", "seam_check", "trim_clip_2_tail", "stitch"], seam_threshold_mean_abs_diff: 5 / 255, claim: "planning_contract_only" },
+    icm: { template: "icm/_templates/ugc_ad_factory", stages: ["01_research", "02_script_gate", "03_cast", "04_generate", "05_seam_qa", "06_deliver"] },
+    commercial: { billable_unit: "finished_ugc_ad", price_cents: 9900, estimated_generation_cost_cents: 240, expected_paid_clip_calls: 3, gross_margin_cents: 9660, gross_margin_pct: 97.6, charges_customer: false, estimate_only: true },
+    approval_required_before_publish: true,
+  };
+}
+
 function localAgentCommand(command: string): AgentCommandResult {
   const text = command.toLowerCase();
-  if (/schedule|publish|post now|send live/.test(text)) {
-    return { ok: true, intent: "schedule_content", entity: null, requires_approval: true, next: "/api/studio/social/schedule", simulated: true };
-  }
-  if (/status|ready|connected|connection/.test(text)) {
-    return { ok: true, intent: "status", entity: null, requires_approval: false, next: "/api/studio/status", simulated: true };
-  }
-  if (/ugc|video ad|unboxing|creator ad|testimonial/.test(text)) {
-    return { ok: true, intent: "create_ugc", entity: null, requires_approval: false, next: "/api/studio/ugc/prompt", simulated: true };
-  }
+  if (/schedule|publish|post now|send live/.test(text)) return { ok: true, intent: "schedule_content", entity: null, requires_approval: true, next: "/api/studio/social/schedule", simulated: true };
+  if (/status|ready|connected|connection/.test(text)) return { ok: true, intent: "status", entity: null, requires_approval: false, next: "/api/studio/status", simulated: true };
+  if (/ugc|video ad|unboxing|creator ad|testimonial/.test(text)) return { ok: true, intent: "create_ugc", entity: null, requires_approval: false, next: "/api/studio/ugc/factory/plan", simulated: true };
   return { ok: true, intent: "create_campaign", entity: null, requires_approval: false, next: "/api/studio/campaigns/plan", simulated: true };
 }
 
@@ -79,23 +176,27 @@ export async function queueUGCRender(brief: UGCBrief) {
   return call<Record<string, unknown>>("/api/studio/ugc/render", { method: "POST", body: JSON.stringify(brief) });
 }
 
+export async function createUGCFactoryPlan(brief: UGCFactoryBrief): Promise<UGCFactoryPlan> {
+  if (seeded()) return localFactoryPlan(brief);
+  return call<UGCFactoryPlan>("/api/studio/ugc/factory/plan", { method: "POST", body: JSON.stringify(brief) });
+}
+
+export async function renderUGCFactoryClip(payload: UGCFactoryBrief & { clip_number: number; approved: boolean; image_url?: string }): Promise<FactoryRenderResult> {
+  if (!payload.approved) return { ok: false, error: "human_approval_required", approval_required: true, state: "planned" };
+  if (seeded()) return { ok: true, provider: "demo", simulated: true, request_id: `demo-${Date.now()}`, status_url: "demo://rendering", response_url: "demo://result", factory_version: "ugc-ad-factory-v1", clip: payload.clip_number, state: "render_queued", approval_required_before_publish: true };
+  return call<FactoryRenderResult>("/api/studio/ugc/factory/render", { method: "POST", body: JSON.stringify(payload) });
+}
+
 export async function getStudioStatus() {
-  if (seeded()) return { ok: true, simulated: true, media: { provider: "fal", configured: false }, publisher: { provider: "trypost", configured: false }, approval_gate: true };
+  if (seeded()) return { ok: true, simulated: true, media: { provider: "fal", configured: false }, publishing: { provider: null, configured: false, enabled: false, required_for_core: false }, approval_gate: true };
   return call<Record<string, unknown>>("/api/studio/status");
 }
 
 export async function listSocialAccounts(): Promise<{ ok: boolean; provider: string | null; accounts: SocialAccount[]; simulated?: boolean }> {
-  if (seeded()) {
-    return {
-      ok: true,
-      provider: "demo",
-      simulated: true,
-      accounts: [
-        { id: "demo-instagram", platform: "instagram", display_name: "Demo Instagram", username: "@demo", is_active: true, status: "connected" },
-        { id: "demo-tiktok", platform: "tiktok", display_name: "Demo TikTok", username: "@demo", is_active: true, status: "connected" },
-      ],
-    };
-  }
+  if (seeded()) return { ok: true, provider: "demo", simulated: true, accounts: [
+    { id: "demo-instagram", platform: "instagram", display_name: "Demo Instagram", username: "@demo", is_active: true, status: "connected" },
+    { id: "demo-tiktok", platform: "tiktok", display_name: "Demo TikTok", username: "@demo", is_active: true, status: "connected" },
+  ] };
   const response = await call<{ ok: boolean; provider?: string; accounts?: SocialAccount[] | { data?: SocialAccount[] } }>("/api/studio/social/accounts");
   const raw = response.accounts;
   const accounts = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];

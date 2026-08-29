@@ -115,10 +115,10 @@ jobs:
             if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:3000/ | grep -q 'Make the content'
-          curl -fsS http://127.0.0.1:3000/pricing | grep -q 'Pay for the system'
+          curl -fsS http://127.0.0.1:3000/ | grep -q 'Find the angle'
+          curl -fsS http://127.0.0.1:3000/pricing | grep -q 'Founding Ad Batch'
           curl -fsS http://127.0.0.1:3000/studio | grep -q 'Run social from one command'
-          curl -fsS http://127.0.0.1:3000/studio/create | grep -q 'Turn a product into an ad'
+          curl -fsS http://127.0.0.1:3000/studio/create | grep -q 'Build batch plan'
           curl -fsS http://127.0.0.1:3000/studio/library | grep -q 'Everything you have made'
           curl -fsS http://127.0.0.1:3000/studio/moodboards | grep -q 'Teach the studio what good looks like'
           curl -fsS http://127.0.0.1:3000/studio/canvas | grep -q 'Build the creative flow visually'
