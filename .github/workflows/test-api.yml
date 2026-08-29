@@ -69,7 +69,9 @@ jobs:
           grep -q '"approval_gate":true' /tmp/stavarai-health.json
           STATUS=$(curl -fsS -H 'x-api-key: ci-only-api-key' http://127.0.0.1:18000/api/studio/status)
           echo "$STATUS" | grep -q '"approval_gate":true'
-          echo "$STATUS" | grep -q '"provider":"trypost"'
+          echo "$STATUS" | grep -q '"provider":null'
+          echo "$STATUS" | grep -q '"enabled":false'
+          echo "$STATUS" | grep -q '"required_for_core":false'
 
   frontend-build:
     name: Frontend security, gauntlet, lint, build, and route smoke
@@ -134,6 +136,7 @@ jobs:
           echo "$RESPONSE" | grep -q '"count":3'
           echo "$RESPONSE" | grep -q 'bb-video-launch-reel-001'
           GROWTH=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"travel lifestyle selfie portrait photography","limit":3}')
+          echo "$GROWTH" | grep -q '"count":3'
           echo "$GROWTH" | grep -q 'ym-gpt2-lifestyle-selfie-001'
           curl -fsS http://127.0.0.1:3000/v1/cards/ym-gpt2-lifestyle-selfie-001 | grep -q 'CC-BY-4.0'
           ADAPTED=$(curl -fsS -X POST http://127.0.0.1:3000/v1/adapt -H 'Content-Type: application/json' --data '{"card_id":"ym-gpt2-lifestyle-selfie-001","inputs":{"subject":"a ceramic artist","location":"Puerto Vallarta","time_of_day":"golden hour"}}')
