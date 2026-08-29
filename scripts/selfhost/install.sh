@@ -6,18 +6,19 @@ REF="main"
 INSTALL_DIR="/opt/stavarai"
 API_DOMAIN=""
 ALLOWED_ORIGIN="https://stavarai-platform.vercel.app"
+REDIS_URL_ARG=""
 
 usage() {
-  cat <<'EOF'
+  cat <<'EOFU'
 One-click Stavarai backend installer (Ubuntu/Debian).
 
 Usage:
-  install.sh --domain api.example.com [--origin https://stavarai-platform.vercel.app] [--install-dir /opt/stavarai] [--ref main]
+  install.sh --domain api.example.com [--origin https://stavarai-platform.vercel.app] [--install-dir /opt/stavarai] [--ref main] [--redis-url redis://...]
 
 The script installs Docker if needed, checks out the repo, creates .env.production,
 generates app-owned secrets locally, starts FastAPI + Caddy, and runs a non-paid preflight.
 Provider credentials are intentionally left blank for the operator to add privately.
-EOF
+EOFU
 }
 
 while [[ $# -gt 0 ]]; do
@@ -26,6 +27,7 @@ while [[ $# -gt 0 ]]; do
     --origin) ALLOWED_ORIGIN="${2:-}"; shift 2 ;;
     --install-dir) INSTALL_DIR="${2:-}"; shift 2 ;;
     --ref) REF="${2:-}"; shift 2 ;;
+    --redis-url) REDIS_URL_ARG="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
   esac
@@ -107,6 +109,18 @@ if [[ -z "$(get_env DEMO_PASSWORD)" ]]; then
   set_env DEMO_PASSWORD "$(openssl rand -hex 16)"
 fi
 
+if [[ -n "$REDIS_URL_ARG" ]]; then
+  set_env REDIS_URL "$REDIS_URL_ARG"
+elif [[ -z "$(get_env REDIS_URL)" ]]; then
+  if [[ -z "$(get_env REDIS_PASSWORD)" ]]; then
+    GENERATED_REDIS_PW="$(openssl rand -hex 24)"
+    set_env REDIS_PASSWORD "$GENERATED_REDIS_PW"
+    set_env REDIS_URL "redis://:${GENERATED_REDIS_PW}@redis:6379/0"
+  else
+    set_env REDIS_URL "redis://:$(get_env REDIS_PASSWORD)@redis:6379/0"
+  fi
+fi
+
 chmod 600 .env.production
 
 echo "Starting Stavarai API and HTTPS edge..."
@@ -116,18 +130,17 @@ echo
 bash scripts/selfhost/preflight.sh || true
 
 echo
-cat <<EOF
+cat <<'EOFFIN'
 Core self-host install finished.
 
-Install directory: $INSTALL_DIR
-Private config:    $INSTALL_DIR/.env.production
-Health URL:        https://$API_DOMAIN/api/health
+Install directory: /opt/stavarai
+Private config:    /opt/stavarai/.env.production
 
 Next:
   1. Add provider secrets to .env.production (Supabase, OpenAI, Fal, TryPost).
-  2. Run: cd $INSTALL_DIR && docker compose -f docker-compose.prod.yml up -d
-  3. Run: cd $INSTALL_DIR && bash scripts/selfhost/preflight.sh
-  4. Point the Vercel frontend at https://$API_DOMAIN using scripts/selfhost/configure-vercel.sh.
+  2. Run: cd /opt/stavarai && docker compose -f docker-compose.prod.yml up -d
+  3. Run: cd /opt/stavarai && bash scripts/selfhost/preflight.sh
+  4. Point the Vercel frontend at https://API_DOMAIN using scripts/selfhost/configure-vercel.sh.
 
 No secret values were printed by this installer.
-EOF
+EOFFIN
