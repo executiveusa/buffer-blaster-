@@ -1,0 +1,20 @@
+{
+  "phase": "ugc-ad-factory-v1",
+  "baseline_sha": "6efba1e2256cb4ab46005222be6ca1121a2c9fcb",
+  "pull_request": 29,
+  "external_state_changed": false,
+  "database_changed": false,
+  "auth_changed": false,
+  "payment_behavior_changed": false,
+  "publishing_behavior_changed": false,
+  "rollback": {
+    "before_merge": "Close PR #29; main remains at the recorded baseline or its later independently verified successor.",
+    "after_merge": "Create a revert of the single squash-merge commit for PR #29; do not force-push main.",
+    "verification": [
+      "python -m pytest tests/studio/test_ugc_factory.py tests/studio/test_ugc_factory_icm.py tests/studio/test_mcp.py -q",
+      "python -m pytest tests -q"
+    ]
+  },
+  "proof_scope": "Source-only feature. No destructive operation or external state mutation is performed by this PR, so rollback does not require a database, deployment, payment, or publisher restore.",
+  "status": "rollback_path_defined_pre_merge"
+}
