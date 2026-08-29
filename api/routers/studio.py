@@ -11,6 +11,7 @@ from ..services.integration_auth import verify_operator
 from ..services.media_generation import get_media_provider
 from ..services.publishing import PublishRequest, get_publisher
 from ..services.social_drop import SocialDrop, platform_payload
+from ..services.ugc_factory import UGCFactoryBrief as ServiceUGCFactoryBrief, build_ugc_factory_plan
 from ..services.video_prompt import VideoPromptInput, compile_video_prompt
 from ..services.voice_intent import parse_voice_intent
 
@@ -38,6 +39,18 @@ class UGCBrief(BaseModel):
     dialogue: str | None = None
     platform: str = "instagram"
     aspect_ratio: str = "9:16"
+
+
+class UGCFactoryPlanRequest(BaseModel):
+    product: str
+    audience: str
+    pain: str
+    mechanism: str
+    offer: str = ""
+    platform: str = "instagram"
+    actor_description: str = "a natural creator speaking like they are sharing something they actually use"
+    delivery_tone: str = "calm, honest and direct"
+    visual_lane: str = "lane_zero"
 
 
 class RenderRequest(UGCBrief):
@@ -113,6 +126,14 @@ async def plan_campaign(brief: CampaignBrief, _=Depends(verify_operator)) -> dic
 async def create_ugc_prompt(brief: UGCBrief, _=Depends(verify_operator)) -> dict[str, Any]:
     prompt = compile_video_prompt(VideoPromptInput(**brief.model_dump()))
     return {"ok": True, "prompt": prompt, "brief": brief.model_dump()}
+
+
+@router.post("/ugc/factory/plan")
+async def create_ugc_factory_plan(
+    brief: UGCFactoryPlanRequest,
+    _=Depends(verify_operator),
+) -> dict[str, Any]:
+    return build_ugc_factory_plan(ServiceUGCFactoryBrief(**brief.model_dump()))
 
 
 @router.post("/ugc/render")
