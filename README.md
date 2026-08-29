@@ -55,7 +55,7 @@ The installer brings up FastAPI behind Caddy/HTTPS, generates app-owned secrets
 locally, and leaves third-party credentials blank for secure operator entry.
 
 Then follow **`docs/GEMINI_BETA_HANDOFF.md`** to connect Supabase, OpenAI, Fal,
-TryPost and switch the canonical Vercel frontend into live mode. Run
+and switch the canonical Vercel frontend into live mode. Run
 `bash scripts/selfhost/preflight.sh` and `bash scripts/selfhost/smoke.sh` before
 beta users enter.
 

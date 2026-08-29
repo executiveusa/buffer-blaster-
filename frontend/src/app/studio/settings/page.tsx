@@ -4,7 +4,7 @@ import { StudioShell } from "@/components/studio-shell";
 
 const integrations = [
   ["Media generation", "Fal provider", "FAL_KEY + model env", Video, false],
-  ["Publishing", "TryPost", "TRYPOST_URL + TRYPOST_API_KEY", Network, false],
+  ["Publishing", "Optional Integration", "PUBLISHING_PROVIDER", Network, false],
   ["Agent API", "REST / MCP / CLI", "BLASTER_API_KEY", KeyRound, false],
   ["Voice", "Browser + server intents", "Built in", Mic, true],
 ] as const;

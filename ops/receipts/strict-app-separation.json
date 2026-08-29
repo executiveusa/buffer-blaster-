@@ -1,0 +1,7 @@
+{
+  "change": "strict-app-separation",
+  "applied_at": "2026-08-29T06:50:00Z",
+  "status": "applied",
+  "author": "Antigravity",
+  "description": "Established strict application boundaries between Buffer Blaster core and optional downstream publishers."
+}

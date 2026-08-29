@@ -35,8 +35,7 @@ def test_production_env_template_never_contains_real_provider_secrets():
         "SUPABASE_SERVICE_KEY",
         "OPENAI_API_KEY",
         "FAL_KEY",
-        "TRYPOST_API_KEY",
-        "REDIS_URL",
+                "REDIS_URL",
     ]:
         line = next(line for line in env.splitlines() if line.startswith(f"{key}="))
         assert line == f"{key}=", f"{key} must remain blank in git"
@@ -89,5 +88,5 @@ def test_vercel_helper_exposes_only_public_live_mode_values():
     assert "NEXT_PUBLIC_DEMO_MODE" in script
     assert "NEXT_PUBLIC_PUBLIC_CONSOLE" in script
     assert "NEXT_PUBLIC_API_URL" in script
-    for secret in ["BLASTER_API_KEY", "OPENAI_API_KEY", "FAL_KEY", "SUPABASE_SERVICE_KEY", "TRYPOST_API_KEY"]:
+    for secret in ["BLASTER_API_KEY", "OPENAI_API_KEY", "FAL_KEY", "SUPABASE_SERVICE_KEY", ]:
         assert f"NEXT_PUBLIC_{secret}" not in script

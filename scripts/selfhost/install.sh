@@ -137,7 +137,7 @@ Install directory: /opt/stavarai
 Private config:    /opt/stavarai/.env.production
 
 Next:
-  1. Add provider secrets to .env.production (Supabase, OpenAI, Fal, TryPost).
+  1. Add provider secrets to .env.production (Supabase, OpenAI, Fal).
   2. Run: cd /opt/stavarai && docker compose -f docker-compose.prod.yml up -d
   3. Run: cd /opt/stavarai && bash scripts/selfhost/preflight.sh
   4. Point the Vercel frontend at https://API_DOMAIN using scripts/selfhost/configure-vercel.sh.

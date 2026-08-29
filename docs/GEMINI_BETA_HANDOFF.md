@@ -4,7 +4,7 @@ This is the zero-context handoff for taking Buffer Blaster / Stavarai Social Stu
 
 ## Mission
 
-Stand up the private FastAPI backend on a Linux VPS, keep the Next.js frontend on the canonical Vercel project, connect Supabase + OpenAI + Fal + TryPost, and prove one complete UGC-to-publish loop without weakening the human approval boundary.
+Stand up the private FastAPI backend on a Linux VPS, keep the Next.js frontend on the canonical Vercel project, connect Supabase + OpenAI + Fal, and prove one complete UGC-to-publish loop without weakening the human approval boundary.
 
 Canonical assets:
 
@@ -66,8 +66,6 @@ OPENAI_MODEL
 FAL_KEY
 FAL_TEXT_VIDEO_MODEL
 FAL_IMAGE_VIDEO_MODEL
-TRYPOST_URL
-TRYPOST_API_KEY
 ALLOWED_ORIGINS
 ```
 
@@ -87,7 +85,7 @@ AIRTABLE_API_KEY
 AIRTABLE_BASE_ID
 ```
 
-Never put `BLASTER_API_KEY`, `OPENAI_API_KEY`, `FAL_KEY`, `SUPABASE_SERVICE_KEY`, or `TRYPOST_API_KEY` into any `NEXT_PUBLIC_*` variable or GitHub file.
+Never put `BLASTER_API_KEY`, `OPENAI_API_KEY`, `FAL_KEY`, `SUPABASE_SERVICE_KEY` into any `NEXT_PUBLIC_*` variable or GitHub file.
 
 After editing server secrets:
 
