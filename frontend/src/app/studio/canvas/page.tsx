@@ -7,7 +7,7 @@ const Node = ({ title, eyebrow, children }: { title: string; eyebrow: string; ch
 
 export default function CanvasPage() {
   return <StudioShell eyebrow="Workflow canvas">
-    <PageHeader kicker="Canvas" title="See the real creative path." body="This view is an honest map of the executable factory. Editing and arbitrary node composition stay disabled until they can write a canonical workflow graph; the live action opens the same full-ad factory used by REST and MCP." action={<StatusPill tone="green">Canonical flow</StatusPill>} />
+    <PageHeader kicker="Canvas" title="Build the creative flow visually — without fake controls." body="This is an honest map of the executable factory. Arbitrary node editing stays locked until a graph can be persisted and executed; the live action opens the same full-ad factory used by REST and MCP." action={<StatusPill tone="green">Canonical flow</StatusPill>} />
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="studio-grid relative min-h-[650px] overflow-hidden rounded-[24px] border border-black/7 bg-[#f8f8f6] p-8 lg:p-12">
         <div className="absolute left-[16%] right-[12%] top-1/2 hidden h-px bg-black/10 xl:block" aria-hidden />
