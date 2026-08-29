@@ -114,8 +114,9 @@ async def test_executor_finishes_two_clip_ad_without_spend_in_test(tmp_path, mon
     assert result["ok"] is True
     assert result["state"] == "finished"
     assert result["job_id"] == "job-1"
+    assert result["allowance"]["estimated_provider_cost_cents"] == 300
     assert result["allowance"]["ad_credits_required"] == 3
-    assert result["allowance"]["remaining_provider_budget_after_cents"] == 160
+    assert result["allowance"]["remaining_provider_budget_after_cents"] == 100
     assert result["final_asset"]["signed_url"].endswith("final.mp4")
     assert any(change.get("state") == "finished" for _, change in updates)
 
