@@ -1,9 +1,8 @@
 """Commercial package economics and provider-spend guard.
 
-Customer credits are intentionally not provider credits. One Ad Credit covers a
-standard finished-ad attempt only up to the configured internal cost ceiling.
-More expensive work consumes more credits and can never exceed the package's
-provider-cost wallet or minimum contribution-margin floor.
+Customer credits are intentionally not provider credits. A package is sellable
+only when its provider wallet fits *after* minimum profit, payment fees,
+infrastructure, research/LLM overhead, and refund reserve are protected.
 """
 from __future__ import annotations
 
@@ -22,6 +21,10 @@ def _env_int(name: str, default: int, *, minimum: int = 0) -> int:
     return max(minimum, value)
 
 
+def _bps_cents(amount_cents: int, bps: int) -> int:
+    return math.ceil(max(0, amount_cents) * max(0, bps) / 10_000)
+
+
 @dataclass(frozen=True, slots=True)
 class PackageEconomics:
     offer_id: str
@@ -29,17 +32,54 @@ class PackageEconomics:
     included_ad_credits: int
     provider_budget_cents: int
     minimum_margin_bps: int
+    payment_fee_bps: int = 300
+    payment_fee_fixed_cents: int = 30
+    infrastructure_reserve_bps: int = 500
+    research_reserve_bps: int = 300
+    refund_reserve_bps: int = 500
+
+    @property
+    def payment_fee_reserve_cents(self) -> int:
+        return _bps_cents(self.price_cents, self.payment_fee_bps) + max(0, self.payment_fee_fixed_cents)
+
+    @property
+    def infrastructure_reserve_cents(self) -> int:
+        return _bps_cents(self.price_cents, self.infrastructure_reserve_bps)
+
+    @property
+    def research_reserve_cents(self) -> int:
+        return _bps_cents(self.price_cents, self.research_reserve_bps)
+
+    @property
+    def refund_reserve_cents(self) -> int:
+        return _bps_cents(self.price_cents, self.refund_reserve_bps)
+
+    @property
+    def non_provider_reserve_cents(self) -> int:
+        return (
+            self.payment_fee_reserve_cents
+            + self.infrastructure_reserve_cents
+            + self.research_reserve_cents
+            + self.refund_reserve_cents
+        )
+
+    @property
+    def minimum_margin_cents(self) -> int:
+        return _bps_cents(self.price_cents, self.minimum_margin_bps)
 
     @property
     def max_provider_budget_cents(self) -> int:
-        return max(0, (self.price_cents * (10_000 - self.minimum_margin_bps)) // 10_000)
+        return max(0, self.price_cents - self.minimum_margin_cents - self.non_provider_reserve_cents)
+
+    @property
+    def contribution_margin_cents(self) -> int:
+        return max(0, self.price_cents - self.provider_budget_cents - self.non_provider_reserve_cents)
 
     @property
     def contribution_margin_bps(self) -> int:
         if self.price_cents <= 0:
             return 0
-        contribution = max(0, self.price_cents - self.provider_budget_cents)
-        return (contribution * 10_000) // self.price_cents
+        return (self.contribution_margin_cents * 10_000) // self.price_cents
 
     @property
     def sellable(self) -> bool:
@@ -49,6 +89,7 @@ class PackageEconomics:
             and 0 <= self.minimum_margin_bps < 10_000
             and self.provider_budget_cents >= 0
             and self.provider_budget_cents <= self.max_provider_budget_cents
+            and self.contribution_margin_bps >= self.minimum_margin_bps
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -58,14 +99,32 @@ class PackageEconomics:
             "included_ad_credits": self.included_ad_credits,
             "provider_budget_cents": self.provider_budget_cents,
             "minimum_margin_bps": self.minimum_margin_bps,
+            "minimum_margin_cents": self.minimum_margin_cents,
+            "payment_fee_reserve_cents": self.payment_fee_reserve_cents,
+            "infrastructure_reserve_cents": self.infrastructure_reserve_cents,
+            "research_reserve_cents": self.research_reserve_cents,
+            "refund_reserve_cents": self.refund_reserve_cents,
+            "non_provider_reserve_cents": self.non_provider_reserve_cents,
             "max_provider_budget_cents": self.max_provider_budget_cents,
+            "contribution_margin_cents": self.contribution_margin_cents,
             "contribution_margin_bps": self.contribution_margin_bps,
             "sellable": self.sellable,
         }
 
 
+def _reserve_config() -> dict[str, int]:
+    return {
+        "payment_fee_bps": _env_int("PAYMENT_FEE_BPS", 300),
+        "payment_fee_fixed_cents": _env_int("PAYMENT_FEE_FIXED_CENTS", 30),
+        "infrastructure_reserve_bps": _env_int("INFRASTRUCTURE_RESERVE_BPS", 500),
+        "research_reserve_bps": _env_int("RESEARCH_RESERVE_BPS", 300),
+        "refund_reserve_bps": _env_int("REFUND_RESERVE_BPS", 500),
+    }
+
+
 def default_packages() -> dict[str, PackageEconomics]:
     minimum_margin_bps = _env_int("MIN_CONTRIBUTION_MARGIN_BPS", 6000, minimum=1)
+    reserves = _reserve_config()
     values = {
         "trial-7": (
             _env_int("TRIAL_7_PRICE_CENTS", 1900, minimum=1),
@@ -75,17 +134,17 @@ def default_packages() -> dict[str, PackageEconomics]:
         "trial-30": (
             _env_int("TRIAL_30_PRICE_CENTS", 4900, minimum=1),
             _env_int("TRIAL_30_INCLUDED_AD_CREDITS", 8, minimum=1),
-            _env_int("TRIAL_30_PROVIDER_BUDGET_CENTS", 1200, minimum=0),
+            _env_int("TRIAL_30_PROVIDER_BUDGET_CENTS", 1100, minimum=0),
         ),
         "starter-monthly": (
             _env_int("STARTER_PRICE_CENTS", 9900, minimum=1),
             _env_int("STARTER_INCLUDED_AD_CREDITS", 20, minimum=1),
-            _env_int("STARTER_PROVIDER_BUDGET_CENTS", 3000, minimum=0),
+            _env_int("STARTER_PROVIDER_BUDGET_CENTS", 2300, minimum=0),
         ),
         "pro-monthly": (
             _env_int("PRO_PRICE_CENTS", 19900, minimum=1),
             _env_int("PRO_INCLUDED_AD_CREDITS", 50, minimum=1),
-            _env_int("PRO_PROVIDER_BUDGET_CENTS", 6500, minimum=0),
+            _env_int("PRO_PROVIDER_BUDGET_CENTS", 4700, minimum=0),
         ),
     }
     return {
@@ -95,6 +154,7 @@ def default_packages() -> dict[str, PackageEconomics]:
             included_ad_credits=credits,
             provider_budget_cents=budget,
             minimum_margin_bps=minimum_margin_bps,
+            **reserves,
         )
         for offer_id, (price, credits, budget) in values.items()
     }
@@ -148,6 +208,8 @@ def authorize_generation(
         "remaining_provider_budget_after_cents": remaining_provider_budget_cents - estimated_provider_cost_cents,
         "remaining_ad_credits_after": remaining_ad_credits - ad_credits_required,
         "minimum_margin_bps": package.minimum_margin_bps,
+        "non_provider_reserve_cents": package.non_provider_reserve_cents,
+        "max_provider_budget_cents": package.max_provider_budget_cents,
     }
 
 
@@ -158,10 +220,12 @@ def public_pricing() -> dict[str, Any]:
         "ok": all(item["sellable"] for item in safe.values()),
         "packages": safe,
         "standard_ad_credit_cost_ceiling_cents": _env_int("STANDARD_AD_CREDIT_COST_CENTS", 100, minimum=1),
+        "reserve_policy": _reserve_config(),
         "rules": {
             "credits_are_cash": False,
             "unused_trial_credits_roll_over": False,
             "provider_spend_cannot_exceed_package_wallet": True,
             "premium_work_can_require_multiple_ad_credits": True,
+            "fees_overhead_research_and_refund_reserves_are_protected_before_provider_spend": True,
         },
     }
