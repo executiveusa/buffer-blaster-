@@ -84,7 +84,7 @@ export async function getStudioStatus() {
   return call<Record<string, unknown>>("/api/studio/status");
 }
 
-export async function listSocialAccounts(): Promise<{ ok: boolean; provider: string; accounts: SocialAccount[]; simulated?: boolean }> {
+export async function listSocialAccounts(): Promise<{ ok: boolean; provider: string | null; accounts: SocialAccount[]; simulated?: boolean }> {
   if (seeded()) {
     return {
       ok: true,
