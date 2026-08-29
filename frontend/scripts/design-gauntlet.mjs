@@ -62,7 +62,7 @@ if (ok) pass("paid test-pass pricing is explicit and non-deceptive");
 const checkout = read("src/app/api/checkout/offer/route.ts");
 for (const signal of ["trial-7", "trial-30", "starter-monthly", "pro-monthly", "metadata[offer]", "CHECKOUT_SESSION_ID"]) if (!checkout.includes(signal)) fail(`checkout route missing offer-safety signal ${signal}`);
 const activation = read("src/app/api/trial/activate/route.ts");
-for (const signal of ["billing/activate", "HttpOnly", "httpOnly: true", "TRIAL_COOKIE"]) if (!activation.includes(signal)) fail(`trial activation missing security signal ${signal}`);
+for (const signal of ["billing/activate", "httpOnly: true", "sameSite: \"lax\"", "TRIAL_COOKIE"]) if (!activation.includes(signal)) fail(`trial activation missing cookie security signal ${signal}`);
 if (ok) pass("paid checkout activates a signed HttpOnly trial session");
 
 const create = read("src/app/studio/create/page.tsx");
