@@ -15,6 +15,7 @@ from ..services.integration_auth import verify_operator
 from ..services.media_generation import get_media_provider
 from ..services.publishing import PublishRequest, get_publisher
 from ..services.social_drop import SocialDrop, platform_payload
+from ..services.ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 from ..services.video_prompt import VideoPromptInput, compile_video_prompt
 from .studio import CampaignBrief, _campaign_plan
 
@@ -24,6 +25,7 @@ MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "studio_status", "description": "Return media, publishing, approval and interface status.", "inputSchema": {"type": "object", "properties": {}}},
     {"name": "create_campaign_plan", "description": "Create a bounded social campaign plan from a brand objective.", "inputSchema": {"type": "object", "required": ["brand", "objective"], "properties": {"brand": {"type": "string"}, "objective": {"type": "string"}, "audience": {"type": "string"}, "offer": {"type": "string"}, "duration_days": {"type": "integer", "minimum": 1, "maximum": 30}, "platforms": {"type": "array", "items": {"type": "string"}}}}},
     {"name": "create_ugc_prompt", "description": "Compile a production UGC video prompt from a structured brief.", "inputSchema": {"type": "object", "required": ["idea"], "properties": {"idea": {"type": "string"}, "product": {"type": "string"}, "camera": {"type": "string"}, "subject": {"type": "string"}, "environment": {"type": "string"}, "lighting": {"type": "string"}, "style": {"type": "string"}, "motion": {"type": "string"}, "dialogue": {"type": ["string", "null"]}, "platform": {"type": "string"}, "aspect_ratio": {"type": "string"}}}},
+    {"name": "create_ugc_ad_factory_plan", "description": "Turn a product truth brief into a gated two-clip UGC ad production plan with ICM stages, continuity rules and quote metadata.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism"], "properties": {"product": {"type": "string"}, "audience": {"type": "string"}, "pain": {"type": "string"}, "mechanism": {"type": "string"}, "offer": {"type": "string"}, "platform": {"type": "string"}, "actor_description": {"type": "string"}, "delivery_tone": {"type": "string"}, "visual_lane": {"type": "string"}}}},
     {"name": "list_social_accounts", "description": "List connected social accounts from the optional publishing integration.", "inputSchema": {"type": "object", "properties": {}}},
     {"name": "schedule_social_drop", "description": "Schedule an explicitly approved Social Drop through the publishing kernel.", "inputSchema": {"type": "object", "required": ["id", "content", "format", "platforms", "scheduled_at", "approved"], "properties": {"id": {"type": "string"}, "content": {"type": "string"}, "format": {"type": "string"}, "platforms": {"type": "array", "items": {"type": "object"}}, "scheduled_at": {"type": "string"}, "approved": {"type": "boolean"}, "media_urls": {"type": "array", "items": {"type": "string"}}}}},
 ]
@@ -75,6 +77,8 @@ async def mcp(request: Request) -> JSONResponse:
             value = _campaign_plan(CampaignBrief(**args))
         elif name == "create_ugc_prompt":
             value = {"prompt": compile_video_prompt(VideoPromptInput(**args))}
+        elif name == "create_ugc_ad_factory_plan":
+            value = build_ugc_factory_plan(UGCFactoryBrief(**args))
         elif name == "list_social_accounts":
             value = await get_publisher().list_accounts()
         elif name == "schedule_social_drop":
