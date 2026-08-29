@@ -35,8 +35,7 @@ jobs:
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: buffer_blaster_ci
-        ports:
-          - 5432:5432
+        ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -101,21 +100,13 @@ jobs:
           READY=0
           for attempt in {1..30}; do
             if [[ "$(docker inspect -f '{{.State.Running}}' stavarai-api-ci 2>/dev/null || true)" != "true" ]]; then
-              echo "Container exited during startup"
               docker logs stavarai-api-ci || true
               exit 1
             fi
-            if curl -fsS http://127.0.0.1:18000/api/health > /tmp/stavarai-health.json; then
-              READY=1
-              break
-            fi
+            if curl -fsS http://127.0.0.1:18000/api/health > /tmp/stavarai-health.json 2>/dev/null; then READY=1; break; fi
             sleep 1
           done
-          if [[ "$READY" != "1" ]]; then
-            echo "API did not become healthy"
-            docker logs stavarai-api-ci || true
-            exit 1
-          fi
+          if [[ "$READY" != "1" ]]; then docker logs stavarai-api-ci || true; exit 1; fi
           grep -q '"status":"ok"' /tmp/stavarai-health.json
           grep -q '"approval_gate":true' /tmp/stavarai-health.json
           STATUS=$(curl -fsS -H 'x-api-key: ci-only-api-key' http://127.0.0.1:18000/api/studio/status)
@@ -168,6 +159,7 @@ jobs:
           npm run start -- -H 127.0.0.1 -p 3000 > /tmp/social-studio-next.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+
           READY=0
           for attempt in {1..30}; do
             if ! kill -0 "$SERVER_PID" 2>/dev/null; then
@@ -175,7 +167,7 @@ jobs:
               cat /tmp/social-studio-next.log || true
               exit 1
             fi
-            if curl -fsS --retry 2 --retry-connrefused --retry-delay 1 http://127.0.0.1:3000/ >/dev/null; then
+            if curl -fsS http://127.0.0.1:3000/ > /tmp/ready.html 2>/dev/null; then
               READY=1
               break
             fi
@@ -187,50 +179,74 @@ jobs:
             exit 1
           fi
 
-          get() { curl -fsS --retry 5 --retry-connrefused --retry-delay 1 "$@"; }
+          check_page() {
+            local path="$1"
+            local needle="$2"
+            echo "Checking page $path"
+            if ! curl -fsS "http://127.0.0.1:3000${path}" > /tmp/page.html; then
+              echo "HTTP failure for $path"
+              cat /tmp/social-studio-next.log || true
+              exit 1
+            fi
+            if ! grep -q "$needle" /tmp/page.html; then
+              echo "Missing '$needle' on $path"
+              head -c 2000 /tmp/page.html || true
+              exit 1
+            fi
+          }
 
-          get http://127.0.0.1:3000/ | grep -q 'Find the angle'
-          get http://127.0.0.1:3000/pricing | grep -q '7-Day Test Drive'
-          get http://127.0.0.1:3000/studio | grep -q 'Run social from one command'
-          get http://127.0.0.1:3000/studio/create | grep -q 'Build ad plan'
-          get http://127.0.0.1:3000/studio/library | grep -q 'Everything you have made'
-          get http://127.0.0.1:3000/studio/moodboards | grep -q 'Teach the studio what good looks like'
-          get http://127.0.0.1:3000/studio/canvas | grep -q 'Build the creative flow visually'
-          get http://127.0.0.1:3000/studio/campaigns | grep -q 'Give the agent an outcome'
-          get http://127.0.0.1:3000/studio/calendar | grep -q 'See what goes live before it does'
-          get http://127.0.0.1:3000/studio/analytics | grep -q 'No performance evidence yet'
-          get http://127.0.0.1:3000/studio/settings | grep -q 'Connect the engines'
-          get http://127.0.0.1:3000/admin | grep -q 'Opening console'
-          get http://127.0.0.1:3000/admin/dashboard | grep -q 'Dashboard'
+          check_api() {
+            local label="$1"
+            local expected="$2"
+            shift 2
+            echo "Checking API $label"
+            local status
+            status=$(curl -sS -o /tmp/api-body.json -w '%{http_code}' "$@")
+            if [[ "$status" != "$expected" ]]; then
+              echo "$label returned $status, expected $expected"
+              cat /tmp/api-body.json || true
+              cat /tmp/social-studio-next.log || true
+              exit 1
+            fi
+          }
 
-          INVALID_OFFER_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/invalid-offer.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"not-a-real-offer"}')
-          test "$INVALID_OFFER_STATUS" = "400"
-          grep -q 'Unknown offer' /tmp/invalid-offer.json
+          check_page / 'Find the angle'
+          check_page /pricing '7-Day Test Drive'
+          check_page /studio 'Run social from one command'
+          check_page /studio/create 'Build ad plan'
+          check_page /studio/library 'Everything you have made'
+          check_page /studio/moodboards 'Teach the studio what good looks like'
+          check_page /studio/canvas 'Build the creative flow visually'
+          check_page /studio/campaigns 'Give the agent an outcome'
+          check_page /studio/calendar 'See what goes live before it does'
+          check_page /studio/analytics 'No performance evidence yet'
+          check_page /studio/settings 'Connect the engines'
+          check_page /admin 'Opening console'
+          check_page /admin/dashboard 'Dashboard'
 
-          CHECKOUT_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/checkout.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"trial-7"}')
-          test "$CHECKOUT_STATUS" = "503"
-          grep -q 'not configured' /tmp/checkout.json
+          check_api invalid-offer 400 -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"not-a-real-offer"}'
+          grep -q 'Unknown offer' /tmp/api-body.json
 
-          ACTIVATE_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/activate.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/trial/activate -H 'Content-Type: application/json' --data '{"session_id":"invalid"}')
-          test "$ACTIVATE_STATUS" = "400"
-          grep -q 'Invalid checkout session' /tmp/activate.json
+          check_api checkout-unconfigured 503 -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"trial-7"}'
+          grep -q 'not configured' /tmp/api-body.json
 
-          TRIAL_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/trial-status.json -w '%{http_code}' http://127.0.0.1:3000/api/trial/status)
-          test "$TRIAL_STATUS" = "401"
+          check_api invalid-activation 400 -X POST http://127.0.0.1:3000/api/trial/activate -H 'Content-Type: application/json' --data '{"session_id":"invalid"}'
+          grep -q 'Invalid checkout session' /tmp/api-body.json
 
-          EXECUTE_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/trial-execute.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/trial/execute -H 'Content-Type: application/json' --data '{}')
-          test "$EXECUTE_STATUS" = "401"
+          check_api trial-status-no-cookie 401 http://127.0.0.1:3000/api/trial/status
+          check_api trial-execute-no-cookie 401 -X POST http://127.0.0.1:3000/api/trial/execute -H 'Content-Type: application/json' --data '{}'
 
-          RESPONSE=$(get -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
+          echo 'Checking creator discovery'
+          RESPONSE=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
           echo "$RESPONSE" | grep -q '"count":3'
           echo "$RESPONSE" | grep -q 'bb-video-launch-reel-001'
-          GROWTH=$(get -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"travel lifestyle selfie portrait photography","limit":3}')
+          GROWTH=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"travel lifestyle selfie portrait photography","limit":3}')
           echo "$GROWTH" | grep -q '"count":3'
           echo "$GROWTH" | grep -q 'ym-gpt2-lifestyle-selfie-001'
-          get http://127.0.0.1:3000/v1/cards/ym-gpt2-lifestyle-selfie-001 | grep -q 'CC-BY-4.0'
-          ADAPTED=$(get -X POST http://127.0.0.1:3000/v1/adapt -H 'Content-Type: application/json' --data '{"card_id":"ym-gpt2-lifestyle-selfie-001","inputs":{"subject":"a ceramic artist","location":"Puerto Vallarta","time_of_day":"golden hour"}}')
+          curl -fsS http://127.0.0.1:3000/v1/cards/ym-gpt2-lifestyle-selfie-001 | grep -q 'CC-BY-4.0'
+          ADAPTED=$(curl -fsS -X POST http://127.0.0.1:3000/v1/adapt -H 'Content-Type: application/json' --data '{"card_id":"ym-gpt2-lifestyle-selfie-001","inputs":{"subject":"a ceramic artist","location":"Puerto Vallarta","time_of_day":"golden hour"}}')
           echo "$ADAPTED" | grep -q 'Puerto Vallarta'
-          get -D /tmp/agent-pack.headers -o /tmp/agent-pack.zip -X POST http://127.0.0.1:3000/v1/export/icm -H 'Content-Type: application/json' --data '{"card_id":"ym-gpt2-lifestyle-selfie-001","inputs":{"subject":"a ceramic artist","location":"Puerto Vallarta","time_of_day":"golden hour"}}'
+          curl -fsS -D /tmp/agent-pack.headers -o /tmp/agent-pack.zip -X POST http://127.0.0.1:3000/v1/export/icm -H 'Content-Type: application/json' --data '{"card_id":"ym-gpt2-lifestyle-selfie-001","inputs":{"subject":"a ceramic artist","location":"Puerto Vallarta","time_of_day":"golden hour"}}'
           grep -qi '^content-type: application/zip' /tmp/agent-pack.headers
           grep -qi '^x-buffer-blaster-sha256:' /tmp/agent-pack.headers
           unzip -t /tmp/agent-pack.zip >/dev/null
