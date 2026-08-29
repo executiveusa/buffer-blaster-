@@ -4,9 +4,11 @@ import { getToken, isDemoMode, isPublicConsole } from "./api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-function authHeaders() {
+function authHeaders(): Record<string, string> {
   const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
 }
 
 export type ReferenceAsset = {
@@ -21,7 +23,7 @@ export type ReferenceAsset = {
 
 export async function listReferences(): Promise<ReferenceAsset[]> {
   if (isDemoMode() || isPublicConsole()) return [];
-  const response = await fetch(`${API_URL}/api/studio/references`, { headers: { ...authHeaders() }, cache: "no-store" });
+  const response = await fetch(`${API_URL}/api/studio/references`, { headers: authHeaders(), cache: "no-store" });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.detail || body.error || response.statusText);
   return body.assets || [];
@@ -44,7 +46,7 @@ export async function uploadReference(file: File, label = "") {
   data.set("label", label);
   const response = await fetch(`${API_URL}/api/studio/references/upload`, {
     method: "POST",
-    headers: { ...authHeaders() },
+    headers: authHeaders(),
     body: data,
   });
   const body = await response.json().catch(() => ({}));
