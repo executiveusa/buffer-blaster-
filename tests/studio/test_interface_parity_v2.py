@@ -44,15 +44,21 @@ def test_env_examples_expose_every_required_paid_factory_setting():
         env = read(path)
         for signal in [
             "TRIAL_SESSION_SECRET",
-            "BUFFER_BLASTER_WORKSPACE_ID",
+            "BUFFER_BLASTER_WORKSPACE_ID=00000000-0000-0000-0000-000000000001",
             "BUFFER_BLASTER_ASSET_BUCKET",
             "MIN_CONTRIBUTION_MARGIN_BPS",
+            "PAYMENT_FEE_BPS",
+            "PAYMENT_FEE_FIXED_CENTS",
+            "INFRASTRUCTURE_RESERVE_BPS",
+            "RESEARCH_RESERVE_BPS",
+            "REFUND_RESERVE_BPS",
             "STANDARD_AD_CREDIT_COST_CENTS",
             "TRIAL_7_PRICE_CENTS",
             "TRIAL_7_PROVIDER_BUDGET_CENTS",
             "TRIAL_30_PRICE_CENTS",
             "STARTER_PRICE_CENTS",
             "PRO_PRICE_CENTS",
+            "UGC_FACTORY_COST_SAFETY_BPS",
             "STRIPE_TRIAL_7_PRICE_ID",
             "STRIPE_TRIAL_30_PRICE_ID",
             "STRIPE_STARTER_PRICE_ID",
@@ -62,6 +68,13 @@ def test_env_examples_expose_every_required_paid_factory_setting():
         ]:
             assert signal in env
     assert "STRIPE_FOUNDING_PRICE_ID" not in read(".env.production.example")
+
+
+def test_default_workspace_migration_matches_deployment_contract():
+    migration = read("supabase/migrations/010_buffer_blaster_default_workspace.sql")
+    assert "00000000-0000-0000-0000-000000000001" in migration
+    assert "insert into buffer_blaster.workspaces" in migration.lower()
+    assert "on conflict (id) do update" in migration.lower()
 
 
 def test_admin_settings_calls_real_integration_handshake_not_configured_echo():
@@ -75,7 +88,7 @@ def test_admin_settings_calls_real_integration_handshake_not_configured_echo():
     assert "!!key?.configured" not in page
 
 
-def test_ci_exercises_paid_pass_and_trial_route_effects():
+def test_ci_exercises_paid_pass_trial_routes_and_fresh_schema():
     workflow = read(".github/workflows/test-api.yml")
     for signal in [
         "/api/checkout/offer",
@@ -84,6 +97,8 @@ def test_ci_exercises_paid_pass_and_trial_route_effects():
         "/api/trial/status",
         "/api/trial/execute",
         '"error":"guarded_factory_required"',
+        "Fresh PostgreSQL schema proof",
+        "010_buffer_blaster_default_workspace.sql",
     ]:
         assert signal in workflow
 
