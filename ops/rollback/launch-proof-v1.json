@@ -1,0 +1,27 @@
+{
+  "phase": "launch-proof-v1",
+  "baseline_main_sha": "bf1b7faf98fe6915ef66ecb32f830abd64d80d56",
+  "scope": [
+    "UGC factory approved render execution",
+    "REST and MCP render surfaces",
+    "public positioning and founding pilot offer",
+    "factory-plan-first Create UI",
+    "launch smoke tests"
+  ],
+  "database_change": false,
+  "auth_change": false,
+  "payment_behavior_change": false,
+  "publishing_behavior_change": false,
+  "secret_change": false,
+  "rollback": {
+    "method": "revert the single squash merge for launch-proof-v1",
+    "data_recovery_required": false,
+    "external_state_recovery_required": false
+  },
+  "proof_required_before_merge": [
+    "Python tests pass",
+    "frontend audit, gauntlet, lint, build and route smoke pass",
+    "self-host production container smoke passes",
+    "Vercel preview is reviewable"
+  ]
+}

@@ -12,6 +12,7 @@ from ..services.media_generation import get_media_provider
 from ..services.publishing import PublishRequest, get_publisher
 from ..services.social_drop import SocialDrop, platform_payload
 from ..services.ugc_factory import UGCFactoryBrief as ServiceUGCFactoryBrief, build_ugc_factory_plan
+from ..services.ugc_factory_render import render_ugc_factory_clip
 from ..services.video_prompt import VideoPromptInput, compile_video_prompt
 from ..services.voice_intent import parse_voice_intent
 
@@ -51,6 +52,12 @@ class UGCFactoryPlanRequest(BaseModel):
     actor_description: str = "a natural creator speaking like they are sharing something they actually use"
     delivery_tone: str = "calm, honest and direct"
     visual_lane: str = "lane_zero"
+
+
+class UGCFactoryRenderRequest(UGCFactoryPlanRequest):
+    clip_number: int = Field(default=1, ge=1, le=2)
+    approved: bool = False
+    image_url: str | None = None
 
 
 class RenderRequest(UGCBrief):
@@ -136,6 +143,20 @@ async def create_ugc_factory_plan(
     return build_ugc_factory_plan(ServiceUGCFactoryBrief(**brief.model_dump()))
 
 
+@router.post("/ugc/factory/render")
+async def render_factory_clip(
+    request: UGCFactoryRenderRequest,
+    _=Depends(verify_operator),
+) -> dict[str, Any]:
+    brief_fields = request.model_dump(exclude={"clip_number", "approved", "image_url"})
+    return await render_ugc_factory_clip(
+        ServiceUGCFactoryBrief(**brief_fields),
+        clip_number=request.clip_number,
+        approved=request.approved,
+        image_url=request.image_url,
+    )
+
+
 @router.post("/ugc/render")
 async def render_ugc(brief: RenderRequest, _=Depends(verify_operator)) -> dict[str, Any]:
     prompt_fields = brief.model_dump(exclude={"image_url", "duration", "generate_audio"})
@@ -196,7 +217,7 @@ async def agent_command(payload: AgentCommand, _=Depends(verify_operator)) -> di
         "entity": intent.entity,
         "requires_approval": intent.requires_approval,
         "next": {
-            "create_ugc": "/api/studio/ugc/prompt",
+            "create_ugc": "/api/studio/ugc/factory/plan",
             "create_campaign": "/api/studio/campaigns/plan",
             "schedule_content": "/api/studio/social/schedule",
             "status": "/api/studio/status",
