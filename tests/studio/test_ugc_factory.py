@@ -20,7 +20,6 @@ def _brief(**overrides):
 
 def test_factory_returns_two_gated_10_second_clips():
     plan = build_ugc_factory_plan(_brief())
-
     assert plan["ok"] is True
     assert plan["gate"]["passed"] is True
     assert len(plan["clips"]) == 2
@@ -43,6 +42,7 @@ def test_factory_continuity_order_is_explicit_and_safe():
         "stitch",
     ]
     assert plan["continuity"]["seam_threshold_mean_abs_diff"] == pytest.approx(5 / 255)
+    assert plan["continuity"]["claim"] == "execution_implemented_with_bounded_retry"
 
 
 def test_factory_generated_dialogue_avoids_mechanical_ad_tells():
@@ -52,17 +52,20 @@ def test_factory_generated_dialogue_avoids_mechanical_ad_tells():
     assert not any(term in dialogue for term in banned)
 
 
-def test_factory_quote_is_configurable_and_positive_margin(monkeypatch):
+def test_factory_quote_reserves_cost_safety_buffer(monkeypatch):
     monkeypatch.setenv("UGC_FACTORY_PRICE_CENTS", "9900")
     monkeypatch.setenv("UGC_FACTORY_CLIP_COST_CENTS", "80")
     monkeypatch.setenv("UGC_FACTORY_EXPECTED_CLIPS_PER_AD", "3")
+    monkeypatch.setenv("UGC_FACTORY_COST_SAFETY_BPS", "12500")
     plan = build_ugc_factory_plan(_brief())
     commercial = plan["commercial"]
 
     assert commercial["billable_unit"] == "finished_ugc_ad"
     assert commercial["price_cents"] == 9900
-    assert commercial["estimated_generation_cost_cents"] == 240
-    assert commercial["gross_margin_cents"] == 9660
+    assert commercial["raw_generation_estimate_cents"] == 240
+    assert commercial["cost_safety_bps"] == 12500
+    assert commercial["estimated_generation_cost_cents"] == 300
+    assert commercial["gross_margin_cents"] == 9600
     assert commercial["gross_margin_pct"] > 90
     assert commercial["charges_customer"] is False
 
