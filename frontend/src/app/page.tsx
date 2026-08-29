@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Bot, Check, CircleDollarSign, FileSearch, Film, Play, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, Check, FileSearch, Film, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
 
 const steps = [
   { n:"01", title:"Research", body:"Start with the customer pain and the mechanism that actually solves it.", icon:FileSearch },
