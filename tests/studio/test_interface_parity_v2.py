@@ -88,6 +88,34 @@ def test_admin_settings_calls_real_integration_handshake_not_configured_echo():
     assert "!!key?.configured" not in page
 
 
+def test_campaign_page_uses_canonical_planner_and_labels_simulation():
+    page = read("frontend/src/app/studio/campaigns/page.tsx")
+    client = read("frontend/src/lib/campaign-api.ts")
+    assert "createCampaignPlan" in page
+    assert "await createCampaignPlan" in page
+    assert "/api/studio/campaigns/plan" in client
+    assert "Simulation only" in page
+    assert "No invented campaign cards" in page
+    assert "const formats =" not in page
+
+
+def test_calendar_starts_empty_and_uses_real_account_and_receipt_contract():
+    page = read("frontend/src/app/studio/calendar/page.tsx")
+    for signal in [
+        "listSocialAccounts",
+        "scheduleDrop",
+        "social_account_id",
+        "scheduled_at",
+        "Only receipts count as scheduled",
+        "No schedule receipt in this session",
+        "Human approval",
+    ]:
+        assert signal in page
+    assert "const items:" not in page
+    assert "TryPost" not in page
+    assert "3 items need review" not in page
+
+
 def test_ci_exercises_paid_pass_trial_routes_and_fresh_schema():
     workflow = read(".github/workflows/test-api.yml")
     for signal in [
