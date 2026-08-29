@@ -1,8 +1,8 @@
 """Media generation provider boundary for V1.
 
-No model IDs are hardcoded. Fal endpoints are selected with environment
-variables so the studio can move between Kling, Seedance, or another provider
-without changing campaign or UI code.
+No model IDs are hardcoded. Fal endpoints and input capabilities are selected
+with environment variables so the studio can move between video models without
+changing campaign, factory, or UI code.
 """
 from __future__ import annotations
 
@@ -18,6 +18,11 @@ class FalVideoProvider:
         self.text_model = os.getenv("FAL_TEXT_VIDEO_MODEL", "")
         self.image_model = os.getenv("FAL_IMAGE_VIDEO_MODEL", "")
         self.queue_base = os.getenv("FAL_QUEUE_URL", "https://queue.fal.run").rstrip("/")
+        self.image_input_field = os.getenv("FAL_IMAGE_INPUT_FIELD", "image_url").strip() or "image_url"
+        self.audio_input_field = os.getenv("FAL_AUDIO_INPUT_FIELD", "").strip()
+        self.duration_type = os.getenv("FAL_DURATION_TYPE", "integer").strip().lower() or "integer"
+        self.resolution = os.getenv("FAL_VIDEO_RESOLUTION", "").strip()
+        self.prompt_expansion_mode = os.getenv("FAL_PROMPT_EXPANSION_MODE", "").strip()
 
     @property
     def configured(self) -> bool:
@@ -47,20 +52,30 @@ class FalVideoProvider:
             missing = "FAL_IMAGE_VIDEO_MODEL" if image_url else "FAL_TEXT_VIDEO_MODEL"
             return {"ok": False, "error": "fal_model_not_configured", "missing": [missing]}
 
+        try:
+            duration_seconds = int(duration)
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "invalid_video_duration", "duration": str(duration)}
+        if duration_seconds <= 0:
+            return {"ok": False, "error": "invalid_video_duration", "duration": str(duration)}
+        if self.duration_type not in {"integer", "string"}:
+            return {"ok": False, "error": "invalid_fal_duration_type", "duration_type": self.duration_type}
+        duration_value: int | str = str(duration_seconds) if self.duration_type == "string" else duration_seconds
+
+        body: dict[str, Any] = {
+            "prompt": prompt,
+            "duration": duration_value,
+        }
         if image_url:
-            body: dict[str, Any] = {
-                "start_image_url": image_url,
-                "prompt": prompt,
-                "duration": str(duration),
-                "generate_audio": generate_audio,
-            }
+            body[self.image_input_field] = image_url
         else:
-            body = {
-                "prompt": prompt,
-                "duration": str(duration),
-                "aspect_ratio": aspect_ratio,
-                "generate_audio": generate_audio,
-            }
+            body["aspect_ratio"] = aspect_ratio
+        if self.audio_input_field:
+            body[self.audio_input_field] = generate_audio
+        if self.resolution:
+            body["resolution"] = self.resolution
+        if self.prompt_expansion_mode:
+            body["prompt_expansion_mode"] = self.prompt_expansion_mode
 
         async with httpx.AsyncClient(timeout=45) as client:
             response = await client.post(

@@ -55,8 +55,19 @@ for (const signal of ["listSocialAccounts", "scheduleDrop", "social_account_id",
 if (ok) pass("calendar resolves a real account and schedules only after explicit approval");
 
 const pricing = fs.readFileSync(path.join(root, "src/app/pricing/page.tsx"), "utf8");
-for (const price of ["39", "119", "299"]) if (!pricing.includes(price)) fail(`pricing page missing $${price}`);
-if (ok) pass("three-tier commercial packaging present");
+for (const signal of ["Founding Ad Batch", "$249", "3 vertical UGC ads", "What this price does not promise"]) {
+  if (!pricing.includes(signal)) fail(`pricing page missing founding-offer signal ${signal}`);
+}
+for (const stalePrice of ["$39", "$119", "$299"]) {
+  if (pricing.includes(stalePrice)) fail(`pricing page still exposes stale SaaS price ${stalePrice}`);
+}
+if (ok) pass("single founding ad batch offer present");
+
+const create = fs.readFileSync(path.join(root, "src/app/studio/create/page.tsx"), "utf8");
+for (const signal of ["Build batch plan", "Customer pain", "Product mechanism", "Approve & render clip 1", "Render receipt"]) {
+  if (!create.includes(signal)) fail(`create surface missing launch trust signal ${signal}`);
+}
+if (ok) pass("create surface is factory-plan first with explicit spend approval");
 
 if (!ok) process.exit(1);
 console.log("DESIGN GAUNTLET STRUCTURAL GATE PASS");

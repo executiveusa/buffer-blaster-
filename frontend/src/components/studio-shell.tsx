@@ -13,6 +13,7 @@ import {
   Library,
   Network,
   Settings,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -45,7 +46,7 @@ export function StudioShell({ children, eyebrow }: { children: ReactNode; eyebro
       <aside className="fixed inset-y-0 left-[68px] z-20 hidden w-[260px] flex-col border-r border-black/8 bg-[#f7f7f5] px-4 py-6 lg:flex">
         <div className="px-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/38">Social Studio</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em]">Create → publish</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em]">Create → prove</h1>
         </div>
         <nav className="mt-7 space-y-1">
           {nav.map(([href, label, Icon]) => {
@@ -61,9 +62,10 @@ export function StudioShell({ children, eyebrow }: { children: ReactNode; eyebro
           </div>
         </div>
         <div className="mt-auto rounded-2xl bg-[#eeeeeb] p-4">
-          <div className="flex items-center justify-between text-xs"><span>UGC credits</span><span className="font-medium">8 / 12</span></div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/8"><div className="h-full w-2/3 rounded-full bg-black" /></div>
-          <p className="mt-3 text-[11px] leading-relaxed text-black/45">Growth workspace · human approval required before publishing.</p>
+          <div className="flex items-center gap-2 text-xs font-medium"><ShieldCheck className="h-4 w-4 text-[#159653]"/><span>Approval gate</span></div>
+          <div className="mt-3 flex items-center justify-between text-[11px] text-black/48"><span>Planning</span><span className="font-medium text-[#117341]">No spend</span></div>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-black/48"><span>Render / publish</span><span className="font-medium">Human approval</span></div>
+          <p className="mt-3 text-[11px] leading-relaxed text-black/42">The system keeps paid generation and publishing behind explicit approval.</p>
         </div>
       </aside>
 
