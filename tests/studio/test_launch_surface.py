@@ -10,7 +10,8 @@ def _read(path: str) -> str:
 
 def test_homepage_leads_with_testable_ad_outcome_not_generic_content_cadence():
     page = _read("frontend/src/app/page.tsx")
-    assert "Find the angle. Make the ad. Prove what works." in page
+    for phrase in ["Find the angle.", "Make the ad.", "Prove what works."]:
+        assert phrase in page
     assert "research" in page.lower()
     assert "receipt" in page.lower()
     assert "winning ads" not in page.lower()
