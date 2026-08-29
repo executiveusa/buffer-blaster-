@@ -17,6 +17,12 @@ def test_homepage_leads_with_testable_ad_outcome_not_generic_content_cadence():
     assert "winning ads" not in page.lower()
 
 
+def test_global_metadata_matches_launch_positioning():
+    layout = _read("frontend/src/app/layout.tsx")
+    assert "Find the angle" in layout
+    assert "Make the content. Keep the cadence." not in layout
+
+
 def test_pricing_has_one_launch_revenue_offer():
     page = _read("frontend/src/app/pricing/page.tsx")
     assert "Founding Ad Batch" in page
@@ -41,10 +47,18 @@ def test_create_surface_is_factory_plan_first_and_shows_trust_states():
     assert "Build prompt" not in page
 
 
+def test_studio_shell_uses_approval_state_not_fake_credit_usage():
+    shell = _read("frontend/src/components/studio-shell.tsx")
+    assert "Approval gate" in shell
+    assert "UGC credits" not in shell
+    assert "Growth workspace" not in shell
+
+
 def test_public_launch_copy_keeps_internal_codenames_out():
     public = "\n".join([
         _read("frontend/src/app/page.tsx"),
         _read("frontend/src/app/pricing/page.tsx"),
+        _read("frontend/src/app/layout.tsx"),
     ]).lower()
     for codename in ["buffer blaster", "stavarai", "hermes", "higgsfield"]:
         assert codename not in public
