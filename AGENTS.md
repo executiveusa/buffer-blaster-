@@ -11,6 +11,22 @@
 - Repository: `https://github.com/executiveusa/buffer-blaster-`.
 - Default branch: `main`; squash-merge only; never force-push `main`.
 
+## Hard application boundary
+
+Buffer Blaster / Social Studio is one standalone application. Other products, schedulers, publishers, analytics tools, or agents are separate applications.
+
+Never mix another application's:
+- source code or vendored packages
+- database/schema ownership
+- Docker Compose services
+- runtime secrets or environment names
+- branding, product identity, or public UI
+- migrations, deployment lifecycle, or release status
+
+Buffer Blaster may communicate with another application only through an explicit external integration boundary. Core code and status surfaces must remain provider-neutral. No external product is a prerequisite for Buffer Blaster to create campaigns, generate media, score content, or reach the human approval gate.
+
+See `docs/APP_BOUNDARIES.md`.
+
 ## V1 architecture
 
 ```text
@@ -26,7 +42,7 @@ openspec/                  accepted change contracts
 ops/                       receipts and rollback evidence
 ```
 
-TryPost is a replaceable external publishing kernel accessed over REST. It is not vendored into this proprietary repository. Fal is a replaceable media provider. Model IDs and provider credentials are environment-driven.
+Fal is a replaceable media provider. Any optional downstream publisher is a separate external application behind the generic publishing boundary. Model IDs and provider credentials are environment-driven.
 
 ## Agent interfaces
 
@@ -40,11 +56,11 @@ All interfaces share the same human approval gate for scheduling and publishing.
 
 ## Database
 
-Existing project and isolation rules remain authoritative. V1 does not require a destructive database migration. Do not mix client data; retain schema-scoped access and current RLS rules.
+Existing project and isolation rules remain authoritative. V1 does not require a destructive database migration. Do not mix client data; retain schema-scoped access and current RLS rules. Never share Buffer Blaster-owned tables with another application as a shortcut integration.
 
 ## Secrets
 
-Never store secret values in the repository, chat logs, issues, screenshots, or public docs. Provider tokens are runtime environment variables only. Relevant V1 names are documented in `.env.example`.
+Never store secret values in the repository, chat logs, issues, screenshots, or public docs. Provider tokens are runtime environment variables only. Another application's secrets must not be stored under Buffer Blaster-specific names.
 
 ## Working agreement
 
@@ -58,3 +74,4 @@ Never store secret values in the repository, chat logs, issues, screenshots, or 
 8. Every deploy/destructive op gets bead + rollback evidence first.
 9. Do not bypass CI, RLS, auth, or secret controls to ship faster.
 10. Use the smallest change that produces real evidence.
+11. Never merge another application's code, database, secrets, deployment, or identity into Buffer Blaster.
