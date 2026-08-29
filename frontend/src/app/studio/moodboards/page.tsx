@@ -18,7 +18,14 @@ export default function MoodboardsPage() {
     try { setAssets(await listReferences()); }
     catch (requestError) { setError(requestError instanceof Error ? requestError.message : "References are unavailable."); }
   }
-  useEffect(() => { void refresh(); }, []);
+
+  useEffect(() => {
+    let active = true;
+    listReferences()
+      .then((items) => { if (active) setAssets(items); })
+      .catch((requestError) => { if (active) setError(requestError instanceof Error ? requestError.message : "References are unavailable."); });
+    return () => { active = false; };
+  }, []);
 
   async function submitUrl(event: FormEvent) {
     event.preventDefault();
