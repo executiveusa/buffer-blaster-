@@ -98,7 +98,7 @@ async def status(_=Depends(verify_operator)) -> dict[str, Any]:
     return {
         "ok": True,
         "media": get_media_provider().status(),
-        "publisher": {"provider": "trypost", "configured": get_publisher().configured},
+        "publishing": get_publisher().status(),
         "approval_gate": True,
         "interfaces": ["ui", "rest", "mcp", "cli", "plugin", "voice"],
     }
@@ -142,6 +142,8 @@ async def social_accounts(_=Depends(verify_operator)) -> dict[str, Any]:
 
 @router.post("/social/schedule")
 async def schedule_social(request: ScheduleRequest, _=Depends(verify_operator)) -> dict[str, Any]:
+    if not request.approved:
+        return {"ok": False, "error": "human_approval_required"}
     drop = SocialDrop(
         id=request.id,
         content=request.content,

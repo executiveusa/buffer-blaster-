@@ -34,9 +34,9 @@ assert health.get('status') == 'ok', health
 assert health.get('approval_gate') is True, health
 assert status.get('ok') is True, status
 assert status.get('approval_gate') is True, status
-assert status.get('publisher', {}).get('provider') == 'trypost', status
+publishing = status.get('publishing', {}); assert publishing.get('required_for_core') is False, status
 print('PASS health | core:', health.get('core'))
-print('PASS studio | publisher:', status.get('publisher'))
+print('PASS studio | publishing:', status.get('publishing'))
 print('PASS public publishing remains approval-gated')
 PY
 

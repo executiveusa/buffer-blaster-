@@ -76,7 +76,7 @@ export default function CalendarPage() {
       const wanted = platformKey(selected.platform);
       const first = response.accounts.find(account => platformKey(account.platform) === wanted && account.is_active !== false);
       setAccountId(first?.id || "");
-      if (!first) setError(`No active ${selected.platform} account is available. Connect it in TryPost first.`);
+      if (!first) setError(`No active ${selected.platform} account is available. Connect a publishing integration first.`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to load social accounts.");
     } finally {
