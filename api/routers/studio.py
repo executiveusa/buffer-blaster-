@@ -217,7 +217,7 @@ async def agent_command(payload: AgentCommand, _=Depends(verify_operator)) -> di
         "entity": intent.entity,
         "requires_approval": intent.requires_approval,
         "next": {
-            "create_ugc": "/api/studio/ugc/prompt",
+            "create_ugc": "/api/studio/ugc/factory/plan",
             "create_campaign": "/api/studio/campaigns/plan",
             "schedule_content": "/api/studio/social/schedule",
             "status": "/api/studio/status",
