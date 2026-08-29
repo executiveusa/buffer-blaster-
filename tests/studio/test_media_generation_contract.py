@@ -38,6 +38,7 @@ def _provider(monkeypatch, calls):
     monkeypatch.setenv("FAL_IMAGE_VIDEO_MODEL", "configured/image-model")
     monkeypatch.delenv("FAL_AUDIO_INPUT_FIELD", raising=False)
     monkeypatch.delenv("FAL_IMAGE_INPUT_FIELD", raising=False)
+    monkeypatch.delenv("FAL_DURATION_TYPE", raising=False)
     monkeypatch.setattr(
         "api.services.media_generation.httpx.AsyncClient",
         lambda *args, **kwargs: FakeClient(calls, *args, **kwargs),
@@ -66,6 +67,22 @@ async def test_text_video_uses_integer_duration_and_omits_unsupported_audio(monk
 
 
 @pytest.mark.asyncio
+async def test_duration_can_be_sent_as_string_for_models_that_require_it(monkeypatch):
+    calls = []
+    _provider(monkeypatch, calls)
+    monkeypatch.setenv("FAL_DURATION_TYPE", "string")
+    provider = FalVideoProvider()
+
+    await provider.submit_video(
+        prompt="native audio creator ad",
+        duration="10",
+        aspect_ratio="9:16",
+    )
+
+    assert calls[0]["json"]["duration"] == "10"
+
+
+@pytest.mark.asyncio
 async def test_image_video_uses_configurable_image_field_with_h3_safe_default(monkeypatch):
     calls = []
     provider = _provider(monkeypatch, calls)
@@ -86,7 +103,7 @@ async def test_image_video_uses_configurable_image_field_with_h3_safe_default(mo
 @pytest.mark.asyncio
 async def test_audio_capability_is_opt_in_by_environment(monkeypatch):
     calls = []
-    provider = _provider(monkeypatch, calls)
+    _provider(monkeypatch, calls)
     monkeypatch.setenv("FAL_AUDIO_INPUT_FIELD", "generate_audio")
     provider = FalVideoProvider()
 
