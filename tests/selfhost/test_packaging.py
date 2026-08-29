@@ -23,6 +23,7 @@ def test_compose_keeps_api_behind_caddy_and_restarts():
     assert '"80:80"' in compose and '"443:443"' in compose
     assert '"8000:8000"' not in compose
     assert "condition: service_healthy" in compose
+    assert "REDIS_URL: redis://" not in compose
 
 
 def test_production_env_template_never_contains_real_provider_secrets():
@@ -35,6 +36,7 @@ def test_production_env_template_never_contains_real_provider_secrets():
         "OPENAI_API_KEY",
         "FAL_KEY",
         "TRYPOST_API_KEY",
+        "REDIS_URL",
     ]:
         line = next(line for line in env.splitlines() if line.startswith(f"{key}="))
         assert line == f"{key}=", f"{key} must remain blank in git"
@@ -49,6 +51,12 @@ def test_one_click_installer_generates_app_owned_secrets_and_runs_preflight():
     assert "set_env DEMO_PASSWORD" in script
     assert "scripts/selfhost/preflight.sh" in script
     assert "docker compose -f docker-compose.prod.yml up -d --build" in script
+    assert "--redis-url" in script
+
+
+def test_preflight_requires_redis_url():
+    preflight = read("scripts/selfhost/preflight.sh")
+    assert "REDIS_URL" in preflight
 
 
 def test_scale_migration_is_additive_and_scoped_to_buffer_blaster():

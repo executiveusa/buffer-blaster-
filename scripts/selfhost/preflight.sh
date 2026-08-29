@@ -26,7 +26,7 @@ require_integration() {
   [[ -n "${!key:-}" ]] || missing_integrations+=("$key")
 }
 
-for key in API_DOMAIN MASTER_ENCRYPTION_KEY DEMO_PASSWORD BLASTER_API_KEY; do
+for key in API_DOMAIN MASTER_ENCRYPTION_KEY DEMO_PASSWORD BLASTER_API_KEY REDIS_URL; do
   require_core "$key"
 done
 
