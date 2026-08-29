@@ -165,55 +165,72 @@ jobs:
           path: /tmp/frontend-build.log
       - name: Smoke public, studio, checkout, trial, creator, and export routes
         run: |
-          npm run start -- -p 3000 > /tmp/social-studio-next.log 2>&1 &
+          npm run start -- -H 127.0.0.1 -p 3000 > /tmp/social-studio-next.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          READY=0
           for attempt in {1..30}; do
-            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              echo "Next server exited during startup"
+              cat /tmp/social-studio-next.log || true
+              exit 1
+            fi
+            if curl -fsS --retry 2 --retry-connrefused --retry-delay 1 http://127.0.0.1:3000/ >/dev/null; then
+              READY=1
+              break
+            fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:3000/ | grep -q 'Find the angle'
-          curl -fsS http://127.0.0.1:3000/pricing | grep -q '7-Day Test Drive'
-          curl -fsS http://127.0.0.1:3000/studio | grep -q 'Run social from one command'
-          curl -fsS http://127.0.0.1:3000/studio/create | grep -q 'Build ad plan'
-          curl -fsS http://127.0.0.1:3000/studio/library | grep -q 'Everything you have made'
-          curl -fsS http://127.0.0.1:3000/studio/moodboards | grep -q 'Teach the studio what good looks like'
-          curl -fsS http://127.0.0.1:3000/studio/canvas | grep -q 'Build the creative flow visually'
-          curl -fsS http://127.0.0.1:3000/studio/campaigns | grep -q 'Give the agent an outcome'
-          curl -fsS http://127.0.0.1:3000/studio/calendar | grep -q 'See what goes live before it does'
-          curl -fsS http://127.0.0.1:3000/studio/analytics | grep -q 'No performance evidence yet'
-          curl -fsS http://127.0.0.1:3000/studio/settings | grep -q 'Connect the engines'
-          curl -fsS http://127.0.0.1:3000/admin | grep -q 'Opening console'
-          curl -fsS http://127.0.0.1:3000/admin/dashboard | grep -q 'Dashboard'
+          if [[ "$READY" != "1" ]]; then
+            echo "Next server did not become ready"
+            cat /tmp/social-studio-next.log || true
+            exit 1
+          fi
 
-          INVALID_OFFER_STATUS=$(curl -sS -o /tmp/invalid-offer.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"not-a-real-offer"}')
+          get() { curl -fsS --retry 5 --retry-connrefused --retry-delay 1 "$@"; }
+
+          get http://127.0.0.1:3000/ | grep -q 'Find the angle'
+          get http://127.0.0.1:3000/pricing | grep -q '7-Day Test Drive'
+          get http://127.0.0.1:3000/studio | grep -q 'Run social from one command'
+          get http://127.0.0.1:3000/studio/create | grep -q 'Build ad plan'
+          get http://127.0.0.1:3000/studio/library | grep -q 'Everything you have made'
+          get http://127.0.0.1:3000/studio/moodboards | grep -q 'Teach the studio what good looks like'
+          get http://127.0.0.1:3000/studio/canvas | grep -q 'Build the creative flow visually'
+          get http://127.0.0.1:3000/studio/campaigns | grep -q 'Give the agent an outcome'
+          get http://127.0.0.1:3000/studio/calendar | grep -q 'See what goes live before it does'
+          get http://127.0.0.1:3000/studio/analytics | grep -q 'No performance evidence yet'
+          get http://127.0.0.1:3000/studio/settings | grep -q 'Connect the engines'
+          get http://127.0.0.1:3000/admin | grep -q 'Opening console'
+          get http://127.0.0.1:3000/admin/dashboard | grep -q 'Dashboard'
+
+          INVALID_OFFER_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/invalid-offer.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"not-a-real-offer"}')
           test "$INVALID_OFFER_STATUS" = "400"
           grep -q 'Unknown offer' /tmp/invalid-offer.json
 
-          CHECKOUT_STATUS=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"trial-7"}')
+          CHECKOUT_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/checkout.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"trial-7"}')
           test "$CHECKOUT_STATUS" = "503"
           grep -q 'not configured' /tmp/checkout.json
 
-          ACTIVATE_STATUS=$(curl -sS -o /tmp/activate.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/trial/activate -H 'Content-Type: application/json' --data '{"session_id":"invalid"}')
+          ACTIVATE_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/activate.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/trial/activate -H 'Content-Type: application/json' --data '{"session_id":"invalid"}')
           test "$ACTIVATE_STATUS" = "400"
           grep -q 'Invalid checkout session' /tmp/activate.json
 
-          TRIAL_STATUS=$(curl -sS -o /tmp/trial-status.json -w '%{http_code}' http://127.0.0.1:3000/api/trial/status)
+          TRIAL_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/trial-status.json -w '%{http_code}' http://127.0.0.1:3000/api/trial/status)
           test "$TRIAL_STATUS" = "401"
 
-          EXECUTE_STATUS=$(curl -sS -o /tmp/trial-execute.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/trial/execute -H 'Content-Type: application/json' --data '{}')
+          EXECUTE_STATUS=$(curl -sS --retry 5 --retry-connrefused --retry-delay 1 -o /tmp/trial-execute.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/trial/execute -H 'Content-Type: application/json' --data '{}')
           test "$EXECUTE_STATUS" = "401"
 
-          RESPONSE=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
+          RESPONSE=$(get -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
           echo "$RESPONSE" | grep -q '"count":3'
           echo "$RESPONSE" | grep -q 'bb-video-launch-reel-001'
-          GROWTH=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"travel lifestyle selfie portrait photography","limit":3}')
+          GROWTH=$(get -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"travel lifestyle selfie portrait photography","limit":3}')
           echo "$GROWTH" | grep -q '"count":3'
           echo "$GROWTH" | grep -q 'ym-gpt2-lifestyle-selfie-001'
-          curl -fsS http://127.0.0.1:3000/v1/cards/ym-gpt2-lifestyle-selfie-001 | grep -q 'CC-BY-4.0'
-          ADAPTED=$(curl -fsS -X POST http://127.0.0.1:3000/v1/adapt -H 'Content-Type: application/json' --data '{"card_id":"ym-gpt2-lifestyle-selfie-001","inputs":{"subject":"a ceramic artist","location":"Puerto Vallarta","time_of_day":"golden hour"}}')
+          get http://127.0.0.1:3000/v1/cards/ym-gpt2-lifestyle-selfie-001 | grep -q 'CC-BY-4.0'
+          ADAPTED=$(get -X POST http://127.0.0.1:3000/v1/adapt -H 'Content-Type: application/json' --data '{"card_id":"ym-gpt2-lifestyle-selfie-001","inputs":{"subject":"a ceramic artist","location":"Puerto Vallarta","time_of_day":"golden hour"}}')
           echo "$ADAPTED" | grep -q 'Puerto Vallarta'
-          curl -fsS -D /tmp/agent-pack.headers -o /tmp/agent-pack.zip -X POST http://127.0.0.1:3000/v1/export/icm -H 'Content-Type: application/json' --data '{"card_id":"ym-gpt2-lifestyle-selfie-001","inputs":{"subject":"a ceramic artist","location":"Puerto Vallarta","time_of_day":"golden hour"}}'
+          get -D /tmp/agent-pack.headers -o /tmp/agent-pack.zip -X POST http://127.0.0.1:3000/v1/export/icm -H 'Content-Type: application/json' --data '{"card_id":"ym-gpt2-lifestyle-selfie-001","inputs":{"subject":"a ceramic artist","location":"Puerto Vallarta","time_of_day":"golden hour"}}'
           grep -qi '^content-type: application/zip' /tmp/agent-pack.headers
           grep -qi '^x-buffer-blaster-sha256:' /tmp/agent-pack.headers
           unzip -t /tmp/agent-pack.zip >/dev/null
