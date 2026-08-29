@@ -1,6 +1,7 @@
 import pytest
 
-from api.services.ugc_factory import UGCFactoryBrief, render_ugc_factory_clip
+from api.services.ugc_factory import UGCFactoryBrief
+from api.services.ugc_factory_render import render_ugc_factory_clip
 
 
 class FakeMediaProvider:
@@ -34,7 +35,7 @@ def _brief():
 @pytest.mark.asyncio
 async def test_factory_render_refuses_paid_call_without_approval(monkeypatch):
     provider = FakeMediaProvider()
-    monkeypatch.setattr("api.services.ugc_factory.get_media_provider", lambda: provider)
+    monkeypatch.setattr("api.services.ugc_factory_render.get_media_provider", lambda: provider)
 
     result = await render_ugc_factory_clip(_brief(), clip_number=1, approved=False)
 
@@ -47,7 +48,7 @@ async def test_factory_render_refuses_paid_call_without_approval(monkeypatch):
 @pytest.mark.asyncio
 async def test_factory_render_submits_approved_compiled_prompt_verbatim(monkeypatch):
     provider = FakeMediaProvider()
-    monkeypatch.setattr("api.services.ugc_factory.get_media_provider", lambda: provider)
+    monkeypatch.setattr("api.services.ugc_factory_render.get_media_provider", lambda: provider)
 
     result = await render_ugc_factory_clip(_brief(), clip_number=1, approved=True)
 
@@ -66,7 +67,7 @@ async def test_factory_render_submits_approved_compiled_prompt_verbatim(monkeypa
 @pytest.mark.asyncio
 async def test_factory_render_can_use_reference_image(monkeypatch):
     provider = FakeMediaProvider()
-    monkeypatch.setattr("api.services.ugc_factory.get_media_provider", lambda: provider)
+    monkeypatch.setattr("api.services.ugc_factory_render.get_media_provider", lambda: provider)
 
     await render_ugc_factory_clip(
         _brief(),
