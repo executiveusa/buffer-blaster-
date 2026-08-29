@@ -26,6 +26,57 @@ jobs:
       - name: Compile verified creator corpus
         run: python scripts/build_creator_catalog.py --input library/imported/youmind --output /tmp/creator-catalog
 
+  schema-proof:
+    name: Fresh PostgreSQL schema proof
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: buffer_blaster_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Supabase storage contract stub
+        run: |
+          psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE SCHEMA IF NOT EXISTS storage;
+          CREATE TABLE IF NOT EXISTS storage.buckets (
+            id text PRIMARY KEY,
+            name text NOT NULL,
+            public boolean NOT NULL DEFAULT false,
+            file_size_limit bigint,
+            allowed_mime_types text[]
+          );
+          SQL
+      - name: Apply canonical Buffer Blaster migrations twice
+        run: |
+          for pass in 1 2; do
+            echo "Schema pass $pass"
+            for migration in \
+              supabase/migrations/007_buffer_blaster_schema.sql \
+              supabase/migrations/008_buffer_blaster_beta_scale.sql \
+              supabase/migrations/009_buffer_blaster_storage.sql \
+              supabase/migrations/010_buffer_blaster_default_workspace.sql; do
+              psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -v ON_ERROR_STOP=1 -f "$migration"
+            done
+          done
+      - name: Verify canonical tables workspace RLS and private bucket
+        run: |
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select count(*) from buffer_blaster.workspaces where id='00000000-0000-0000-0000-000000000001'::uuid")" = "1"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select count(*) from information_schema.tables where table_schema='buffer_blaster' and table_name in ('creative_jobs','usage_wallets','checkout_receipts','performance_events','source_assets')")" = "5"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='buffer_blaster' and c.relname='creative_jobs'")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select public from storage.buckets where id='buffer-blaster-assets'")" = "f"
+
   selfhost-package:
     name: Self-host container and compose proof
     runs-on: ubuntu-latest
@@ -75,6 +126,7 @@ jobs:
           PRICING=$(curl -fsS -H 'x-api-key: ci-only-api-key' http://127.0.0.1:18000/api/studio/pricing)
           echo "$PRICING" | grep -q '"trial-7"'
           echo "$PRICING" | grep -q '"price_cents":1900'
+          echo "$PRICING" | grep -q '"fees_overhead_research_and_refund_reserves_are_protected_before_provider_spend":true'
           RAW_RENDER=$(curl -fsS -X POST -H 'x-api-key: ci-only-api-key' -H 'Content-Type: application/json' http://127.0.0.1:18000/api/studio/ugc/render --data '{"idea":"test"}')
           echo "$RAW_RENDER" | grep -q '"error":"guarded_factory_required"'
 
