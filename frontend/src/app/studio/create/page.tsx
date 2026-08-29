@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, CircleDollarSign, ImagePlus, Loader2, Play, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
+import { Check, CircleDollarSign, Loader2, Play, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
 import { PageHeader, StatusPill } from "@/components/studio-ui";
 import { StudioShell } from "@/components/studio-shell";
 import { createUGCFactoryPlan, renderUGCFactoryClip, type FactoryRenderResult, type UGCFactoryPlan } from "@/lib/studio-api";
