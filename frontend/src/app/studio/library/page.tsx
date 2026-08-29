@@ -22,7 +22,7 @@ export default function LibraryPage() {
   const active = jobs.filter((job) => ["planned", "render_queued", "rendering", "rendering_clip_1", "stitching"].some((state) => job.state.startsWith(state))).length;
   const completed = jobs.filter((job) => job.state === "finished").length;
   return <StudioShell eyebrow="Creative library">
-    <PageHeader kicker="My ads" title="Everything the factory has actually made." body="This library is generated from canonical creative-job receipts. Nothing appears here merely because a mock card exists in the frontend." action={<Link href="/studio/create" className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white"><Plus className="h-4 w-4"/>Create</Link>} />
+    <PageHeader kicker="My ads" title="Everything you have made — backed by real receipts." body="This library is generated from canonical creative-job receipts. Nothing appears here merely because a mock card exists in the frontend." action={<Link href="/studio/create" className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white"><Plus className="h-4 w-4"/>Create</Link>} />
     <div className="p-6 lg:p-10">
       <div className="mb-6 rounded-2xl border border-black/7 bg-white p-5"><div className="flex items-center justify-between"><div><p className="text-xs text-black/40">Canonical queue</p><p className="mt-1 text-sm font-medium">{active} active · {completed} finished · {jobs.length} total receipts</p></div><StatusPill tone={active ? "blue" : "neutral"}>{active ? "Processing" : "No active jobs"}</StatusPill></div></div>
       {error ? <p className="rounded-2xl bg-amber-50 p-4 text-xs text-amber-800">{error}. Synthetic assets are intentionally hidden.</p> : null}
