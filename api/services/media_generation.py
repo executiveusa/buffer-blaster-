@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -102,13 +103,34 @@ class FalVideoProvider:
             "cancel_url": data.get("cancel_url"),
         }
 
+    def _is_queue_url(self, url: str) -> bool:
+        try:
+            target = urlparse(url)
+            queue = urlparse(self.queue_base)
+        except ValueError:
+            return False
+        return (
+            target.scheme == "https"
+            and queue.scheme == "https"
+            and target.hostname == queue.hostname
+            and (target.port or 443) == (queue.port or 443)
+        )
+
     async def fetch_url(self, url: str) -> dict[str, Any]:
+        """Fetch a Fal queue/status response without leaking the Fal key.
+
+        The Authorization header is only ever sent to the exact configured Fal
+        queue origin. Asset URLs from provider responses are intentionally not
+        accepted here; the executor downloads those separately without this key.
+        """
         if not self.key:
             return {"ok": False, "error": "fal_not_configured"}
-        if not url.startswith("https://"):
-            return {"ok": False, "error": "invalid_fal_url"}
-        async with httpx.AsyncClient(timeout=45) as client:
+        if not self._is_queue_url(url):
+            return {"ok": False, "error": "invalid_fal_url_origin"}
+        async with httpx.AsyncClient(timeout=45, follow_redirects=False) as client:
             response = await client.get(url, headers={"Authorization": f"Key {self.key}"})
+            if response.is_redirect:
+                return {"ok": False, "error": "fal_redirect_rejected", "status": response.status_code}
             if response.is_error:
                 return {"ok": False, "status": response.status_code, "detail": response.text[:800]}
             return {"ok": True, "data": response.json()}
