@@ -22,6 +22,7 @@ from .routers import (
     dashboard,
     discovery,
     mcp,
+    money_loop,
     pipeline,
     settings as settings_router,
     studio,
@@ -80,6 +81,7 @@ app.include_router(blog.router)
 app.include_router(voice.router)
 app.include_router(discovery.router)
 app.include_router(studio.router)
+app.include_router(money_loop.router)
 app.include_router(assets.router)
 app.include_router(mcp.router)
 
