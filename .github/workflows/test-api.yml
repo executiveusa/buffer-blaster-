@@ -26,6 +26,56 @@ jobs:
       - name: Compile verified creator corpus
         run: python scripts/build_creator_catalog.py --input library/imported/youmind --output /tmp/creator-catalog
 
+  schema-proof:
+    name: Fresh PostgreSQL schema proof
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: buffer_blaster_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Supabase storage contract stub
+        run: |
+          psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE SCHEMA IF NOT EXISTS storage;
+          CREATE TABLE IF NOT EXISTS storage.buckets (
+            id text PRIMARY KEY,
+            name text NOT NULL,
+            public boolean NOT NULL DEFAULT false,
+            file_size_limit bigint,
+            allowed_mime_types text[]
+          );
+          SQL
+      - name: Apply canonical Buffer Blaster migrations twice
+        run: |
+          for pass in 1 2; do
+            echo "Schema pass $pass"
+            for migration in \
+              supabase/migrations/007_buffer_blaster_schema.sql \
+              supabase/migrations/008_buffer_blaster_beta_scale.sql \
+              supabase/migrations/009_buffer_blaster_storage.sql \
+              supabase/migrations/010_buffer_blaster_default_workspace.sql; do
+              psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -v ON_ERROR_STOP=1 -f "$migration"
+            done
+          done
+      - name: Verify canonical tables workspace RLS and private bucket
+        run: |
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select count(*) from buffer_blaster.workspaces where id='00000000-0000-0000-0000-000000000001'::uuid")" = "1"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select count(*) from information_schema.tables where table_schema='buffer_blaster' and table_name in ('creative_jobs','usage_wallets','checkout_receipts','performance_events','source_assets')")" = "5"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='buffer_blaster' and c.relname='creative_jobs'")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select public from storage.buckets where id='buffer-blaster-assets'")" = "f"
+
   selfhost-package:
     name: Self-host container and compose proof
     runs-on: ubuntu-latest
@@ -50,21 +100,13 @@ jobs:
           READY=0
           for attempt in {1..30}; do
             if [[ "$(docker inspect -f '{{.State.Running}}' stavarai-api-ci 2>/dev/null || true)" != "true" ]]; then
-              echo "Container exited during startup"
               docker logs stavarai-api-ci || true
               exit 1
             fi
-            if curl -fsS http://127.0.0.1:18000/api/health > /tmp/stavarai-health.json; then
-              READY=1
-              break
-            fi
+            if curl -fsS http://127.0.0.1:18000/api/health > /tmp/stavarai-health.json 2>/dev/null; then READY=1; break; fi
             sleep 1
           done
-          if [[ "$READY" != "1" ]]; then
-            echo "API did not become healthy"
-            docker logs stavarai-api-ci || true
-            exit 1
-          fi
+          if [[ "$READY" != "1" ]]; then docker logs stavarai-api-ci || true; exit 1; fi
           grep -q '"status":"ok"' /tmp/stavarai-health.json
           grep -q '"approval_gate":true' /tmp/stavarai-health.json
           STATUS=$(curl -fsS -H 'x-api-key: ci-only-api-key' http://127.0.0.1:18000/api/studio/status)
@@ -72,6 +114,12 @@ jobs:
           echo "$STATUS" | grep -q '"provider":null'
           echo "$STATUS" | grep -q '"enabled":false'
           echo "$STATUS" | grep -q '"required_for_core":false'
+          PRICING=$(curl -fsS -H 'x-api-key: ci-only-api-key' http://127.0.0.1:18000/api/studio/pricing)
+          echo "$PRICING" | grep -q '"trial-7"'
+          echo "$PRICING" | grep -q '"price_cents":1900'
+          echo "$PRICING" | grep -q '"fees_overhead_research_and_refund_reserves_are_protected_before_provider_spend":true'
+          RAW_RENDER=$(curl -fsS -X POST -H 'x-api-key: ci-only-api-key' -H 'Content-Type: application/json' http://127.0.0.1:18000/api/studio/ugc/render --data '{"idea":"test"}')
+          echo "$RAW_RENDER" | grep -q '"error":"guarded_factory_required"'
 
   frontend-build:
     name: Frontend security, gauntlet, lint, build, and route smoke
@@ -106,32 +154,89 @@ jobs:
         with:
           name: frontend-build-diagnostics
           path: /tmp/frontend-build.log
-      - name: Smoke public, studio, legacy creator, and export routes
+      - name: Smoke public, studio, checkout, trial, creator, and export routes
         run: |
-          npm run start -- -p 3000 > /tmp/social-studio-next.log 2>&1 &
+          npm run start -- -H 127.0.0.1 -p 3000 > /tmp/social-studio-next.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+
+          READY=0
           for attempt in {1..30}; do
-            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              echo "Next server exited during startup"
+              cat /tmp/social-studio-next.log || true
+              exit 1
+            fi
+            if curl -fsS http://127.0.0.1:3000/ > /tmp/ready.html 2>/dev/null; then
+              READY=1
+              break
+            fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:3000/ | grep -q 'Find the angle'
-          curl -fsS http://127.0.0.1:3000/pricing | grep -q 'Founding Ad Batch'
-          curl -fsS http://127.0.0.1:3000/studio | grep -q 'Run social from one command'
-          curl -fsS http://127.0.0.1:3000/studio/create | grep -q 'Build batch plan'
-          curl -fsS http://127.0.0.1:3000/studio/library | grep -q 'Everything you have made'
-          curl -fsS http://127.0.0.1:3000/studio/moodboards | grep -q 'Teach the studio what good looks like'
-          curl -fsS http://127.0.0.1:3000/studio/canvas | grep -q 'Build the creative flow visually'
-          curl -fsS http://127.0.0.1:3000/studio/campaigns | grep -q 'Give the agent an outcome'
-          curl -fsS http://127.0.0.1:3000/studio/calendar | grep -q 'See what goes live before it does'
-          curl -fsS http://127.0.0.1:3000/studio/analytics | grep -q 'Make the next campaign from what worked'
-          curl -fsS http://127.0.0.1:3000/studio/settings | grep -q 'Connect the engines'
-          curl -fsS http://127.0.0.1:3000/founding | grep -q 'Founding Creator'
-          curl -fsS http://127.0.0.1:3000/admin | grep -q 'Opening console'
-          curl -fsS http://127.0.0.1:3000/admin/dashboard | grep -q 'Dashboard'
-          CHECKOUT_STATUS=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout/founding)
-          test "$CHECKOUT_STATUS" = "503"
-          grep -q 'not configured' /tmp/checkout.json
+          if [[ "$READY" != "1" ]]; then
+            echo "Next server did not become ready"
+            cat /tmp/social-studio-next.log || true
+            exit 1
+          fi
+
+          check_page() {
+            local path="$1"
+            local needle="$2"
+            echo "Checking page $path"
+            if ! curl -fsS "http://127.0.0.1:3000${path}" > /tmp/page.html; then
+              echo "HTTP failure for $path"
+              cat /tmp/social-studio-next.log || true
+              exit 1
+            fi
+            if ! grep -q "$needle" /tmp/page.html; then
+              echo "Missing '$needle' on $path"
+              head -c 2000 /tmp/page.html || true
+              exit 1
+            fi
+          }
+
+          check_api() {
+            local label="$1"
+            local expected="$2"
+            shift 2
+            echo "Checking API $label"
+            local status
+            status=$(curl -sS -o /tmp/api-body.json -w '%{http_code}' "$@")
+            if [[ "$status" != "$expected" ]]; then
+              echo "$label returned $status, expected $expected"
+              cat /tmp/api-body.json || true
+              cat /tmp/social-studio-next.log || true
+              exit 1
+            fi
+          }
+
+          check_page / 'Find the angle'
+          check_page /pricing '7-Day Test Drive'
+          check_page /studio 'Run social from one command'
+          check_page /studio/create 'Build ad plan'
+          check_page /studio/library 'Everything you have made'
+          check_page /studio/moodboards 'Teach the studio what good looks like'
+          check_page /studio/canvas 'Build the creative flow visually'
+          check_page /studio/campaigns 'Give the agent an outcome'
+          check_page /studio/calendar 'See what goes live before it does'
+          check_page /studio/analytics 'No performance evidence yet'
+          check_page /studio/settings 'Connect the engines'
+          check_page /admin 'Opening console'
+          check_page /admin/dashboard 'Dashboard'
+
+          check_api invalid-offer 400 -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"not-a-real-offer"}'
+          grep -q 'Unknown offer' /tmp/api-body.json
+
+          check_api checkout-unconfigured 503 -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"trial-7"}'
+          grep -q 'not configured' /tmp/api-body.json
+
+          check_api invalid-activation 400 -X POST http://127.0.0.1:3000/api/trial/activate -H 'Content-Type: application/json' --data '{"session_id":"invalid"}'
+          grep -q 'Invalid checkout session' /tmp/api-body.json
+
+          check_api trial-status-no-cookie 401 http://127.0.0.1:3000/api/trial/status
+          check_api trial-execute-no-cookie 401 -X POST http://127.0.0.1:3000/api/trial/execute -H 'Content-Type: application/json' --data '{}'
+
+          echo 'Checking creator discovery'
           RESPONSE=$(curl -fsS -X POST http://127.0.0.1:3000/v1/discover -H 'Content-Type: application/json' --data '{"intent":"cinematic launch reel for my clothing brand","limit":3}')
           echo "$RESPONSE" | grep -q '"count":3'
           echo "$RESPONSE" | grep -q 'bb-video-launch-reel-001'

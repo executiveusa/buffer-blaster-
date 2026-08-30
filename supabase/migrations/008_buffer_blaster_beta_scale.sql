@@ -1,3 +1,4 @@
+-- 008_buffer_blaster_beta_scale.sql
 -- Buffer Blaster beta hot-path indexes.
 -- Additive only. These cover FK joins used by campaign -> creative -> approval -> publish -> receipt flows.
 
@@ -45,3 +46,9 @@ create index if not exists bb_source_assets_client_workspace_fk_idx
 
 create index if not exists bb_ugc_characters_client_workspace_fk_idx
   on buffer_blaster.ugc_characters (client_id, workspace_id);
+
+create index if not exists bb_usage_wallets_workspace_offer_idx
+  on buffer_blaster.usage_wallets (workspace_id, offer_id, state);
+
+create index if not exists bb_creative_jobs_state_workspace_idx
+  on buffer_blaster.creative_jobs (workspace_id, state, created_at desc);

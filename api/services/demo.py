@@ -1,7 +1,7 @@
-"""In-memory demo data — what the dashboard shows when no Supabase is wired.
+"""In-memory demo data — explicit simulation only.
 
-Two seeded clients across two niches, with content units tagged by their
-isolated schema name. This is the data the owners see in the demo.
+This module must never be treated as canonical production state. Callers that
+surface these values should label them as simulated/demo state.
 """
 from __future__ import annotations
 
@@ -142,11 +142,28 @@ def pipeline_running() -> bool:
 
 
 def start_pipeline(slug: str) -> dict:
-    run = {"id": str(uuid.uuid4())[:8], "client": slug, "status": "running",
-           "started_at": datetime.now(timezone.utc).isoformat()}
+    run = {
+        "id": str(uuid.uuid4())[:8],
+        "client": slug,
+        "status": "running",
+        "simulated": True,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+    }
     _PIPELINE_RUNS[slug] = run
-    return run
+    return dict(run)
 
 
 def pipeline_status(slug: str) -> dict:
-    return _PIPELINE_RUNS.get(slug, {"client": slug, "status": "idle"})
+    return dict(_PIPELINE_RUNS.get(slug, {"client": slug, "status": "idle", "simulated": True}))
+
+
+def cancel_pipeline(slug: str) -> dict:
+    run = _PIPELINE_RUNS.get(slug)
+    if not run:
+        run = {"id": None, "client": slug, "status": "idle", "simulated": True}
+        _PIPELINE_RUNS[slug] = run
+        return dict(run)
+    run["status"] = "cancelled"
+    run["cancelled_at"] = datetime.now(timezone.utc).isoformat()
+    run["simulated"] = True
+    return dict(run)

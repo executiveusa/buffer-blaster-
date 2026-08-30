@@ -24,7 +24,7 @@ class VoiceCommand(BaseModel):
 async def voice_command(payload: VoiceCommand, _=Depends(verify_operator)) -> dict:
     result = parse_voice_intent(payload.transcript)
     next_route = {
-        "create_ugc": "/api/studio/ugc/prompt",
+        "create_ugc": "/api/studio/ugc/factory/plan",
         "create_campaign": "/api/studio/campaigns/plan",
         "schedule_content": "/api/studio/social/schedule",
         "status": "/api/studio/status",

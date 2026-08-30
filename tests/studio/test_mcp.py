@@ -12,13 +12,17 @@ def test_mcp_exposes_agent_first_surface():
     names = {tool["name"] for tool in MCP_TOOLS}
     assert {
         "studio_status",
+        "get_pricing",
+        "list_creative_jobs",
+        "get_usage_wallet",
         "create_campaign_plan",
         "create_ugc_prompt",
         "create_ugc_ad_factory_plan",
-        "render_ugc_ad_factory_clip",
+        "execute_ugc_ad_factory",
         "list_social_accounts",
         "schedule_social_drop",
     }.issubset(names)
+    assert "render_ugc_ad_factory_clip" not in names
 
 
 def test_mcp_preserves_existing_ugc_motion_schema():
@@ -26,8 +30,9 @@ def test_mcp_preserves_existing_ugc_motion_schema():
     assert motion == {"type": "string"}
 
 
-def test_factory_render_tool_requires_explicit_approval_field():
-    schema = _tool("render_ugc_ad_factory_clip")["inputSchema"]
+def test_factory_execute_tool_requires_wallet_and_explicit_approval():
+    schema = _tool("execute_ugc_ad_factory")["inputSchema"]
+    assert "wallet_id" in schema["required"]
     assert "approved" in schema["required"]
     assert schema["properties"]["approved"] == {"type": "boolean"}
 
@@ -50,15 +55,13 @@ def test_authenticated_agent_can_call_ugc_factory(monkeypatch):
                     "pain": "my coffee keeps tasting flat even when the beans are good",
                     "mechanism": "the brew variables stay simple and repeatable",
                     "offer": "POUR15",
-                    "platform": "instagram"
+                    "platform": "instagram",
                 },
             },
         },
     )
-
     assert response.status_code == 200
-    payload = response.json()
-    plan = payload["result"]["structuredContent"]
+    plan = response.json()["result"]["structuredContent"]
     assert plan["ok"] is True
     assert plan["factory_version"] == "ugc-ad-factory-v1"
     assert len(plan["clips"]) == 2
@@ -67,7 +70,7 @@ def test_authenticated_agent_can_call_ugc_factory(monkeypatch):
     assert plan["approval_required_before_publish"] is True
 
 
-def test_agent_factory_render_refuses_unapproved_spend(monkeypatch):
+def test_agent_factory_execute_refuses_unapproved_spend_before_wallet_lookup(monkeypatch):
     monkeypatch.setenv("BLASTER_API_KEY", "test-agent-key")
     client = TestClient(app)
     response = client.post(
@@ -75,10 +78,10 @@ def test_agent_factory_render_refuses_unapproved_spend(monkeypatch):
         headers={"x-api-key": "test-agent-key"},
         json={
             "jsonrpc": "2.0",
-            "id": "ugc-render-no-approval",
+            "id": "ugc-execute-no-approval",
             "method": "tools/call",
             "params": {
-                "name": "render_ugc_ad_factory_clip",
+                "name": "execute_ugc_ad_factory",
                 "arguments": {
                     "product": "Cella Coffee",
                     "audience": "home baristas",
@@ -86,16 +89,14 @@ def test_agent_factory_render_refuses_unapproved_spend(monkeypatch):
                     "mechanism": "the brew variables stay simple and repeatable",
                     "offer": "POUR15",
                     "platform": "instagram",
-                    "clip_number": 1,
-                    "approved": False
+                    "wallet_id": "wallet-does-not-matter",
+                    "approved": False,
                 },
             },
         },
     )
-
     assert response.status_code == 200
-    payload = response.json()
-    result = payload["result"]["structuredContent"]
+    result = response.json()["result"]["structuredContent"]
     assert result["ok"] is False
     assert result["error"] == "human_approval_required"
     assert result["approval_required"] is True

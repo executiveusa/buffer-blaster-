@@ -1,0 +1,49 @@
+{
+  "change_id": "wiring-truth-pricing-v2",
+  "pull_request": 34,
+  "baseline_main_sha": "49845ea9882df8b32ad9772b6dc467d39bda172b",
+  "branch": "fix/wiring-truth-pricing-v2",
+  "status": "rollback_path_defined_pre_merge",
+  "scope": [
+    "canonical studio ledger and additive buffer_blaster schema",
+    "approval-gated full UGC execution and private asset storage",
+    "server-owned usage wallets and provider-spend guard",
+    "Stripe paid-pass checkout/session flow",
+    "truthful settings/integration verification",
+    "REST/MCP/CLI/plugin parity",
+    "production-facing UI state cleanup"
+  ],
+  "external_state_mutated_by_pr_build": false,
+  "database_migrations": {
+    "kind": "additive",
+    "destructive_sql": false,
+    "pre_merge_applied_by_this_change": false,
+    "rollback_note": "If the additive buffer_blaster schema has already been applied in production, do not drop it during emergency rollback. Revert application code first; leave the additive tables dormant until a separately reviewed cleanup migration is approved."
+  },
+  "payments": {
+    "live_prices_created_by_this_change": false,
+    "live_charges_created_by_this_change": false,
+    "rollback_note": "Disable or remove new offer Price IDs/Payment Links from deployment secrets before reverting code if checkout was enabled after merge. Existing Stripe records remain historical evidence."
+  },
+  "media_generation": {
+    "live_paid_render_created_by_ci": false,
+    "rollback_note": "CI uses fakes/contracts and never authorizes a paid render."
+  },
+  "before_merge": [
+    "keep PR 34 draft or close it",
+    "no production rollback required because branch CI does not mutate production"
+  ],
+  "after_merge": [
+    "revert the single squash commit for PR 34; do not force-push main",
+    "restore previous deployment environment if new checkout/wallet variables cause an operational issue",
+    "leave additive database objects intact unless a separate destructive cleanup is explicitly approved"
+  ],
+  "verification": [
+    "python -m pytest tests -q",
+    "cd frontend && npm run gauntlet",
+    "cd frontend && npm run lint",
+    "cd frontend && npm run build",
+    "docker compose -f docker-compose.prod.yml config",
+    "production API container smoke"
+  ]
+}
