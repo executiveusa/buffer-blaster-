@@ -7,6 +7,7 @@ or a specific media model. It performs no network calls and no paid generation.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 import os
 from typing import Any
 
@@ -87,34 +88,14 @@ def _gate_scripts(scripts: tuple[str, str]) -> dict[str, Any]:
     joined = " ".join(scripts).lower()
     found = [term for term in BANNED_DIALOGUE_TERMS if term in joined]
     checks = [
-        {
-            "name": "two_clip_contract",
-            "passed": len(scripts) == 2,
-            "detail": f"clips={len(scripts)}",
-        },
-        {
-            "name": "spoken_word_budget",
-            "passed": all(18 <= count <= 32 for count in counts),
-            "detail": f"word_counts={counts}",
-        },
-        {
-            "name": "not_an_ad_mechanical_tells",
-            "passed": not found,
-            "detail": "clear" if not found else f"found={found}",
-        },
+        {"name": "two_clip_contract", "passed": len(scripts) == 2, "detail": f"clips={len(scripts)}"},
+        {"name": "spoken_word_budget", "passed": all(18 <= count <= 32 for count in counts), "detail": f"word_counts={counts}"},
+        {"name": "not_an_ad_mechanical_tells", "passed": not found, "detail": "clear" if not found else f"found={found}"},
     ]
-    return {
-        "passed": all(check["passed"] for check in checks),
-        "checks": checks,
-    }
+    return {"passed": all(check["passed"] for check in checks), "checks": checks}
 
 
-def _clip_prompt(
-    *,
-    brief: UGCFactoryBrief,
-    script: str,
-    clip_number: int,
-) -> str:
+def _clip_prompt(*, brief: UGCFactoryBrief, script: str, clip_number: int) -> str:
     if clip_number == 1:
         idea = "Open on the customer's problem and tension. Let the creator sound mid-thought, not like an introduction."
         subject = brief.actor_description
@@ -149,12 +130,16 @@ def _commercial_quote() -> dict[str, Any]:
     price_cents = _money_env("UGC_FACTORY_PRICE_CENTS", 9900)
     clip_cost_cents = _money_env("UGC_FACTORY_CLIP_COST_CENTS", 80)
     expected_clips = _money_env("UGC_FACTORY_EXPECTED_CLIPS_PER_AD", 3, minimum=2)
-    estimated_cost = clip_cost_cents * expected_clips
+    safety_bps = _money_env("UGC_FACTORY_COST_SAFETY_BPS", 12500, minimum=10000)
+    raw_estimate = clip_cost_cents * expected_clips
+    estimated_cost = math.ceil(raw_estimate * safety_bps / 10_000)
     gross_margin = price_cents - estimated_cost
     gross_margin_pct = round((gross_margin / price_cents * 100), 1) if price_cents else 0.0
     return {
         "billable_unit": "finished_ugc_ad",
         "price_cents": price_cents,
+        "raw_generation_estimate_cents": raw_estimate,
+        "cost_safety_bps": safety_bps,
         "estimated_generation_cost_cents": estimated_cost,
         "expected_paid_clip_calls": expected_clips,
         "gross_margin_cents": gross_margin,
@@ -232,18 +217,11 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
                 "stitch",
             ],
             "seam_threshold_mean_abs_diff": 5 / 255,
-            "claim": "planning_contract_only",
+            "claim": "execution_implemented_with_bounded_retry",
         },
         "icm": {
             "template": "icm/_templates/ugc_ad_factory",
-            "stages": [
-                "01_research",
-                "02_script_gate",
-                "03_cast",
-                "04_generate",
-                "05_seam_qa",
-                "06_deliver",
-            ],
+            "stages": ["01_research", "02_script_gate", "03_cast", "04_generate", "05_seam_qa", "06_deliver"],
         },
         "commercial": _commercial_quote(),
         "approval_required_before_publish": True,

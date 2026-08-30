@@ -1,9 +1,14 @@
-"""Command-line client for the Agentic Social Studio API.
+"""Command-line client for the Social Studio API.
 
 Examples:
   python -m cli.blaster status
+  python -m cli.blaster pricing
   python -m cli.blaster campaign brief.json
-  python -m cli.blaster ugc-prompt brief.json
+  python -m cli.blaster ugc-plan brief.json
+  python -m cli.blaster ugc-execute approved-brief-with-wallet.json
+  python -m cli.blaster wallet <wallet-id>
+  python -m cli.blaster jobs
+  python -m cli.blaster job <job-id>
   python -m cli.blaster accounts
   python -m cli.blaster schedule drop.json
 """
@@ -14,6 +19,7 @@ import os
 import sys
 from pathlib import Path
 from urllib.error import HTTPError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 BASE = os.getenv("BLASTER_API_URL", "http://localhost:8000").rstrip("/")
@@ -31,7 +37,7 @@ def _call(path: str, payload: dict | None = None) -> dict:
         headers["Authorization"] = f"Bearer {TOKEN}"
     req = Request(f"{BASE}{path}", data=body, headers=headers, method="POST" if body is not None else "GET")
     try:
-        with urlopen(req, timeout=60) as response:
+        with urlopen(req, timeout=120) as response:
             return json.loads(response.read().decode())
     except HTTPError as exc:
         try:
@@ -39,29 +45,68 @@ def _call(path: str, payload: dict | None = None) -> dict:
         except Exception:
             detail = {"error": exc.reason}
         return {"ok": False, "status": exc.code, "detail": detail}
+    except Exception as exc:
+        return {"ok": False, "error": "request_failed", "detail": type(exc).__name__}
+
+
+def _help() -> None:
+    print(
+        "blaster <status|pricing|campaign|ugc-prompt|ugc-plan|ugc-execute|wallet|jobs|job|accounts|schedule|mcp-info> [json-file-or-id]"
+    )
 
 
 def main() -> int:
     args = sys.argv[1:]
     if not args or args[0] in {"help", "--help", "-h"}:
-        print("blaster <status|campaign|ugc-prompt|accounts|schedule|mcp-info> [json-file]")
+        _help()
         return 0
+
     command = args[0]
     if command == "status":
         result = _call("/api/studio/status")
+    elif command == "pricing":
+        result = _call("/api/studio/pricing")
     elif command == "campaign" and len(args) > 1:
         result = _call("/api/studio/campaigns/plan", _load(args[1]))
     elif command == "ugc-prompt" and len(args) > 1:
         result = _call("/api/studio/ugc/prompt", _load(args[1]))
+    elif command == "ugc-plan" and len(args) > 1:
+        result = _call("/api/studio/ugc/factory/plan", _load(args[1]))
+    elif command == "ugc-execute" and len(args) > 1:
+        payload = _load(args[1])
+        if payload.get("approved") is not True:
+            result = {"ok": False, "error": "human_approval_required", "message": "ugc-execute JSON must include approved=true and a server-issued wallet_id."}
+        elif not payload.get("wallet_id"):
+            result = {"ok": False, "error": "wallet_id_required"}
+        else:
+            result = _call("/api/studio/ugc/factory/execute", payload)
+    elif command == "wallet" and len(args) > 1:
+        result = _call(f"/api/studio/billing/wallet/{quote(args[1], safe='')}")
+    elif command == "jobs":
+        result = _call("/api/studio/jobs")
+    elif command == "job" and len(args) > 1:
+        result = _call(f"/api/studio/jobs/{quote(args[1], safe='')}")
     elif command == "accounts":
         result = _call("/api/studio/social/accounts")
     elif command == "schedule" and len(args) > 1:
-        result = _call("/api/studio/social/schedule", _load(args[1]))
+        payload = _load(args[1])
+        if payload.get("approved") is not True:
+            result = {"ok": False, "error": "human_approval_required", "message": "schedule JSON must include approved=true."}
+        else:
+            result = _call("/api/studio/social/schedule", payload)
     elif command == "mcp-info":
-        result = {"url": f"{BASE}/api/mcp", "transport": "http-json-rpc", "auth": "Bearer BLASTER_API_KEY"}
+        result = {
+            "ok": True,
+            "url": f"{BASE}/api/mcp",
+            "transport": "http-json-rpc",
+            "auth": "Bearer BLASTER_API_KEY",
+            "paid_generation": "use execute_ugc_ad_factory with a server-owned wallet; no raw render bypass",
+        }
     else:
-        print("Invalid command or missing JSON file", file=sys.stderr)
+        _help()
+        print("Invalid command or missing JSON file / ID", file=sys.stderr)
         return 2
+
     print(json.dumps(result, indent=2))
     return 0 if result.get("ok", True) else 1
 

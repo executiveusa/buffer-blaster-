@@ -1,6 +1,6 @@
 {
   "name": "social-studio",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "kind": "agent-skill-plugin",
   "entry": "SKILL.md",
   "interfaces": {
@@ -10,10 +10,16 @@
   },
   "capabilities": [
     "campaign-planning",
-    "ugc-prompting",
+    "ugc-factory-planning",
+    "approval-gated-full-ad-execution",
+    "server-owned-usage-wallets",
+    "pricing-and-margin-guards",
+    "durable-job-receipts",
     "social-account-discovery",
     "approved-scheduling",
     "voice-intent-routing"
   ],
+  "paid_generation_requires_active_wallet": true,
+  "paid_generation_requires_human_approval": true,
   "publishing_requires_human_approval": true
 }

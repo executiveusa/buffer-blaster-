@@ -1,8 +1,8 @@
 /**
  * Frontend data client.
  *
- * The public console uses seeded, read-only data by default. Set
- * NEXT_PUBLIC_PUBLIC_CONSOLE=false to require the authenticated live backend.
+ * Public/demo surfaces may use seeded read-only data, but connection tests never
+ * report a provider as verified unless the live backend handshake says so.
  */
 import {
   DEMO_CLIENTS,
@@ -17,13 +17,8 @@ const PUBLIC_CONSOLE = process.env.NEXT_PUBLIC_PUBLIC_CONSOLE !== "false";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "operator_session_token";
 
-export function isDemoMode(): boolean {
-  return DEMO_MODE;
-}
-
-export function isPublicConsole(): boolean {
-  return PUBLIC_CONSOLE;
-}
+export function isDemoMode(): boolean { return DEMO_MODE; }
+export function isPublicConsole(): boolean { return PUBLIC_CONSOLE; }
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -51,7 +46,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { ...init, headers });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail || response.statusText);
+    throw new Error(body.detail || body.error || response.statusText);
   }
   return response.json() as Promise<T>;
 }
@@ -75,9 +70,7 @@ export interface DashboardData {
   clients?: Client[];
 }
 
-function seededConsoleEnabled(): boolean {
-  return DEMO_MODE || PUBLIC_CONSOLE;
-}
+function seededConsoleEnabled(): boolean { return DEMO_MODE || PUBLIC_CONSOLE; }
 
 export async function getDashboard(): Promise<DashboardData> {
   if (seededConsoleEnabled()) return { ...DEMO_DASHBOARD, clients: DEMO_CLIENTS };
@@ -103,12 +96,46 @@ export interface SettingKey {
   configured: boolean;
 }
 
+export interface IntegrationStatus {
+  service: string;
+  kind: string;
+  env_var: string;
+  configured: boolean;
+  verified: boolean;
+  state: "not_configured" | "configured_unverified" | "verified" | "handshake_failed" | "unknown_service" | string;
+  message?: string;
+  status?: number;
+  missing?: string[];
+  simulated?: boolean;
+}
+
 export interface SettingsData {
   active_llm_provider: string;
   operator_max_children: number;
   demo_mode: boolean;
   keys: SettingKey[];
+  integrations: IntegrationStatus[];
+  secret_updates?: string;
+  runtime_settings_store?: string;
 }
+
+const demoIntegrations: IntegrationStatus[] = [
+  ["anthropic", "AI provider", "ANTHROPIC_API_KEY"],
+  ["openai", "AI provider", "OPENAI_API_KEY"],
+  ["google", "AI provider", "GOOGLE_AI_API_KEY"],
+  ["fal", "Media generation", "FAL_KEY"],
+  ["supabase", "Database", "SUPABASE_SERVICE_KEY"],
+  ["telegram", "Voice control (Telegram)", "TELEGRAM_BOT_TOKEN"],
+].map(([service, kind, env_var]) => ({
+  service,
+  kind,
+  env_var,
+  configured: false,
+  verified: false,
+  state: "not_configured",
+  message: "Demo/public mode does not perform provider verification.",
+  simulated: true,
+}));
 
 export async function getSettings(): Promise<SettingsData> {
   if (seededConsoleEnabled()) {
@@ -119,14 +146,44 @@ export async function getSettings(): Promise<SettingsData> {
       keys: [
         { label: "Anthropic API Key", env: "ANTHROPIC_API_KEY", masked: "", configured: false },
         { label: "OpenAI API Key", env: "OPENAI_API_KEY", masked: "", configured: false },
-        { label: "Higgsfield API Key", env: "HIGGSFIELD_API_KEY", masked: "", configured: false },
-        { label: "Buffer Access Token", env: "BUFFER_ACCESS_TOKEN", masked: "", configured: false },
-        { label: "Airtable API Key", env: "AIRTABLE_API_KEY", masked: "", configured: false },
-        { label: "Telegram Bot Token", env: "TELEGRAM_BOT_TOKEN", masked: "", configured: false },
+        { label: "Google AI Key", env: "GOOGLE_AI_API_KEY", masked: "", configured: false },
+        { label: "Fal API Key", env: "FAL_KEY", masked: "", configured: false },
+        { label: "Supabase Service Key", env: "SUPABASE_SERVICE_KEY", masked: "", configured: false },
         { label: "Stripe Secret Key", env: "STRIPE_SECRET_KEY", masked: "", configured: false },
-        { label: "Stripe Founding Price", env: "STRIPE_FOUNDING_PRICE_ID", masked: "", configured: false },
+        { label: "7-Day Trial Stripe Price", env: "STRIPE_TRIAL_7_PRICE_ID", masked: "", configured: false },
+        { label: "30-Day Trial Stripe Price", env: "STRIPE_TRIAL_30_PRICE_ID", masked: "", configured: false },
+        { label: "Starter Stripe Price", env: "STRIPE_STARTER_PRICE_ID", masked: "", configured: false },
+        { label: "Pro Stripe Price", env: "STRIPE_PRO_PRICE_ID", masked: "", configured: false },
+        { label: "Telegram Bot Token", env: "TELEGRAM_BOT_TOKEN", masked: "", configured: false },
       ],
+      integrations: demoIntegrations,
+      secret_updates: "environment_only",
+      runtime_settings_store: "unavailable",
     };
   }
   return apiFetch<SettingsData>("/api/admin/settings");
+}
+
+export async function testIntegration(service: string): Promise<IntegrationStatus> {
+  if (seededConsoleEnabled()) {
+    return {
+      service,
+      kind: "integration",
+      env_var: "",
+      configured: false,
+      verified: false,
+      state: "not_configured",
+      message: "Provider verification is disabled in demo/public mode.",
+      simulated: true,
+    };
+  }
+  return apiFetch<IntegrationStatus>(`/api/admin/settings/test/${encodeURIComponent(service)}`, { method: "POST" });
+}
+
+export async function updateRuntimeSetting(env: "ACTIVE_LLM_PROVIDER" | "AGENT_MAX_CHILDREN", value: string) {
+  if (seededConsoleEnabled()) throw new Error("Runtime settings are read-only in demo/public mode.");
+  return apiFetch<{ ok: boolean; env: string; value: string }>("/api/admin/settings", {
+    method: "PUT",
+    body: JSON.stringify({ env, value }),
+  });
 }
