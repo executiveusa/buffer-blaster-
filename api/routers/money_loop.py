@@ -9,11 +9,15 @@ from pydantic import BaseModel, Field
 from ..services.integration_auth import verify_operator
 from ..services.money_loop import (
     add_variant,
+    bind_variant_provider_ref,
     create_experiment,
     evaluate,
     ingest_attribution_event,
     ingest_performance_event,
 )
+from ..services.performance_ingestion import sync_experiment
+from ..services.providers import get_ads_provider
+from ..services.providers.registry import provider_statuses
 
 router = APIRouter(prefix="/api/studio/money-loop", tags=["money-loop"])
 
@@ -72,6 +76,22 @@ class EvaluateRequest(BaseModel):
     variants: list[VariantResultInput]
 
 
+class ProviderLaunch(BaseModel):
+    variant_id: str
+    approved: bool = False
+    payload: dict[str, Any]
+
+
+class ProviderRefAction(BaseModel):
+    external_ref: dict[str, Any]
+    approved: bool = False
+
+
+class ProviderBind(BaseModel):
+    variant_id: str
+    external_ref: dict[str, Any]
+
+
 @router.post("/experiments")
 async def create(payload: ExperimentCreate, _=Depends(verify_operator)) -> dict[str, Any]:
     return await create_experiment(payload.model_dump())
@@ -97,6 +117,58 @@ async def decide(experiment_id: str, payload: EvaluateRequest, _=Depends(verify_
     return await evaluate(experiment_id, [row.model_dump() for row in payload.variants])
 
 
+@router.post("/experiments/{experiment_id}/sync")
+async def sync(experiment_id: str, _=Depends(verify_operator)) -> dict[str, Any]:
+    """Pull provider metrics, join Shopify attribution, then evaluate."""
+    return await sync_experiment(experiment_id)
+
+
+@router.get("/providers")
+async def providers(_=Depends(verify_operator)) -> dict[str, Any]:
+    return {"providers": provider_statuses()}
+
+
+@router.post("/providers/{provider_name}/launch")
+async def launch_provider(provider_name: str, payload: ProviderLaunch, _=Depends(verify_operator)) -> dict[str, Any]:
+    try:
+        provider = get_ads_provider(provider_name)
+    except KeyError:
+        return {"ok": False, "error": "unknown_ads_provider"}
+    launched = await provider.create_experiment(payload.payload, approved=payload.approved)
+    campaign_id = launched.get("campaign_id")
+    if launched.get("ok") and campaign_id:
+        bound = await bind_variant_provider_ref(payload.variant_id, provider_name, {"campaign_id": campaign_id})
+        launched["variant_binding"] = bound
+    return launched
+
+
+@router.post("/providers/{provider_name}/bind")
+async def bind_provider(provider_name: str, payload: ProviderBind, _=Depends(verify_operator)) -> dict[str, Any]:
+    try:
+        get_ads_provider(provider_name)
+    except KeyError:
+        return {"ok": False, "error": "unknown_ads_provider"}
+    return await bind_variant_provider_ref(payload.variant_id, provider_name, payload.external_ref)
+
+
+@router.post("/providers/{provider_name}/pause")
+async def pause_provider(provider_name: str, payload: ProviderRefAction, _=Depends(verify_operator)) -> dict[str, Any]:
+    try:
+        provider = get_ads_provider(provider_name)
+    except KeyError:
+        return {"ok": False, "error": "unknown_ads_provider"}
+    return await provider.pause_experiment(payload.external_ref, approved=payload.approved)
+
+
+@router.post("/providers/{provider_name}/read")
+async def read_provider(provider_name: str, payload: ProviderRefAction, _=Depends(verify_operator)) -> dict[str, Any]:
+    try:
+        provider = get_ads_provider(provider_name)
+    except KeyError:
+        return {"ok": False, "error": "unknown_ads_provider"}
+    return await provider.read_experiment(payload.external_ref)
+
+
 @router.get("/contract")
 async def contract(_=Depends(verify_operator)) -> dict[str, Any]:
     """Stable machine-readable handoff used by Hermes/Pauli orchestration."""
@@ -106,6 +178,11 @@ async def contract(_=Depends(verify_operator)) -> dict[str, Any]:
             "hermes": ["SCAN", "QUALIFY", "MODEL", "CLOSE", "COMPOUND"],
             "buffer_blaster": ["PROVE", "JUDGE", "TEST", "VERIFY", "SCALE"],
             "human_gate": ["APPROVE", "spend", "publish", "contractual_commitment"],
+        },
+        "providers": {
+            "paid_media": ["meta", "tiktok"],
+            "revenue_truth": "shopify_webhooks",
+            "shopify_endpoint": "/api/webhooks/shopify/orders",
         },
         "input": {
             "opportunity_id": "string",
