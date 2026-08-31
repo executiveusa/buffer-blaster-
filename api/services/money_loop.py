@@ -84,6 +84,23 @@ async def add_variant(experiment_id: str, payload: dict[str, Any]) -> dict[str, 
     return {"ok": True, "variant": rows[0] if rows else record}
 
 
+async def bind_variant_provider_ref(variant_id: str, provider: str, external_ref: dict[str, Any]) -> dict[str, Any]:
+    if not _configured():
+        return {"ok": False, "error": "canonical_ledger_unavailable"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        current = await client.get(_url("experiment_variants"), params={"id": f"eq.{variant_id}", "limit": "1"}, headers=_headers())
+    if not current.is_success or not current.json():
+        return {"ok": False, "error": "variant_not_found"}
+    row = current.json()[0]
+    refs = dict(row.get("external_ad_refs") or {})
+    refs[provider] = external_ref
+    patch = {"external_ad_refs": refs, "updated_at": _now()}
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.patch(_url("experiment_variants"), params={"id": f"eq.{variant_id}"}, headers=_headers(prefer="return=representation"), json=patch)
+    rows = response.json() if response.is_success else []
+    return {"ok": response.is_success, "variant": rows[0] if rows else None, "status": response.status_code}
+
+
 async def ingest_performance_event(payload: dict[str, Any]) -> dict[str, Any]:
     """Normalize Meta/TikTok/etc. metrics into the existing performance_events table."""
     if not _configured():
