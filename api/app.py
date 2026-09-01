@@ -21,6 +21,7 @@ from .routers import (
     content,
     dashboard,
     discovery,
+    hermes_bridge,
     mcp,
     money_loop,
     pipeline,
@@ -85,6 +86,7 @@ app.include_router(voice.router)
 app.include_router(discovery.router)
 app.include_router(studio.router)
 app.include_router(money_loop.router)
+app.include_router(hermes_bridge.router)
 app.include_router(shopify_webhooks.router)
 app.include_router(assets.router)
 app.include_router(mcp.router)
