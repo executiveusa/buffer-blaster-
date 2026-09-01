@@ -13,10 +13,9 @@ import pytest
 
 from api.services.native import Encryption, JobQueue, JobStatus, RateLimiter, SessionStore
 
-TEST_KEY = "stavarai-test-key"
+TEST_KEY = "buffer-blaster-test-key"
+TEST_PASSWORD = "buffer-blaster-test-password"
 
-
-# ── Encryption ────────────────────────────────────────────────────
 
 class TestEncryption:
     def setup_method(self):
@@ -62,8 +61,6 @@ class TestEncryption:
             self.enc.decrypt("")
 
 
-# ── Auth / sessions ───────────────────────────────────────────────
-
 class TestSessionStore:
     def setup_method(self):
         self.store = SessionStore()
@@ -77,10 +74,10 @@ class TestSessionStore:
         assert self.store.issue() != self.store.issue()
 
     def test_correct_password_verifies(self):
-        assert self.store.verify_password("BLASTER2026", "BLASTER2026") is True
+        assert self.store.verify_password(TEST_PASSWORD, TEST_PASSWORD) is True
 
     def test_wrong_password_rejected(self):
-        assert self.store.verify_password("wrong", "BLASTER2026") is False
+        assert self.store.verify_password("wrong", TEST_PASSWORD) is False
 
     def test_issued_token_validates(self):
         token = self.store.issue()
@@ -96,8 +93,6 @@ class TestSessionStore:
         self.store.invalidate(token)
         assert not self.store.validate(token)
 
-
-# ── Rate limiter ──────────────────────────────────────────────────
 
 class TestRateLimiter:
     def test_allows_then_blocks(self):
@@ -119,13 +114,11 @@ class TestRateLimiter:
 
     def test_bucket_refills(self):
         rl = RateLimiter()
-        rl.check("k", 1.0, 100.0)  # drain
+        rl.check("k", 1.0, 100.0)
         assert rl.check("k", 1.0, 100.0)[0] is False
-        time.sleep(0.02)  # 20ms → 2 tokens at 100/s
+        time.sleep(0.02)
         assert rl.check("k", 1.0, 100.0)[0] is True
 
-
-# ── Job queue ────────────────────────────────────────────────────
 
 class TestJobQueue:
     def setup_method(self):
@@ -169,5 +162,5 @@ class TestJobQueue:
 
     def test_payload_preserved(self):
         payload = {"client": "x", "niche": "food-beverage", "n_posts": 15}
-        jid = self.q.enqueue("pipeline_run", payload)
+        self.q.enqueue("pipeline_run", payload)
         assert self.q.dequeue()["payload"] == payload
