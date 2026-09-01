@@ -6,7 +6,9 @@ import hmac
 
 import pytest
 
-from api.routers.shopify_webhooks import _attribution_ids, verify_shopify_hmac
+from api.routers.shopify_webhooks import _attribution_ids, _event_id, verify_shopify_hmac
+from api.services.money_loop import _scoped_params as money_loop_scoped_params
+from api.services.performance_ingestion import _scoped_params as ingestion_scoped_params
 from api.services.providers.meta_ads import MetaAdsProvider
 from api.services.providers.tiktok_ads import TikTokAdsProvider
 
@@ -36,6 +38,26 @@ def test_shopify_attribution_accepts_order_attributes() -> None:
     })
     assert experiment_id == "exp-9"
     assert variant_id == "var-2"
+
+
+def test_shopify_event_id_prefers_event_then_webhook_then_payload() -> None:
+    assert _event_id("event-1", "webhook-1", {"id": 123}) == "event-1"
+    assert _event_id("", "webhook-1", {"id": 123}) == "webhook-1"
+    assert _event_id("", "", {"id": 123}) == "123"
+    assert _event_id("", "", {}) == ""
+
+
+def test_money_loop_queries_are_scoped_to_configured_workspace(monkeypatch) -> None:
+    monkeypatch.setenv("BUFFER_BLASTER_WORKSPACE_ID", "00000000-0000-0000-0000-000000000001")
+    expected = "eq.00000000-0000-0000-0000-000000000001"
+    assert money_loop_scoped_params({"id": "eq.exp-1"}) == {
+        "workspace_id": expected,
+        "id": "eq.exp-1",
+    }
+    assert ingestion_scoped_params({"content_item_id": "eq.asset-1"}) == {
+        "workspace_id": expected,
+        "content_item_id": "eq.asset-1",
+    }
 
 
 @pytest.mark.asyncio
