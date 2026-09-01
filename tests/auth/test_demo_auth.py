@@ -1,19 +1,19 @@
-"""TDD: demo auth contract.
+"""TDD: operator auth contract.
 
 Uses FastAPI's TestClient (in-process) so no server needs to be running.
-Mirrors docs/TDD_SPEC.md SPEC 1.1 + 1.3.
 """
-import pytest
+import os
+
 from fastapi.testclient import TestClient
 
 from api.app import app
 
 client = TestClient(app)
+TEST_PASSWORD = os.environ["DEMO_PASSWORD"]
 
 
 class TestDemoAuth:
     def test_admin_route_requires_token(self):
-        """GET /api/admin/dashboard with no auth → 401."""
         r = client.get("/api/admin/dashboard")
         assert r.status_code == 401
 
@@ -22,24 +22,23 @@ class TestDemoAuth:
         assert r.status_code == 401
 
     def test_correct_password_returns_token(self):
-        r = client.post("/api/auth/verify", json={"password": "BLASTER2026"})
+        r = client.post("/api/auth/verify", json={"password": TEST_PASSWORD})
         assert r.status_code == 200
         data = r.json()
         assert "session_token" in data
         assert len(data["session_token"]) >= 32
 
     def test_token_allows_admin_access(self):
-        r = client.post("/api/auth/verify", json={"password": "BLASTER2026"})
+        r = client.post("/api/auth/verify", json={"password": TEST_PASSWORD})
         token = r.json()["session_token"]
         r2 = client.get(
             "/api/admin/dashboard",
             headers={"Authorization": f"Bearer {token}"},
         )
         assert r2.status_code == 200
-        assert "Stavarai" in r2.json()["greeting"]
+        assert "Buffer Blaster" in r2.json()["greeting"]
 
     def test_rate_limiting_on_auth(self):
-        """6th attempt within a minute → 429 + Retry-After header."""
         for _ in range(5):
             client.post("/api/auth/verify", json={"password": "wrong"})
         r = client.post("/api/auth/verify", json={"password": "wrong"})
@@ -47,14 +46,13 @@ class TestDemoAuth:
         assert "Retry-After" in r.headers
 
     def test_password_never_logged(self, capfd):
-        """The password must not appear in captured stdout/stderr."""
-        client.post("/api/auth/verify", json={"password": "BLASTER2026"})
+        client.post("/api/auth/verify", json={"password": TEST_PASSWORD})
         out, err = capfd.readouterr()
-        assert "BLASTER2026" not in out
-        assert "BLASTER2026" not in err
+        assert TEST_PASSWORD not in out
+        assert TEST_PASSWORD not in err
 
     def test_logout_invalidates_token(self):
-        r = client.post("/api/auth/verify", json={"password": "BLASTER2026"})
+        r = client.post("/api/auth/verify", json={"password": TEST_PASSWORD})
         token = r.json()["session_token"]
         client.post("/api/auth/logout", headers={"Authorization": f"Bearer {token}"})
         r2 = client.get(
