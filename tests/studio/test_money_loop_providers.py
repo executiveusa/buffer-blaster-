@@ -8,7 +8,10 @@ import pytest
 
 from api.routers.shopify_webhooks import _attribution_ids, _event_id, verify_shopify_hmac
 from api.services.money_loop import _scoped_params as money_loop_scoped_params
-from api.services.performance_ingestion import _scoped_params as ingestion_scoped_params
+from api.services.performance_ingestion import (
+    _performance_params,
+    _scoped_params as ingestion_scoped_params,
+)
 from api.services.providers.meta_ads import MetaAdsProvider
 from api.services.providers.tiktok_ads import TikTokAdsProvider
 
@@ -57,6 +60,20 @@ def test_money_loop_queries_are_scoped_to_configured_workspace(monkeypatch) -> N
     assert ingestion_scoped_params({"content_item_id": "eq.asset-1"}) == {
         "workspace_id": expected,
         "content_item_id": "eq.asset-1",
+    }
+
+
+def test_performance_reads_are_scoped_to_experiment_variant_and_creative() -> None:
+    assert _performance_params(
+        experiment_id="exp-1",
+        variant_id="var-1",
+        content_item_id="creative-1",
+    ) == {
+        "content_item_id": "eq.creative-1",
+        "metadata->>experiment_id": "eq.exp-1",
+        "metadata->>variant_id": "eq.var-1",
+        "order": "observed_at.desc",
+        "limit": "100",
     }
 
 
