@@ -58,7 +58,7 @@ class AttributionEvent(BaseModel):
     experiment_id: str | None = None
     variant_id: str | None = None
     external_event_id: str | None = None
-    revenue_cents: int | None = Field(default=None, ge=0)
+    revenue_cents: int | None = None  # positive payment or negative financial adjustment
     order_ref: str | None = None
     occurred_at: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -188,9 +188,11 @@ async def contract(_=Depends(verify_operator)) -> dict[str, Any]:
         },
         "providers": {
             "paid_media": ["meta", "tiktok"],
+            "variant_rule": "exactly_one_paid_media_provider_per_variant",
             "launch_contract": "create disabled hierarchy -> bind ids -> human approve -> activate -> readback -> pause/rollback",
-            "revenue_truth": "shopify_webhooks",
+            "revenue_truth": "shopify_orders_paid_plus_successful_refund_transactions",
             "shopify_endpoint": "/api/webhooks/shopify/orders",
+            "net_revenue_formula": "sum(signed attribution_events.revenue_cents)",
         },
         "input": {
             "opportunity_id": "string",
