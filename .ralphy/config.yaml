@@ -1,0 +1,34 @@
+project:
+  name: Buffer Blaster
+  language: Python/TypeScript
+  framework: FastAPI/Next.js
+
+commands:
+  test: "python -m pytest tests -q"
+  lint: "cd frontend && npm run lint"
+  build: "cd frontend && npm run build"
+
+rules:
+  - "Read AGENTS.md and EMERALD_TABLETS.md before changing code."
+  - "Work only on outcomes in docs/PRODUCTION_FINISH_PRD.md; do not invent new features."
+  - "Use the smallest necessary change: reuse repository code, stdlib, native platform features, and installed dependencies before adding abstractions."
+  - "Never weaken auth, RLS, validation, accessibility, observability, rollback, approval, spend, or publish guards to reduce code."
+  - "Never print or commit secrets."
+  - "Real ad activation or spend requires the existing explicit human approval gate and a concrete budget ceiling; never invent either."
+  - "Provider verification may create only objects proven paused/disabled and non-spending."
+  - "Keep public copy plain, specific, sourced, and free of AI filler or unsupported claims."
+  - "Every task completion requires executable evidence; rerun affected tests after changes."
+  - "A provider blocker does not stop independent repo, runtime, UX, Hermes-contract, identity, or gauntlet work."
+  - "Final visual/product comparison uses https://www.adpanel.io/ as the named bar and a fresh independent critic with a binary ours/reference choice."
+
+boundaries:
+  never_touch:
+    - ".env*"
+    - "**/*.pem"
+    - "**/*.key"
+    - "**/secrets/**"
+    - ".git/**"
+    - ".ralphy/progress.txt"
+
+capabilities:
+  browser: "auto"
