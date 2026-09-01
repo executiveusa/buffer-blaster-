@@ -1,0 +1,86 @@
+name: Phase 4 Self-hosted Schema Proof
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'docker-compose.prod.yml'
+      - '.env.production.example'
+      - 'scripts/selfhost/**'
+      - 'tests/selfhost/**'
+      - '.github/workflows/phase4-selfhost-schema.yml'
+  workflow_dispatch:
+
+jobs:
+  selfhost-schema-proof:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: buffer_blaster_phase4
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Supabase role and storage stubs
+        run: |
+          psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE ROLE service_role NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          CREATE SCHEMA IF NOT EXISTS storage;
+          CREATE TABLE IF NOT EXISTS storage.buckets (
+            id text PRIMARY KEY,
+            name text NOT NULL,
+            public boolean NOT NULL DEFAULT false,
+            file_size_limit bigint,
+            allowed_mime_types text[]
+          );
+          SQL
+
+      - name: Apply canonical schema through Phase 4 twice
+        run: |
+          for pass in 1 2; do
+            echo "Phase 4 schema pass $pass"
+            for migration in \
+              supabase/migrations/007_buffer_blaster_schema.sql \
+              supabase/migrations/008_buffer_blaster_beta_scale.sql \
+              supabase/migrations/009_buffer_blaster_storage.sql \
+              supabase/migrations/010_buffer_blaster_default_workspace.sql \
+              supabase/migrations/011_money_loop_experiments.sql \
+              supabase/migrations/012_selfhost_postgrest_access.sql; do
+              psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -v ON_ERROR_STOP=1 -f "$migration"
+            done
+          done
+
+      - name: Verify money-loop tables, RLS, ids, and service-role grants
+        run: |
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select count(*) from information_schema.tables where table_schema='buffer_blaster' and table_name in ('experiments','experiment_variants','attribution_events','money_loop_receipts')")" = "4"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select data_type from information_schema.columns where table_schema='buffer_blaster' and table_name='campaigns' and column_name='id'")" = "text"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select data_type from information_schema.columns where table_schema='buffer_blaster' and table_name='performance_events' and column_name='value'")" = "numeric"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='buffer_blaster' and c.relname='experiments'")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_schema_privilege('service_role','buffer_blaster','USAGE')")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_table_privilege('service_role','buffer_blaster.experiments','SELECT,INSERT,UPDATE,DELETE')")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_table_privilege('anon','buffer_blaster.experiments','SELECT')")" = "f"
+
+      - name: Verify self-host compose is container-network safe
+        run: |
+          cp .env.production.example .env.production
+          docker compose -f docker-compose.prod.yml config >/tmp/buffer-blaster-phase4-compose.yml
+          grep -q 'supabase_default' /tmp/buffer-blaster-phase4-compose.yml
+          grep -q 'selfhost_supabase' /tmp/buffer-blaster-phase4-compose.yml
+
+      - name: Run Phase 4 contract tests
+        run: |
+          python -m pip install pytest
+          pytest -q tests/selfhost/test_phase4_selfhost_contract.py
