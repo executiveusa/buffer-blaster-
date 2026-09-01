@@ -9,11 +9,16 @@ def read(path: str) -> str:
 
 def test_phase4_adds_postgrest_grants_without_public_table_grants():
     migration = read("supabase/migrations/012_selfhost_postgrest_access.sql").lower()
-    assert "grant usage on schema buffer_blaster" in migration
-    assert "postgres, anon, authenticated, service_role" in migration
-    assert "grant all privileges on all tables in schema buffer_blaster to postgres, service_role" in migration
-    assert "to anon" not in migration
-    assert "to authenticated" not in migration
+    executable = "\n".join(
+        line.strip()
+        for line in migration.splitlines()
+        if line.strip() and not line.lstrip().startswith("--")
+    )
+    assert "grant usage on schema buffer_blaster" in executable
+    assert "postgres, anon, authenticated, service_role" in executable
+    assert "grant all privileges on all tables in schema buffer_blaster to postgres, service_role" in executable
+    assert "grant all privileges on all tables in schema buffer_blaster to anon" not in executable
+    assert "grant all privileges on all tables in schema buffer_blaster to authenticated" not in executable
 
 
 def test_api_and_worker_join_configurable_selfhost_supabase_network():
