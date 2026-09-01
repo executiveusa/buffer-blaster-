@@ -76,11 +76,28 @@ def test_production_cors_honors_explicit_allowed_origins():
     app = read("api/app.py")
     assert 'os.getenv("ALLOWED_ORIGINS", "")' in app
     assert "allow_origins=_allowed_origins()" in app
-    assert "https://stavarai-platform.vercel.app" in app
+    assert "https://buffer-blaster.vercel.app" in app
 
 
 def test_vercel_helper_exposes_only_public_live_mode_values():
     script = read("scripts/selfhost/configure-vercel.sh")
-    assert "NEXT_PUBLIC_DEMO_MODE" in script
-    assert "NEXT_PUBLIC_PUBLIC_CONSOLE" in script
-    assert "NEXT_PUBLIC_API_URL" in script
+    assert 'VERCEL_PROJECT_NAME="${VERCEL_PROJECT_NAME:-buffer-blaster}"' in script
+    assert 'SITE_URL="${SITE_URL:-https://buffer-blaster.vercel.app}"' in script
+    assert "set_var NEXT_PUBLIC_DEMO_MODE false" in script
+    assert "set_var NEXT_PUBLIC_PUBLIC_CONSOLE false" in script
+    assert 'set_var NEXT_PUBLIC_API_URL "https://${API_DOMAIN}"' in script
+    assert "DEMO_PASSWORD" not in script
+
+
+def test_legacy_deploy_entrypoints_cannot_reintroduce_insecure_production_wiring():
+    for path in [
+        "scripts/deploy-frontend-vercel.sh",
+        "scripts/setup-postatees.sh",
+        "scripts/deploy-postatees-full.sh",
+    ]:
+        script = read(path)
+        assert "BLASTER2026" not in script
+        assert "31.220.58.212" not in script
+        assert "NEXT_PUBLIC_DEMO_MODE=true" not in script
+        assert 'env add NEXT_PUBLIC_DEMO_MODE production' not in script
+        assert "scripts/selfhost/" in script

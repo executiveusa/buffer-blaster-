@@ -49,6 +49,8 @@ def _allowed_origins() -> list[str]:
     origins = {
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://buffer-blaster.vercel.app",
+        # Transitional aliases retained until the old Vercel project/domain is retired.
         "https://stavarai-platform.vercel.app",
         "https://www.stavarai.com",
         "https://stavarai.com",

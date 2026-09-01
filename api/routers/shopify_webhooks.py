@@ -50,6 +50,10 @@ def _attribution_ids(order: dict[str, Any]) -> tuple[str | None, str | None]:
     return experiment_id, variant_id
 
 
+def _event_id(event_id: str, webhook_id: str, payload: dict[str, Any]) -> str:
+    return event_id or webhook_id or str(payload.get("id") or "")
+
+
 def _money_cents(value: Any) -> int | None:
     if value in (None, ""):
         return None
@@ -82,9 +86,15 @@ async def order_webhook(
         payload = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=400, detail="invalid_shopify_payload") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="invalid_shopify_payload")
 
     experiment_id, variant_id = _attribution_ids(payload)
-    event_id = x_shopify_event_id or x_shopify_webhook_id or str(payload.get("id") or "")
+    event_id = _event_id(x_shopify_event_id, x_shopify_webhook_id, payload)
+    if not event_id:
+        # Do not create an un-deduplicatable row: an empty external_event_id would
+        # collapse unrelated deliveries under the same unique key.
+        raise HTTPException(status_code=400, detail="missing_shopify_event_id")
     order_ref = str(payload.get("admin_graphql_api_id") or payload.get("id") or "") or None
     total = payload.get("current_total_price") or payload.get("total_price")
     revenue_cents = 0 if x_shopify_topic in {"orders/cancelled", "refunds/create"} else _money_cents(total)

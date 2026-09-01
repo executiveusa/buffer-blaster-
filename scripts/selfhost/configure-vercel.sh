@@ -3,13 +3,13 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 API_DOMAIN="${API_DOMAIN:-}"
-VERCEL_PROJECT_NAME="${VERCEL_PROJECT_NAME:-stavarai-platform}"
+VERCEL_PROJECT_NAME="${VERCEL_PROJECT_NAME:-buffer-blaster}"
 VERCEL_SCOPE="${VERCEL_SCOPE:-the-pauli-effect}"
-SITE_URL="${SITE_URL:-https://stavarai-platform.vercel.app}"
+SITE_URL="${SITE_URL:-https://buffer-blaster.vercel.app}"
 
 usage() {
   cat <<'EOF'
-Configure the canonical Vercel frontend for a live self-hosted backend.
+Configure the canonical Buffer Blaster Vercel frontend for a live self-hosted backend.
 
 Usage:
   VERCEL_TOKEN=... scripts/selfhost/configure-vercel.sh --domain api.example.com
@@ -53,7 +53,7 @@ set_var NEXT_PUBLIC_PUBLIC_CONSOLE false
 set_var NEXT_PUBLIC_API_URL "https://${API_DOMAIN}"
 set_var SITE_URL "$SITE_URL"
 
-echo "Deploying canonical production frontend..."
+echo "Deploying canonical Buffer Blaster production frontend..."
 "${VERCEL[@]}" deploy --prod --yes
 
 echo
