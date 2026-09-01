@@ -57,7 +57,8 @@ async def _row_exists(table: str, row_id: str, *, extra: dict[str, str] | None =
         params.update(extra)
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.get(_url(table), params=params, headers=_headers())
-    return bool(response.is_success and isinstance(response.json(), list) and response.json())
+    rows = response.json() if response.is_success else []
+    return bool(isinstance(rows, list) and rows)
 
 
 async def create_experiment(payload: dict[str, Any]) -> dict[str, Any]:
@@ -205,6 +206,16 @@ async def evaluate(experiment_id: str, variant_results: list[dict[str, Any]]) ->
     if not response.is_success or not response.json():
         return {"ok": False, "error": "experiment_not_found_in_workspace"}
     exp = response.json()[0]
+
+    seen: set[str] = set()
+    for row in variant_results:
+        variant_id = str(row.get("variant_id") or "")
+        if not variant_id or variant_id in seen:
+            return {"ok": False, "error": "invalid_or_duplicate_variant_result"}
+        seen.add(variant_id)
+        if not await _row_exists("experiment_variants", variant_id, extra={"experiment_id": f"eq.{experiment_id}"}):
+            return {"ok": False, "error": "variant_not_found_in_experiment_workspace", "variant_id": variant_id}
+
     decision = evaluate_experiment(
         primary_kpi=exp["primary_kpi"],
         pass_threshold=float(exp["pass_threshold"]),
