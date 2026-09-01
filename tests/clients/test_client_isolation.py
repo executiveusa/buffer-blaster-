@@ -1,9 +1,9 @@
 """TDD: client data isolation contract.
 
 Uses FastAPI's TestClient. Verifies that each client's content is tagged with
-its own namespaced `schema_{slug}` and that no cross-client leakage can occur —
-the contract enforced by the platform namespace migration in production.
+its own namespaced `schema_{slug}` and that no cross-client leakage can occur.
 """
+import os
 import re
 
 import pytest
@@ -13,6 +13,7 @@ from api.app import app
 from api.db.client_isolation import PLATFORM_SCHEMA
 
 client = TestClient(app)
+TEST_PASSWORD = os.environ["DEMO_PASSWORD"]
 
 
 def expected_schema(slug: str) -> str:
@@ -21,7 +22,7 @@ def expected_schema(slug: str) -> str:
 
 @pytest.fixture(autouse=True)
 def auth_headers():
-    r = client.post("/api/auth/verify", json={"password": "BLASTER2026"})
+    r = client.post("/api/auth/verify", json={"password": TEST_PASSWORD})
     assert r.status_code == 200
     token = r.json()["session_token"]
     return {"Authorization": f"Bearer {token}"}
@@ -44,7 +45,6 @@ class TestClientIsolation:
         assert data["schema"] == expected_schema("test-brand-a")
 
     def test_client_a_content_never_contains_client_b_schema(self, auth_headers):
-        """Every content unit under brand-a must carry only brand-a's schema."""
         client.post(
             "/api/admin/clients",
             json={"name": "Brand A", "niche": "food-beverage", "slug": "brand-a"},
@@ -66,7 +66,6 @@ class TestClientIsolation:
             )
 
     def test_schema_name_sanitized(self, auth_headers):
-        """A malicious slug/name must still produce a safe namespaced schema."""
         r = client.post(
             "/api/admin/clients",
             json={
@@ -84,7 +83,6 @@ class TestClientIsolation:
         )
 
     def test_isolation_function_directly(self):
-        """Direct unit test of the sanitizer — defence in depth."""
         from api.db.client_isolation import schema_name_for
 
         assert schema_name_for("brand-a") == expected_schema("brand-a")
