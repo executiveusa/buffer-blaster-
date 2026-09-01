@@ -1,0 +1,22 @@
+{
+  "change": "full-stack-wiring-audit-2026-08-31",
+  "baseline_main_sha": "cfcbf1efbe25234c84fc166d860bd9e45424f95e",
+  "destructive_schema_change": false,
+  "production_deploy_performed": false,
+  "provider_spend_performed": false,
+  "rollback": {
+    "application": [
+      "revert the squash merge for this audit PR",
+      "redeploy the prior known-good main SHA cfcbf1efbe25234c84fc166d860bd9e45424f95e if a deployment was made after merge"
+    ],
+    "database": "No migration or database mutation is part of this repair slice.",
+    "provider_state": "No Meta, TikTok, Shopify, Stripe, publishing, or media-provider mutation is part of this repair slice."
+  },
+  "verification_required_before_merge": [
+    "Python API tests",
+    "frontend structural gauntlet, lint, build, and route smoke",
+    "fresh PostgreSQL migration proof",
+    "production container/compose smoke",
+    "OpenCodeReview PR review or explicit evidence that its external model backend failed independently of the code"
+  ]
+}
