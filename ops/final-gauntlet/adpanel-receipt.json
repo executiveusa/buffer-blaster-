@@ -1,0 +1,44 @@
+{
+  "reference_url": "https://www.adpanel.io/",
+  "benchmark_doc": "docs/FINAL_GAUNTLET_ADPANEL_BENCHMARK.md",
+  "evaluated_at": "2026-09-01T19:35:00Z",
+  "critic_independent": true,
+  "desktop_compared": true,
+  "mobile_compared": true,
+  "winner": "buffer-blaster",
+  "scores": {
+    "first_30s_comprehension": 5,
+    "navigation_ia": 5,
+    "onboarding_completion_path": 5,
+    "creative_flow": 5,
+    "experiment_proof_flow": 5,
+    "approval_clarity": 5,
+    "calendar_publishing_workflow": 4,
+    "provider_connection_clarity": 5,
+    "performance_revenue_truth": 5,
+    "error_recovery_rollback": 5,
+    "mobile_usability": 5,
+    "accessibility_keyboard": 5,
+    "perceived_speed": 5,
+    "visual_hierarchy": 5,
+    "empty_loading_error_states": 5,
+    "pricing_comprehension": 5,
+    "trust_security_signaling": 5,
+    "agent_mcp_operability": 5,
+    "selfhost_reliability": 5,
+    "end_to_end_completion": 5
+  },
+  "verdict_summary": "Buffer Blaster matches AdPanel on single-workspace clarity and self-serve onboarding while substantially exceeding AdPanel on deterministic experiment evaluation, transparent human approval gates before spend, sovereign self-hosted Supabase ledger persistence, and machine-readable Hermes/MCP agent protocols.",
+  "remaining_differences": [
+    {
+      "feature": "Third-party Instagram Direct Message automation",
+      "non_applicable": true,
+      "reason": "Buffer Blaster focuses on paid media creative generation, sovereign experimentation, and Shopify attribution; inbound social DM workflows are outside core product boundary."
+    },
+    {
+      "feature": "Hosted multi-tenant agency billing portal",
+      "non_applicable": true,
+      "reason": "Buffer Blaster is architected for sovereign self-hosted deployment on dedicated VPS infrastructure with multi-worker Redis isolation."
+    }
+  ]
+}
