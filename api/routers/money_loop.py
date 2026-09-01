@@ -119,7 +119,6 @@ async def decide(experiment_id: str, payload: EvaluateRequest, _=Depends(verify_
 
 @router.post("/experiments/{experiment_id}/sync")
 async def sync(experiment_id: str, _=Depends(verify_operator)) -> dict[str, Any]:
-    """Pull provider metrics, join Shopify attribution, then evaluate."""
     return await sync_experiment(experiment_id)
 
 
@@ -135,11 +134,20 @@ async def launch_provider(provider_name: str, payload: ProviderLaunch, _=Depends
     except KeyError:
         return {"ok": False, "error": "unknown_ads_provider"}
     launched = await provider.create_experiment(payload.payload, approved=payload.approved)
-    campaign_id = launched.get("campaign_id")
-    if launched.get("ok") and campaign_id:
-        bound = await bind_variant_provider_ref(payload.variant_id, provider_name, {"campaign_id": campaign_id})
+    external_ref = launched.get("external_ref")
+    if launched.get("ok") and isinstance(external_ref, dict) and external_ref:
+        bound = await bind_variant_provider_ref(payload.variant_id, provider_name, external_ref)
         launched["variant_binding"] = bound
     return launched
+
+
+@router.post("/providers/{provider_name}/activate")
+async def activate_provider(provider_name: str, payload: ProviderRefAction, _=Depends(verify_operator)) -> dict[str, Any]:
+    try:
+        provider = get_ads_provider(provider_name)
+    except KeyError:
+        return {"ok": False, "error": "unknown_ads_provider"}
+    return await provider.activate_experiment(payload.external_ref, approved=payload.approved)
 
 
 @router.post("/providers/{provider_name}/bind")
@@ -171,7 +179,6 @@ async def read_provider(provider_name: str, payload: ProviderRefAction, _=Depend
 
 @router.get("/contract")
 async def contract(_=Depends(verify_operator)) -> dict[str, Any]:
-    """Stable machine-readable handoff used by Hermes/Pauli orchestration."""
     return {
         "version": "money-loop-v1",
         "ownership": {
@@ -181,6 +188,7 @@ async def contract(_=Depends(verify_operator)) -> dict[str, Any]:
         },
         "providers": {
             "paid_media": ["meta", "tiktok"],
+            "launch_contract": "create disabled hierarchy -> bind ids -> human approve -> activate -> readback -> pause/rollback",
             "revenue_truth": "shopify_webhooks",
             "shopify_endpoint": "/api/webhooks/shopify/orders",
         },
