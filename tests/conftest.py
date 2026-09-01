@@ -22,4 +22,12 @@ from api.services.native import get_core
 def _reset_rate_limiter():
     """Clear the auth rate-limit buckets before each test."""
     get_core().rate_limiter._buckets.clear()
+    try:
+        from api.services.operator_sessions import _redis, _AUTH_PREFIX
+        client = _redis()
+        if client is not None:
+            for k in client.keys(f"{_AUTH_PREFIX}*"):
+                client.delete(k)
+    except Exception:
+        pass
     yield
