@@ -1,7 +1,7 @@
 """Common contract for paid-media adapters.
 
-Adapters only translate provider state into Buffer Blaster state. They do not
-choose winners and they never bypass the explicit spend approval gate.
+Adapters translate provider state into Buffer Blaster state. They do not choose
+winners and they never bypass the explicit spend/activation approval gate.
 """
 from __future__ import annotations
 
@@ -27,6 +27,8 @@ class AdsProvider(Protocol):
     def status(self) -> dict[str, Any]: ...
 
     async def create_experiment(self, payload: dict[str, Any], *, approved: bool) -> dict[str, Any]: ...
+
+    async def activate_experiment(self, external_ref: dict[str, Any], *, approved: bool) -> dict[str, Any]: ...
 
     async def pause_experiment(self, external_ref: dict[str, Any], *, approved: bool) -> dict[str, Any]: ...
 

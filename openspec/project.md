@@ -27,7 +27,7 @@ Do not use old Stavarai/Postatees handoffs as architecture instructions.
 - Backend: FastAPI under `api/`.
 - Canonical production ledger: Supabase schema `buffer_blaster`.
 - Rust hot-path code is optional; the Python fallback shares the runtime contract.
-- Publishing and paid-media mutation require explicit human approval.
+- Publishing and paid-media activation require explicit human approval.
 - Provider/model identifiers remain environment-driven.
 
 ## Canonical deployment
@@ -46,13 +46,19 @@ Implemented:
 - experiment/variant/attribution ledger;
 - Shopify signed webhook attribution;
 - deterministic PASS / HOLD / ITERATE / KILL evaluation;
-- Meta/TikTok campaign-container adapters and metric ingestion;
+- Meta full campaign → ad set → creative → ad adapter;
+- TikTok full campaign → ad group → ad adapter;
+- safe provider creation in PAUSED/DISABLE state;
+- explicit human-approved activation and pause/rollback calls;
+- provider ID binding and read-back receipts;
+- Meta/TikTok metric ingestion;
 - hourly self-hosted worker;
 - Hermes result contract.
 
-Current provider limitation is explicit: Meta/TikTok are
-`campaign_container_only` and `delivery_ready=false` until full provider
-creative + ad-set/ad-group + ad creation and read-back proof are implemented.
+The paid-media implementation is `full_delivery_hierarchy` and
+`delivery_ready=true` at the code-contract level. `live_verified=false` remains
+mandatory until Phase 5 proves real credentials, account permissions, create/read
+handshakes, activation and pause against authorized provider accounts.
 
 Shopify paid-order revenue is attributed, but full/partial refund adjustments
 must be implemented before net-ROAS claims.
