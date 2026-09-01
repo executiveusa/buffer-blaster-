@@ -10,6 +10,8 @@ import httpx
 
 from .experiment_engine import VariantResult, evaluate_experiment
 
+PAID_MEDIA_PROVIDERS = {"meta", "tiktok"}
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -29,6 +31,15 @@ def _scoped_params(params: dict[str, str] | None = None) -> dict[str, str]:
     if params:
         scoped.update(params)
     return scoped
+
+
+def _paid_provider_names(refs: dict[str, Any]) -> set[str]:
+    """Return paid-media providers bound inside an external_ad_refs object."""
+    names = {name for name in PAID_MEDIA_PROVIDERS if isinstance(refs.get(name), dict)}
+    provider = refs.get("provider")
+    if provider in PAID_MEDIA_PROVIDERS:
+        names.add(str(provider))
+    return names
 
 
 def _headers(*, prefer: str | None = None) -> dict[str, str]:
@@ -97,6 +108,10 @@ async def add_variant(experiment_id: str, payload: dict[str, Any]) -> dict[str, 
     content_item_id = payload.get("content_item_id")
     if content_item_id and not await _row_exists("content_items", str(content_item_id)):
         return {"ok": False, "error": "content_item_not_found_in_workspace"}
+    refs = dict(payload.get("external_ad_refs") or {})
+    providers = _paid_provider_names(refs)
+    if len(providers) > 1:
+        return {"ok": False, "error": "one_paid_provider_per_variant", "providers": sorted(providers)}
     record = {
         "id": payload.get("id") or str(uuid.uuid4()),
         "workspace_id": _workspace_id(),
@@ -105,7 +120,7 @@ async def add_variant(experiment_id: str, payload: dict[str, Any]) -> dict[str, 
         "role": payload["role"],
         "label": payload["label"],
         "hypothesis_delta": payload.get("hypothesis_delta", ""),
-        "external_ad_refs": payload.get("external_ad_refs", {}),
+        "external_ad_refs": refs,
         "state": payload.get("state", "draft"),
     }
     async with httpx.AsyncClient(timeout=10) as client:
@@ -119,6 +134,8 @@ async def add_variant(experiment_id: str, payload: dict[str, Any]) -> dict[str, 
 async def bind_variant_provider_ref(variant_id: str, provider: str, external_ref: dict[str, Any]) -> dict[str, Any]:
     if not _configured():
         return {"ok": False, "error": "canonical_ledger_unavailable"}
+    if provider not in PAID_MEDIA_PROVIDERS:
+        return {"ok": False, "error": "unsupported_paid_media_provider"}
     async with httpx.AsyncClient(timeout=10) as client:
         current = await client.get(
             _url("experiment_variants"),
@@ -129,6 +146,14 @@ async def bind_variant_provider_ref(variant_id: str, provider: str, external_ref
         return {"ok": False, "error": "variant_not_found_in_workspace"}
     row = current.json()[0]
     refs = dict(row.get("external_ad_refs") or {})
+    existing = _paid_provider_names(refs) - {provider}
+    if existing:
+        return {
+            "ok": False,
+            "error": "one_paid_provider_per_variant",
+            "existing_provider": sorted(existing)[0],
+            "requested_provider": provider,
+        }
     refs[provider] = external_ref
     patch = {"external_ad_refs": refs, "updated_at": _now()}
     async with httpx.AsyncClient(timeout=10) as client:
@@ -192,6 +217,26 @@ async def ingest_attribution_event(payload: dict[str, Any]) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.post(_url("attribution_events"), headers=_headers(prefer="resolution=ignore-duplicates,return=representation"), json=record)
     return {"ok": response.is_success, "event": record, "status": response.status_code}
+
+
+async def find_order_attribution(order_ref: str) -> dict[str, Any] | None:
+    """Resolve later Shopify lifecycle/transaction events to the original paid order."""
+    if not _configured() or not order_ref:
+        return None
+    params = _scoped_params({
+        "source": "eq.shopify",
+        "order_ref": f"eq.{order_ref}",
+        "event_type": "eq.orders.paid",
+        "experiment_id": "not.is.null",
+        "variant_id": "not.is.null",
+        "select": "experiment_id,variant_id,order_ref,metadata",
+        "order": "occurred_at.asc",
+        "limit": "1",
+    })
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.get(_url("attribution_events"), params=params, headers=_headers())
+    rows = response.json() if response.is_success else []
+    return rows[0] if isinstance(rows, list) and rows else None
 
 
 async def evaluate(experiment_id: str, variant_results: list[dict[str, Any]]) -> dict[str, Any]:
