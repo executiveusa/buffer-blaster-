@@ -2,7 +2,7 @@
 
 ## Project
 
-**Stavarai Platform** — private, enterprise-grade AI content-operations system
+**Buffer Blaster** — private, enterprise-grade AI content-operations system
 for a Shopify-brand social-media agency. Repository:
 `https://github.com/executiveusa/buffer-blaster-.git`.
 
@@ -16,12 +16,12 @@ money, then position the platform for a **$500K acquisition** (cash + stock +
 ## The one rule
 
 The company must never see how this works. They see results. The operators see
-the engine. Internal names — "Stavarai", "Hermes", "Buffer Blaster",
-"Higgsfield" — never appear on public surfaces.
+the engine. Internal agent/provider names never appear on public surfaces.
+Buffer Blaster is the canonical product name until an explicit rename is approved.
 
 ## Operating model
 
-- **One operator** (Stavarai). `BLASTER2026` is the only backend access.
+- **One operator-facing application:** Buffer Blaster. `BLASTER2026` remains a legacy backend-access label until auth is migrated.
 - **GRINIONS™ v1 orchestration.** Source of truth precedence:
   `EMERALD_TABLETS.md` → `AGENTS.md` → accepted OpenSpec → beads → preference.
 - **Two runtime modes.** `NEXT_PUBLIC_DEMO_MODE=true` (default, no backend) vs
