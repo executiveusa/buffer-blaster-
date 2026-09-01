@@ -3,21 +3,23 @@ set -Eeuo pipefail
 
 REPO_URL="https://github.com/executiveusa/buffer-blaster-.git"
 REF="main"
+# Keep the historical install directory as a compatibility path for existing VPS installs.
 INSTALL_DIR="/opt/stavarai"
 API_DOMAIN=""
-ALLOWED_ORIGIN="https://stavarai-platform.vercel.app"
+ALLOWED_ORIGIN="https://buffer-blaster.vercel.app"
 REDIS_URL_ARG=""
 
 usage() {
   cat <<'EOFU'
-One-click Stavarai backend installer (Ubuntu/Debian).
+One-click Buffer Blaster backend installer (Ubuntu/Debian).
 
 Usage:
-  install.sh --domain api.example.com [--origin https://stavarai-platform.vercel.app] [--install-dir /opt/stavarai] [--ref main] [--redis-url redis://...]
+  install.sh --domain api.example.com [--origin https://buffer-blaster.vercel.app] [--install-dir /opt/stavarai] [--ref main] [--redis-url redis://...]
 
 The script installs Docker if needed, checks out the repo, creates .env.production,
 generates app-owned secrets locally, starts FastAPI + Caddy, and runs a non-paid preflight.
 Provider credentials are intentionally left blank for the operator to add privately.
+The historical /opt/stavarai path is retained only so existing installations remain upgradeable.
 EOFU
 }
 
@@ -97,7 +99,11 @@ get_env() {
 
 set_env API_DOMAIN "$API_DOMAIN"
 set_env ALLOWED_ORIGINS "$ALLOWED_ORIGIN"
-set_env SUPABASE_PROJECT_REF "${SUPABASE_PROJECT_REF:-cyxdevcjycmffhmwxojh}"
+# A project ref is account-specific. Never silently bind a fresh install to a
+# committed project identifier; preserve the current file unless explicitly supplied.
+if [[ -n "${SUPABASE_PROJECT_REF:-}" ]]; then
+  set_env SUPABASE_PROJECT_REF "$SUPABASE_PROJECT_REF"
+fi
 
 if [[ -z "$(get_env MASTER_ENCRYPTION_KEY)" ]]; then
   set_env MASTER_ENCRYPTION_KEY "$(openssl rand -hex 32)"
@@ -123,24 +129,24 @@ fi
 
 chmod 600 .env.production
 
-echo "Starting Stavarai API and HTTPS edge..."
+echo "Starting Buffer Blaster API and HTTPS edge..."
 docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
 
 echo
 bash scripts/selfhost/preflight.sh || true
 
 echo
-cat <<'EOFFIN'
+cat <<EOFFIN
 Core self-host install finished.
 
-Install directory: /opt/stavarai
-Private config:    /opt/stavarai/.env.production
+Install directory: $INSTALL_DIR
+Private config:    $INSTALL_DIR/.env.production
 
 Next:
   1. Add provider secrets to .env.production (Supabase, OpenAI, Fal).
-  2. Run: cd /opt/stavarai && docker compose -f docker-compose.prod.yml up -d
-  3. Run: cd /opt/stavarai && bash scripts/selfhost/preflight.sh
-  4. Point the Vercel frontend at https://API_DOMAIN using scripts/selfhost/configure-vercel.sh.
+  2. Run: cd $INSTALL_DIR && docker compose -f docker-compose.prod.yml up -d
+  3. Run: cd $INSTALL_DIR && bash scripts/selfhost/preflight.sh
+  4. Point the Vercel frontend at https://$API_DOMAIN using scripts/selfhost/configure-vercel.sh.
 
 No secret values were printed by this installer.
 EOFFIN

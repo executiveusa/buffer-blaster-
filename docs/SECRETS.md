@@ -1,81 +1,145 @@
-# SECRETS.md — Environment Variable Structure
-# ICM Stage: 00_context | NEVER commit with real values
+# SECRETS.md — Runtime Secret Contract
+# ICM Stage: 00_context | NEVER commit real values
 
-## WHERE SECRETS LIVE
-- Local dev: .env (gitignored)
-- VPS: /opt/stavarai-platform/.env (chmod 600)
-- Vercel: Vercel Environment Variables (encrypted at rest)
-- Supabase: vault.secrets table (AES-256 via Rust core)
+## Canonical rule
 
-## MASTER ENV STRUCTURE
+Secrets are runtime configuration, not repository content. Do not put real
+passwords, tokens, service-role keys, provider credentials, or webhook secrets
+in source, docs, frontend variables, logs, issue comments, or CI output.
 
-### Identity
-PLATFORM_NAME=Stavarai             # Stavarai's name for greeting
-DEMO_PASSWORD=BLASTER2026          # Admin gate — change after demo
-MASTER_ENCRYPTION_KEY=             # 32-byte key for AES-256 (generate: openssl rand -hex 32)
+## Where secrets live
 
-### Supabase (Stavarai's account)
-SUPABASE_URL=                      # From: supabase.com → Project Settings → API
-SUPABASE_SERVICE_KEY=              # service_role key — NEVER in frontend
-SUPABASE_PROJECT_REF=              # For: supabase link
-NEXT_PUBLIC_SUPABASE_URL=          # Same URL — safe for frontend
-NEXT_PUBLIC_SUPABASE_ANON_KEY=     # anon key — read-only, safe for frontend
+- Local development: `.env` or equivalent local environment file (gitignored).
+- Self-hosted production: the install's `.env.production` file with mode `600`,
+  or an external secret manager mounted into the runtime.
+- Vercel: only variables actually required by Vercel-hosted code. Provider and
+  backend credentials stay server-side and must never use a `NEXT_PUBLIC_*` name.
+- Runtime-editable UI settings are **not a secret store**. The current Redis
+  runtime store accepts only non-secret operator settings such as
+  `ACTIVE_LLM_PROVIDER` and `AGENT_MAX_CHILDREN`.
 
-### AI Providers (model-agnostic — only one active at a time)
-ACTIVE_LLM_PROVIDER=anthropic      # anthropic | openai | google | ollama
-ANTHROPIC_API_KEY=                 # console.anthropic.com
-OPENAI_API_KEY=                    # platform.openai.com
-GOOGLE_AI_API_KEY=                 # aistudio.google.com
-OLLAMA_BASE_URL=http://localhost:11434  # for local models
+## Core operator/security variables
 
-### Hermes Agent
-HERMES_PROFILE=stavarai-platform
-HERMES_MAX_CHILDREN=10             # concurrent client orchestrators
+```text
+PLATFORM_NAME=Buffer Blaster
+MASTER_ENCRYPTION_KEY=
+DEMO_PASSWORD=
+BLASTER_API_KEY=
+TRIAL_SESSION_SECRET=
+REDIS_PASSWORD=
+REDIS_URL=
+```
 
-### Video Generation
-HIGGSFIELD_API_KEY=                # higgsfield.ai → Account → API Keys
-HIGGSFIELD_MCP_URL=https://mcp.higgsfield.ai/mcp
+`DEMO_PASSWORD` is a historical variable name for the live operator password.
+There is no committed default or fallback value. `scripts/selfhost/install.sh`
+generates app-owned credentials locally when these core values are blank.
 
-### Social Publishing
-BUFFER_ACCESS_TOKEN=               # buffer.com → Settings → Apps
+## Canonical production ledger
 
-### Research & Scraping
-APIFY_API_TOKEN=                   # apify.com → Settings → Integrations
-FIRECRAWL_API_KEY=                 # firecrawl.dev → Dashboard
+```text
+BUFFER_BLASTER_WORKSPACE_ID=
+SUPABASE_URL=
+SUPABASE_SERVICE_KEY=
+SUPABASE_PROJECT_REF=
+BUFFER_BLASTER_ASSET_BUCKET=buffer-blaster-assets
+```
 
-### Client Data
-AIRTABLE_API_KEY=                  # airtable.com → Developer Hub → Personal tokens
-AIRTABLE_BASE_ID=AIRTABLE_BASE_ID_PLACEHOLDER # Gallery base
+`SUPABASE_SERVICE_KEY` is backend-only. Service-role access bypasses RLS, so
+application queries must still enforce `BUFFER_BLASTER_WORKSPACE_ID` explicitly.
 
-### Voice Control
-TELEGRAM_BOT_TOKEN=                # From @BotFather
-TELEGRAM_USER_ID=                  # the operator's Telegram user ID (integer)
-VISIONCLAW_WEBHOOK_SECRET=         # Shared secret for VisionClaw webhook auth
+Frontend-safe Supabase variables, if a public read-only surface genuinely needs
+them, are separate:
 
-### Email (for approval notifications)
-EMAIL_PROVIDER=resend
-EMAIL_API_KEY=                     # resend.com → API Keys
-EMAIL_FROM=noreply@[domain]
+```text
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
 
-### Deploy
-VERCEL_TOKEN=                      # vercel.com → Settings → Tokens
-VERCEL_PROJECT_ID=                 # Stavarai provides this
-API_URL=https://[vps-ip]:8000      # FastAPI backend URL
+Never expose the service-role key through a `NEXT_PUBLIC_*` variable.
 
-### GitHub (for Airtable sync commits)
-GITHUB_TOKEN=                      # github.com → Settings → PAT
-GITHUB_REPO=executiveusa/buffer-blaster-
+## LLM providers
 
-## HOW SECRETS ARE STORED IN SUPABASE
+```text
+ACTIVE_LLM_PROVIDER=openai
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=
+OPENAI_API_KEY=
+OPENAI_MODEL=
+GOOGLE_AI_API_KEY=
+GOOGLE_MODEL=
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=
+```
 
-Table: public.settings (encrypted column)
-Schema:
-  key TEXT (setting name)
-  value TEXT (AES-256-GCM encrypted value)
-  masked TEXT (last 4 chars only, for display)
-  updated_at TIMESTAMPTZ
+Provider/model selection remains environment-driven.
 
-All reads/writes go through Rust core:
-  GET /api/admin/settings → Rust decrypts for display
-  PUT /api/admin/settings → Rust encrypts before write
-  API calls → Rust decrypts in-memory, never logged
+## Media generation
+
+```text
+FAL_KEY=
+FAL_QUEUE_URL=https://queue.fal.run
+FAL_TEXT_VIDEO_MODEL=
+FAL_IMAGE_VIDEO_MODEL=
+```
+
+Credential-bearing Fal requests are restricted to the configured Fal queue
+origin. Asset downloads use the separate media-download boundary.
+
+## Proof-first money loop
+
+```text
+META_ACCESS_TOKEN=
+META_AD_ACCOUNT_ID=
+META_GRAPH_API_VERSION=
+TIKTOK_ACCESS_TOKEN=
+TIKTOK_ADVERTISER_ID=
+TIKTOK_API_BASE_URL=
+SHOPIFY_WEBHOOK_SECRET=
+SHOPIFY_SHOP_DOMAIN=
+SHOPIFY_ADMIN_ACCESS_TOKEN=
+SHOPIFY_ADMIN_API_VERSION=
+```
+
+These values belong on the backend/VPS. A configured provider is not the same as
+a verified provider; production readiness requires a successful read-only
+handshake before any human-approved mutation.
+
+## Stripe / commerce
+
+```text
+STRIPE_SECRET_KEY=
+STRIPE_TRIAL_7_PRICE_ID=
+STRIPE_TRIAL_30_PRICE_ID=
+STRIPE_STARTER_PRICE_ID=
+STRIPE_PRO_PRICE_ID=
+```
+
+Keep secret keys server-side. Public checkout references may be exposed only
+through the intended application contract.
+
+## Optional integrations
+
+```text
+HIGGSFIELD_API_KEY=
+BUFFER_ACCESS_TOKEN=
+APIFY_API_TOKEN=
+FIRECRAWL_API_KEY=
+AIRTABLE_API_KEY=
+AIRTABLE_BASE_ID=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_USER_ID=
+VISIONCLAW_WEBHOOK_SECRET=
+EMAIL_API_KEY=
+GITHUB_TOKEN=
+```
+
+## Deployment
+
+The only supported production deployment paths are:
+
+- Backend/VPS: `scripts/selfhost/install.sh`
+- Frontend/Vercel: `scripts/selfhost/configure-vercel.sh`
+
+Legacy deploy entrypoints delegate to those scripts. They must never discover
+credentials by scanning unrelated filesystem locations or inject a known
+password into an environment.

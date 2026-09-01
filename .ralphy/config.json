@@ -1,5 +1,5 @@
 {
-  "project": "stavarai-platform",
+  "project": "buffer-blaster",
   "repo": "https://github.com/executiveusa/buffer-blaster-.git",
   "bounded_task_scope": "one-bead-per-loop",
   "worktree_prefix": "ralphy",
@@ -12,7 +12,7 @@
     "merge to main directly",
     "force-push protected branches",
     "skip a bead before destructive ops",
-    "log BLASTER2026 or any API key",
+    "log operator passwords or API keys",
     "publish content without human approval"
   ],
   "stop_conditions_ref": "EMERALD_TABLETS.md §6"

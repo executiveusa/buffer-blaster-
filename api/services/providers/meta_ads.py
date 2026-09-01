@@ -2,6 +2,10 @@
 
 Requires explicit runtime configuration. The Graph API version is deliberately
 not hardcoded so upgrades are an operator decision rather than silent drift.
+
+Current mutation scope is intentionally truthful: this adapter creates a paused
+campaign container only. It does not yet create the full ad-set/creative/ad
+hierarchy required for delivery.
 """
 from __future__ import annotations
 
@@ -16,13 +20,22 @@ from .base import ProviderMetrics
 
 class MetaAdsProvider:
     name = "meta"
+    launch_scope = "campaign_container_only"
+    delivery_ready = False
 
     @property
     def configured(self) -> bool:
         return bool(os.getenv("META_ACCESS_TOKEN") and os.getenv("META_AD_ACCOUNT_ID") and os.getenv("META_GRAPH_API_VERSION"))
 
     def status(self) -> dict[str, Any]:
-        return {"provider": self.name, "configured": self.configured, "account_configured": bool(os.getenv("META_AD_ACCOUNT_ID")), "api_version_configured": bool(os.getenv("META_GRAPH_API_VERSION"))}
+        return {
+            "provider": self.name,
+            "configured": self.configured,
+            "account_configured": bool(os.getenv("META_AD_ACCOUNT_ID")),
+            "api_version_configured": bool(os.getenv("META_GRAPH_API_VERSION")),
+            "launch_scope": self.launch_scope,
+            "delivery_ready": self.delivery_ready,
+        }
 
     def _base(self) -> str:
         version = os.getenv("META_GRAPH_API_VERSION", "").strip()
@@ -44,7 +57,15 @@ class MetaAdsProvider:
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post(f"{self._base()}/act_{account}/campaigns", data={**campaign, "access_token": self._token()})
         data = response.json() if response.content else {}
-        return {"ok": response.is_success, "provider": self.name, "campaign_id": data.get("id"), "status": response.status_code, "response": data}
+        return {
+            "ok": response.is_success,
+            "provider": self.name,
+            "campaign_id": data.get("id"),
+            "status": response.status_code,
+            "response": data,
+            "launch_scope": self.launch_scope,
+            "delivery_ready": self.delivery_ready,
+        }
 
     async def pause_experiment(self, external_ref: dict[str, Any], *, approved: bool) -> dict[str, Any]:
         if not approved:

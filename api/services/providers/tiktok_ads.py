@@ -2,6 +2,10 @@
 
 The API base URL is runtime-configured to avoid silently pinning an obsolete
 version. All spend-changing calls remain human-gated.
+
+Current mutation scope is intentionally truthful: this adapter creates a
+campaign container only. It does not yet create the full ad-group/creative/ad
+hierarchy required for delivery.
 """
 from __future__ import annotations
 
@@ -16,13 +20,22 @@ from .base import ProviderMetrics
 
 class TikTokAdsProvider:
     name = "tiktok"
+    launch_scope = "campaign_container_only"
+    delivery_ready = False
 
     @property
     def configured(self) -> bool:
         return bool(os.getenv("TIKTOK_ACCESS_TOKEN") and os.getenv("TIKTOK_ADVERTISER_ID") and os.getenv("TIKTOK_API_BASE_URL"))
 
     def status(self) -> dict[str, Any]:
-        return {"provider": self.name, "configured": self.configured, "advertiser_configured": bool(os.getenv("TIKTOK_ADVERTISER_ID")), "api_base_configured": bool(os.getenv("TIKTOK_API_BASE_URL"))}
+        return {
+            "provider": self.name,
+            "configured": self.configured,
+            "advertiser_configured": bool(os.getenv("TIKTOK_ADVERTISER_ID")),
+            "api_base_configured": bool(os.getenv("TIKTOK_API_BASE_URL")),
+            "launch_scope": self.launch_scope,
+            "delivery_ready": self.delivery_ready,
+        }
 
     def _base(self) -> str:
         return os.getenv("TIKTOK_API_BASE_URL", "").rstrip("/")
@@ -43,7 +56,15 @@ class TikTokAdsProvider:
             response = await client.post(f"{self._base()}/campaign/create/", headers=self._headers(), json=campaign)
         data = response.json() if response.content else {}
         campaign_id = ((data.get("data") or {}).get("campaign_id")) if isinstance(data, dict) else None
-        return {"ok": response.is_success and data.get("code") in {0, "0", None}, "provider": self.name, "campaign_id": campaign_id, "status": response.status_code, "response": data}
+        return {
+            "ok": response.is_success and data.get("code") in {0, "0", None},
+            "provider": self.name,
+            "campaign_id": campaign_id,
+            "status": response.status_code,
+            "response": data,
+            "launch_scope": self.launch_scope,
+            "delivery_ready": self.delivery_ready,
+        }
 
     async def pause_experiment(self, external_ref: dict[str, Any], *, approved: bool) -> dict[str, Any]:
         if not approved:

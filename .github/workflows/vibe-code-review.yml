@@ -13,4 +13,5 @@ permissions:
 jobs:
   review:
     if: github.event.pull_request.draft == false
-    uses: executiveusa/open-code-review/.github/workflows/vibe-review-standard.yml@66fabe96f1675f901b704b12ce63e7e5103477d2
+    # Pin the independently reviewed OpenCodeReview standard rather than floating main.
+    uses: executiveusa/open-code-review/.github/workflows/vibe-review-standard.yml@c8e4c02b6f0e9467b755fc7e24b2619f6854a6a4

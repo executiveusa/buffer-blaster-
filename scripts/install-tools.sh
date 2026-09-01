@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-#  install-tools.sh — RTK + jcodemunch global agent install
-#
-#  RTK          = Rust CLI proxy. Prefix every agent command with `rtk`
-#                 for 60–90% token compression on output.
-#  jcodemunch   = MCP server. Indexes the repo via tree-sitter so agents
-#                 retrieve symbols instead of whole files.
-#
-#  Both install GLOBALLY (not per-repo) so every project the agent touches
-#  gets the benefit. Idempotent — safe to re-run.
-#
-#  Usage:   bash scripts/install-tools.sh
-#  Prereqs: rust toolchain (for rtk), python 3.11+, node 20+, uv/pip
+# install-tools.sh — RTK + jcodemunch global agent install
 # ============================================================
 set -euo pipefail
 
@@ -23,7 +12,6 @@ fail() { echo -e "${RED}✗${NC} $1"; exit 1; }
 hdr()  { echo -e "\n${BLUE}══ $1 ══${NC}"; }
 
 hdr "INSTALLING RTK (Rust Token Killer)"
-# https://github.com/rtk-ai/rtk
 if command -v rtk &>/dev/null; then
   ok "rtk already installed: $(rtk --version 2>&1 | head -1)"
 else
@@ -35,7 +23,6 @@ else
   ok "rtk installed"
 fi
 
-# Verify rtk works on this repo's toolchain
 info "Smoke-testing rtk..."
 if rtk --version &>/dev/null; then
   ok "rtk ready. Prefix agent commands: \`rtk cargo test\`, \`rtk npm run build\`"
@@ -44,7 +31,6 @@ else
 fi
 
 hdr "INSTALLING JCODEMUNCH-MCP"
-# https://github.com/jgravelle/jcodemunch-mcp
 if python3 -c "import jcodemunch_mcp" 2>/dev/null || command -v jcodemunch-mcp &>/dev/null; then
   ok "jcodemunch-mcp already installed"
 else
@@ -57,10 +43,6 @@ else
   ok "jcodemunch-mcp installed"
 fi
 
-# Register as an MCP server for common agent hosts.
-# Claude Code / Cursor / Continue all read this format from ~/.config/mcp/ or
-# the host's own config. We write the canonical entry to a file the host can
-# import, plus print the snippet for manual paste.
 MCP_CONFIG_DIR="${HOME}/.config/mcp"
 mkdir -p "$MCP_CONFIG_DIR"
 
@@ -79,9 +61,6 @@ JSON
 ok "MCP config written to $MCP_CONFIG_DIR/jcodemunch.json"
 
 hdr "REGISTERING GLOBAL SKILLS"
-# Copy repo skills into the global agent skills directory so every project
-# inherits them. (Hermes reads ~/.hermes/skills; Claude Code reads
-# ~/.claude/skills. We write to both.)
 SKILL_DIRS=(
   "${HOME}/.hermes/skills"
   "${HOME}/.claude/skills"
@@ -96,31 +75,30 @@ for dir in "${SKILL_DIRS[@]}"; do
   fi
 done
 
-# Also write a tiny GRINIONS-aware skill pointer so any agent that lands here
-# knows to read the repo constitution first.
 for dir in "${SKILL_DIRS[@]}"; do
-  mkdir -p "$dir/grinions-stavarai"
-  cat > "$dir/grinions-stavarai/SKILL.md" << 'SKILL'
+  mkdir -p "$dir/grinions-buffer-blaster"
+  cat > "$dir/grinions-buffer-blaster/SKILL.md" << 'SKILL'
 ---
-name: grinions-stavarai
-description: GRINIONS v1 operating contract for the Stavarai Platform. Read AGENTS.md + EMERALD_TABLETS.md before any code change.
+name: grinions-buffer-blaster
+description: GRINIONS v1 operating contract for Buffer Blaster. Read EMERALD_TABLETS.md and AGENTS.md before any code change.
 ---
 
-# GRINIONS Stavarai
+# GRINIONS Buffer Blaster
 
-When operating in the Stavarai Platform repo (`buffer-blaster-`):
+When operating in the Buffer Blaster repo (`buffer-blaster-`):
 
-1. Read `AGENTS.md` (operating contract) and `EMERALD_TABLETS.md` (non-negotiables) FIRST.
-2. Verify It Before Everything (V.I.B.E.) — no "done" without pasted output.
-3. Use `jcodemunch index` once per session for symbol retrieval.
-4. Prefix every CLI command with `rtk` for token compression.
-5. One phase = one OpenSpec change = one PR. Squash-merge only.
-6. One `.beads/{timestamp}_{action}.bead` per destructive op.
-7. Never log `BLASTER2026` or any API key. The auth test enforces this.
-8. Stop conditions are in `EMERALD_TABLETS.md §6`.
+1. Read `EMERALD_TABLETS.md` and `AGENTS.md` first.
+2. Verify It Before Everything (V.I.B.E.) — no completion claim without evidence.
+3. Use `jcodemunch index` once per session for symbol retrieval when available.
+4. Prefix CLI commands with `rtk` when installed.
+5. One phase = one accepted OpenSpec change = one PR. Squash-merge only.
+6. One `.beads/{timestamp}_{action}.bead` per destructive operation.
+7. Never log operator passwords, API keys, service-role keys, or provider secrets.
+8. Publishing and paid-media spend remain human approval-gated.
+9. Stop conditions are in `EMERALD_TABLETS.md §6`.
 SKILL
 done
-ok "GRINIONS skill pointer written to global skill dirs"
+ok "GRINIONS Buffer Blaster skill pointer written to global skill dirs"
 
 hdr "VERIFY"
 echo ""
@@ -130,6 +108,6 @@ echo -e "  ${GREEN}skills:${NC}       ${HOME}/.hermes/skills + ${HOME}/.claude/s
 echo ""
 echo -e "  ${YELLOW}Next:${NC}"
 echo -e "   1. Restart your shell so \`rtk\` is on PATH."
-echo -e "   2. In the agent host (Claude Code/Cursor), import $MCP_CONFIG_DIR/jcodemunch.json"
+echo -e "   2. In the agent host, import $MCP_CONFIG_DIR/jcodemunch.json"
 echo -e "   3. In the repo: \`jcodemunch index\` to build the symbol index."
 echo -e "   4. Prefix agent commands: \`rtk cargo test\`, \`rtk npm run build\`."

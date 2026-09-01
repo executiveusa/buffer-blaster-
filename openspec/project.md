@@ -1,55 +1,70 @@
-# OpenSpec — Project Context
+# OpenSpec — Buffer Blaster Project Context
 
 ## Project
 
-**Buffer Blaster** — private, enterprise-grade AI content-operations system
-for a Shopify-brand social-media agency. Repository:
+**Buffer Blaster** is a standalone AI content/UGC operations application for
+proof-first social and paid-media workflows. Repository:
 `https://github.com/executiveusa/buffer-blaster-.git`.
 
-## Why it exists
+Buffer Blaster is the canonical product name until an explicit rename is
+approved.
 
-Two young operators inside the company are building the engine the agency will
-eventually depend on. The goal is to prove value to clients before asking for
-money, then position the platform for a **$500K acquisition** (cash + stock +
-12-month retention) per the Built-to-Sell playbook in `docs/BUILT_TO_SELL.md`.
+## Source-of-truth precedence
 
-## The one rule
+`EMERALD_TABLETS.md` → `AGENTS.md` → accepted OpenSpec → ICM stage evidence →
+implementation preference.
 
-The company must never see how this works. They see results. The operators see
-the engine. Internal agent/provider names never appear on public surfaces.
-Buffer Blaster is the canonical product name until an explicit rename is approved.
+Do not use old Stavarai/Postatees handoffs as architecture instructions.
 
-## Operating model
+## Current operating model
 
-- **One operator-facing application:** Buffer Blaster. `BLASTER2026` remains a legacy backend-access label until auth is migrated.
-- **GRINIONS™ v1 orchestration.** Source of truth precedence:
-  `EMERALD_TABLETS.md` → `AGENTS.md` → accepted OpenSpec → beads → preference.
-- **Two runtime modes.** `NEXT_PUBLIC_DEMO_MODE=true` (default, no backend) vs
-  `=false` + `NEXT_PUBLIC_API_URL` (production, calls FastAPI + Rust + Supabase).
-- **Hot-path core.** Rust crate + pure-Python fallback share one contract
-  (`api/services/native.py`). Loader picks Rust if a prebuilt lib is present.
+- One operator-facing application: **Buffer Blaster**.
+- No committed/default production password. Operator/API credentials are runtime
+  configuration and self-host installs generate app-owned values when blank.
+- Demo mode is local/seeded. Production must use `NEXT_PUBLIC_DEMO_MODE=false`
+  and `NEXT_PUBLIC_PUBLIC_CONSOLE=false`.
+- Frontend: Next.js under `frontend/`.
+- Backend: FastAPI under `api/`.
+- Canonical production ledger: Supabase schema `buffer_blaster`.
+- Rust hot-path code is optional; the Python fallback shares the runtime contract.
+- Publishing and paid-media mutation require explicit human approval.
+- Provider/model identifiers remain environment-driven.
 
-## Current state (2026-07-20)
+## Canonical deployment
 
-- Frontend, FastAPI, Rust core, Supabase migrations: **built and green**.
-- `pytest tests` → 46/46 passing. `npm run build` → 22 routes, 0 errors.
-- On `main` at `18e9919`. CI workflows (`build-core.yml`, `test-api.yml`) live.
-- **Demo mode runs anywhere** (Windows box, no compiler, no secrets).
-- **Production not yet brought up.** That is the next phase of work, governed
-  by the change specs in `openspec/changes/`.
+- Backend/VPS: `scripts/selfhost/install.sh`
+- Vercel frontend: `scripts/selfhost/configure-vercel.sh`
+- Verification: `scripts/selfhost/preflight.sh` and `scripts/selfhost/smoke.sh`
+- Secret contract: `docs/SECRETS.md`
 
-## Capabilities (durable specs live under `openspec/specs/`)
+Legacy deployment filenames may exist only as wrappers to these canonical paths.
 
-- `content-pipeline` — research → ideation → video → score → approve → publish
-- `client-isolation` — per-client `schema_{slug}`, RLS, no cross-client reads
-- `scoring` — 6-dimension rubric, fixed weights (Hook 25/Plat 20/Niche 20/Tr 15/Vis 10/Aud 10)
-- `voice-control` — Telegram bot + Meta glasses, operator-only
-- `production-readiness` — VPS bring-up, Supabase live, Vercel, autoresearch loop
+## Current proof-first money loop
+
+Implemented:
+
+- experiment/variant/attribution ledger;
+- Shopify signed webhook attribution;
+- deterministic PASS / HOLD / ITERATE / KILL evaluation;
+- Meta/TikTok campaign-container adapters and metric ingestion;
+- hourly self-hosted worker;
+- Hermes result contract.
+
+Current provider limitation is explicit: Meta/TikTok are
+`campaign_container_only` and `delivery_ready=false` until full provider
+creative + ad-set/ad-group + ad creation and read-back proof are implemented.
+
+Shopify paid-order revenue is attributed, but full/partial refund adjustments
+must be implemented before net-ROAS claims.
 
 ## How to propose change
 
-1. Open `openspec/changes/<change-id>/` with `proposal.md`, `design.md`,
-   `tasks.md`, `specs/` deltas.
-2. Get explicit owner acceptance.
-3. Once accepted, chat history is no longer truth — the change spec is.
-4. Implement per GRINIONS phase contract: one change = one phase = one PR.
+1. Inspect existing implementation and current tests first.
+2. Create/update `openspec/changes/<change-id>/` with proposal, design, tasks and
+   spec deltas where the change is material.
+3. Obtain owner acceptance where required by governance.
+4. Write the failing regression test first.
+5. Implement the smallest bounded repair.
+6. Record rollback evidence before destructive/deploy operations.
+7. Open one PR and require repository CI plus independent review evidence before
+   merge.

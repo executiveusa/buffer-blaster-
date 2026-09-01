@@ -9,9 +9,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# Demo mode + a known password for tests.
-os.environ.setdefault("DEMO_PASSWORD", "BLASTER2026")
-os.environ.setdefault("MASTER_ENCRYPTION_KEY", "stavarai-test-key")
+# Tests use synthetic credentials that are unrelated to any operator/runtime secret.
+os.environ.setdefault("DEMO_PASSWORD", "buffer-blaster-test-password")
+os.environ.setdefault("MASTER_ENCRYPTION_KEY", "buffer-blaster-test-key")
 
 
 import pytest

@@ -6,35 +6,40 @@
 
 ## Tier 1 — Identity (never change without owner sign-off)
 
-1. **The platform is invisible to the company.** Internal names — "Stavarai",
-   "Hermes", "Buffer Blaster", "Higgsfield" — appear ONLY in `/admin/*`,
-   `api/`, `rust_core/`, `docs/`, `.beads/`, and `openspec/`. Never in
-   `frontend/src/app/page.tsx`, `frontend/src/app/blog/**`, or `content/blog/**`.
-2. **One operator.** No multi-tenant auth, no OAuth. `BLASTER2026` is the only
-   backend access. Change it post-demo via `.env`, never in code.
+1. **Canonical product name: Buffer Blaster.** Until the owner chooses the next
+   product name, all current product/operator identity uses **Buffer Blaster**.
+   Historical/internal implementation labels such as "Stavarai", "Hermes", and
+   provider names must not leak onto public marketing surfaces unless explicitly
+   required by the product experience.
+2. **One operator security boundary.** No public production console. Live
+   operator access requires a runtime-generated/configured `DEMO_PASSWORD` or
+   `BLASTER_API_KEY`; there is no committed, fallback, or well-known production
+   password. Installation generates app-owned credentials locally when blank.
 3. **Built to sell.** Every architectural decision must make the platform more
    acquirable: teachable, unique, repeatable. See `docs/BUILT_TO_SELL.md`.
 
 ## Tier 2 — Data & Security
 
-4. **No client data mixing.** Each client gets an isolated `schema_{slug}`
-   Postgres schema, enforced by `supabase/migrations/002_client_isolation.sql`
-   and verified by `tests/clients/test_client_isolation.py`. Any change to
-   isolation must update both.
+4. **No client/workspace data mixing.** Workspace/client ownership must be
+   enforced below presentation code. Service-role queries bypass RLS, so they
+   MUST include the canonical workspace scope explicitly. Any isolation change
+   requires a regression test.
 5. **Production writes require the service key.** The anon key is read-only on
-   published blog posts and nothing else. RLS is on every public table.
-6. **Never log secrets.** `BLASTER2026` and API keys may not appear in stdout,
-   stderr, commits, error messages, or analytics. The auth test enforces this.
-7. **No auto-publish.** The publisher only fires on explicit human approval.
-   The approval queue is the gate; there is no override.
+   explicitly public data and nothing else. RLS is enabled on canonical tables;
+   service-role code must still enforce workspace ownership because it bypasses RLS.
+6. **Never log or commit secrets.** Passwords, API keys, service-role keys,
+   session secrets, and provider credentials may not appear in stdout, stderr,
+   commits, error messages, analytics, documentation examples, or deploy scripts.
+7. **No auto-publish or auto-spend.** Publishing and paid-media mutation require
+   explicit human approval. There is no approval bypass.
 
 ## Tier 3 — Engineering discipline
 
 8. **Tests before code.** Every new feature ships with a failing test that
    passes after implementation. No disabling tests to pass — fix the test or
    fix the code.
-9. **LLM-agnostic.** No hardcoded model names. All model calls go through
-   `api/services/llm_adapter.py`. Provider + model are env-driven.
+9. **LLM-agnostic.** No hardcoded model names in runtime selection logic. Model
+   provider/IDs stay environment-driven and route through the provider boundary.
 10. **Rust is never a hard dependency.** The Rust crate and the pure-Python
     fallback in `api/services/native.py` share one contract. The loader picks
     Rust if a prebuilt lib is present, else Python. `/api/health` honestly
@@ -49,19 +54,23 @@
     change = one PR.
 13. **One bead per destructive op.** `.beads/{timestamp}_{action}.bead` is
     written BEFORE any schema change, deploy, weight commit, or data migration.
-14. **Rollback is proven before merge.** Every phase PR includes
-    `ops/rollback/<phase-id>.json` with baseline SHA, deployment ID, and
-    tested rollback commands. No proven rollback → no merge.
+14. **Rollback is proven before merge.** Every phase PR includes rollback
+    evidence appropriate to its blast radius. No proven rollback → no merge.
 15. **Stop-slop on all generated text.** No "AI-powered", "revolutionize",
     "unlock", "elevate", "leverage". See `skills/stop-slop/SKILL.md`.
+16. **One canonical production path.** Backend deployment routes through
+    `scripts/selfhost/install.sh`; Vercel live-mode setup routes through
+    `scripts/selfhost/configure-vercel.sh`. Legacy entrypoints may delegate to
+    these files but may not implement a second production configuration.
 
 ## Tier 5 — Operating tools (mandatory for autonomous agents)
 
-16. **jcodemunch is the default retrieval layer.** Index once per session,
-    retrieve symbols — don't dump whole files into context.
-17. **RTK prefixes every CLI command** when installed (`rtk cargo test`,
-    `rtk npm run build`). 60–90% token compression. See
-    `scripts/install-tools.sh`.
+17. **jcodemunch is the default retrieval layer** when available. Index once per
+    session and retrieve symbols rather than dumping entire files into context.
+18. **RTK prefixes CLI commands** when installed. See `scripts/install-tools.sh`.
+19. **OpenCodeReview is the independent PR review gate.** Keep its reusable
+    workflow pinned to a reviewed commit and treat material findings as release
+    blockers until resolved or explicitly accepted with evidence.
 
 ## §6 — STOP conditions (stop for human decision, not for routine friction)
 
