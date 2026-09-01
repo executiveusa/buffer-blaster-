@@ -46,6 +46,17 @@ def _scoped_params(params: dict[str, str] | None = None) -> dict[str, str]:
     return scoped
 
 
+def _performance_params(*, experiment_id: str, variant_id: str, content_item_id: str) -> dict[str, str]:
+    """Keep reused creative metrics from bleeding across experiments/variants."""
+    return {
+        "content_item_id": f"eq.{content_item_id}",
+        "metadata->>experiment_id": f"eq.{experiment_id}",
+        "metadata->>variant_id": f"eq.{variant_id}",
+        "order": "observed_at.desc",
+        "limit": "100",
+    }
+
+
 async def _rows(table: str, params: dict[str, str]) -> list[dict[str, Any]]:
     if not _configured():
         return []
@@ -112,20 +123,29 @@ async def sync_experiment(experiment_id: str) -> dict[str, Any]:
 
 
 async def build_variant_results(experiment: dict[str, Any], variants: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    experiment_id = str(experiment.get("id") or "")
     primary_kpi = str(experiment.get("primary_kpi") or "roas").lower()
     out: list[dict[str, Any]] = []
     for variant in variants:
         content_item_id = variant.get("content_item_id")
-        if not content_item_id:
+        variant_id = str(variant.get("id") or "")
+        if not content_item_id or not experiment_id or not variant_id:
             continue
-        events = await _rows("performance_events", {"content_item_id": f"eq.{content_item_id}", "order": "observed_at.desc", "limit": "100"})
+        events = await _rows(
+            "performance_events",
+            _performance_params(
+                experiment_id=experiment_id,
+                variant_id=variant_id,
+                content_item_id=str(content_item_id),
+            ),
+        )
         latest: dict[str, float] = {}
         for event in events:
             metric = str(event.get("metric") or "")
             if metric and metric not in latest:
                 latest[metric] = float(event.get("value") or 0)
 
-        attribution = await _rows("attribution_events", {"variant_id": f"eq.{variant['id']}", "order": "occurred_at.asc", "limit": "1000"})
+        attribution = await _rows("attribution_events", {"variant_id": f"eq.{variant_id}", "experiment_id": f"eq.{experiment_id}", "order": "occurred_at.asc", "limit": "1000"})
         revenue_cents = float(sum(int(row.get("revenue_cents") or 0) for row in attribution if row.get("event_type") == "orders.paid"))
         spend_cents = float(latest.get("spend_cents", 0))
         purchases = float(sum(1 for row in attribution if row.get("event_type") == "orders.paid"))
@@ -141,7 +161,7 @@ async def build_variant_results(experiment: dict[str, Any], variants: list[dict[
 
         sample_size = int(max(latest.get("impressions", 0), latest.get("clicks", 0), purchases))
         out.append({
-            "variant_id": variant["id"],
+            "variant_id": variant_id,
             "role": variant["role"],
             "value": value,
             "spend_cents": int(spend_cents),
