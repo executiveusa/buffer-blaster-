@@ -1,4 +1,4 @@
-"""Stavarai Platform — FastAPI application factory.
+"""Buffer Blaster — FastAPI application factory.
 
 Single-operator content-operations platform. Public publishing is always gated
 by explicit human approval. UI, REST, MCP, CLI, plugin, and voice resolve to the
@@ -38,7 +38,7 @@ from .services.studio_ledger import backend_status
 load_dotenv()
 
 app = FastAPI(
-    title="Stavarai Platform API",
+    title="Buffer Blaster API",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -94,7 +94,7 @@ async def health() -> dict:
     return {
         "status": "ok",
         "version": "2.0.0",
-        "platform": os.getenv("PLATFORM_NAME", "Stavarai").lower(),
+        "platform": os.getenv("PLATFORM_NAME", "Buffer Blaster").lower(),
         "core": backend_name(),
         "media_configured": get_media_provider().configured,
         "storage_configured": get_asset_storage().configured,
@@ -107,4 +107,4 @@ async def health() -> dict:
 
 @app.get("/")
 async def root() -> dict:
-    return {"name": "Stavarai Platform API", "health": "/api/health", "mcp": "/api/mcp"}
+    return {"name": "Buffer Blaster API", "health": "/api/health", "mcp": "/api/mcp"}

@@ -1,4 +1,4 @@
-# Social Studio ICM
+# Buffer Blaster ICM
 
 Purpose: route a cold agent into the smallest context needed to create social work or run a measured proof-first experiment.
 

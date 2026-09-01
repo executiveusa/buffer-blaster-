@@ -1,7 +1,7 @@
-# Stavarai Platform
+# Buffer Blaster
 
-Private, enterprise-grade AI content-operations platform. Built for one operator
-(Stavarai), trained on real client data, positioned for acquisition.
+Private, enterprise-grade AI content-operations platform. Built as Buffer Blaster,
+trained on real client data, and positioned for acquisition.
 
 > **This repo is internal.** No client data, no internal architecture, no agent
 > names should ever appear in public-facing surfaces (landing page, blog).

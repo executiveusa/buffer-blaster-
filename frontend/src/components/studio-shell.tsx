@@ -35,17 +35,17 @@ export function StudioShell({ children, eyebrow }: { children: ReactNode; eyebro
   return (
     <div className="min-h-screen bg-[#e9e9e7] text-[#151613]">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[68px] flex-col items-center border-r border-black/5 bg-[#dedfdd] py-5 lg:flex">
-        <Link href="/" className="grid h-10 w-10 place-items-center rounded-xl bg-white text-lg font-semibold shadow-sm" aria-label="Home">S</Link>
+        <Link href="/" className="grid h-10 w-10 place-items-center rounded-xl bg-white text-lg font-semibold shadow-sm" aria-label="Home">B</Link>
         <div className="mt-7 h-10 w-10 rounded-full bg-[conic-gradient(from_20deg,#6c63ff,#35d9a2,#dfff59,#ff7b5f,#6c63ff)]" aria-hidden />
         <div className="mt-7 grid gap-3">
           {[Command, Compass, Network, BarChart3].map((Icon, i) => <div key={i} className={`grid h-11 w-11 place-items-center rounded-xl ${i === 0 ? "bg-white shadow-sm" : "text-black/65"}`}><Icon className="h-5 w-5" /></div>)}
         </div>
-        <div className="mt-auto grid h-10 w-10 place-items-center rounded-full bg-[#1d4f27] text-sm font-semibold text-white">S.</div>
+        <div className="mt-auto grid h-10 w-10 place-items-center rounded-full bg-[#1d4f27] text-sm font-semibold text-white">B.</div>
       </aside>
 
       <aside className="fixed inset-y-0 left-[68px] z-20 hidden w-[260px] flex-col border-r border-black/8 bg-[#f7f7f5] px-4 py-6 lg:flex">
         <div className="px-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/38">Social Studio</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/38">Buffer Blaster</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em]">Create → prove</h1>
         </div>
         <nav className="mt-7 space-y-1">
@@ -71,7 +71,7 @@ export function StudioShell({ children, eyebrow }: { children: ReactNode; eyebro
 
       <div className="lg:pl-[328px]">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-black/6 bg-[#f7f7f5]/90 px-5 backdrop-blur-xl lg:hidden">
-          <Link href="/studio" className="font-semibold tracking-tight">Social Studio</Link>
+          <Link href="/studio" className="font-semibold tracking-tight">Buffer Blaster</Link>
           <Link href="/studio/create" className="rounded-full bg-black px-4 py-2 text-xs font-medium text-white">Create</Link>
         </header>
         <main className="min-h-screen p-3 sm:p-5 lg:p-3">

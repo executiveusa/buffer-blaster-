@@ -3,14 +3,14 @@
 > Read `EMERALD_TABLETS.md` first. It overrides this file. Orchestrator: GRINIONS™ v1.
 
 ## Identity & Boundaries
-- Internal platform: **Stavarai Platform** | Repository: **Buffer Blaster** | Public: **Social Studio**.
+- Canonical product: **Buffer Blaster** | Repository: **Buffer Blaster** | Public-facing name: **Buffer Blaster**.
 - Buffer Blaster is a standalone application. External publishers are optional downstream integrations (see `docs/APP_BOUNDARIES.md`).
 - Repository: `https://github.com/executiveusa/buffer-blaster-` | Default branch: `main` (squash-merge only).
 
 ## Architecture
 - `frontend/`: Next.js product + public site
 - `api/`: FastAPI operational backend + services
-- `plugins/social-studio/`: portable agent skill/plugin
+- `plugins/social-studio/`: portable agent skill/plugin (legacy path retained for compatibility)
 - `cli/`: scriptable operator client | `rust_core/`: runtime primitives with Python fallback
 - `supabase/`: migrations and isolation boundary | `skills/`: creative/quality skills
 - `openspec/`: accepted change contracts | `ops/`: receipts and rollback evidence
