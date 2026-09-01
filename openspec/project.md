@@ -60,8 +60,21 @@ The paid-media implementation is `full_delivery_hierarchy` and
 mandatory until Phase 5 proves real credentials, account permissions, create/read
 handshakes, activation and pause against authorized provider accounts.
 
-Shopify paid-order revenue is attributed, but full/partial refund adjustments
-must be implemented before net-ROAS claims.
+## Attribution and financial truth
+
+- **One paid-media provider per experiment variant.** A variant may bind Meta or
+  TikTok, never both. This prevents latest-snapshot or cross-channel metric mixing.
+- `orders/paid` writes the positive gross Shopify payment for an attributed order.
+- `refunds/create` and `orders/cancelled` are lifecycle evidence only; neither is
+  treated as proof that money actually moved.
+- A Shopify `order_transactions/create` event with `kind=refund` and
+  `status=success` writes a negative revenue adjustment.
+- Later refund/transaction events inherit experiment + variant identity from the
+  original attributed paid order using the canonical numeric Shopify order ID.
+- **Net revenue** = sum of signed attribution-event `revenue_cents`.
+- **Net ROAS** = net revenue / paid-media spend.
+- Gross revenue and gross ROAS remain available explicitly, but plain `roas` is
+  evaluated as net ROAS so refunds cannot silently inflate a winner.
 
 ## How to propose change
 
