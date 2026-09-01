@@ -16,6 +16,10 @@ from .providers import get_ads_provider
 from .providers.base import ProviderMetrics
 
 
+def _workspace_id() -> str:
+    return os.getenv("BUFFER_BLASTER_WORKSPACE_ID", "").strip()
+
+
 def _headers() -> dict[str, str]:
     key = os.getenv("SUPABASE_SERVICE_KEY", "")
     return {
@@ -31,14 +35,22 @@ def _url(table: str) -> str:
 
 
 def _configured() -> bool:
-    return bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_KEY") and os.getenv("BUFFER_BLASTER_WORKSPACE_ID"))
+    return bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_KEY") and _workspace_id())
+
+
+def _scoped_params(params: dict[str, str] | None = None) -> dict[str, str]:
+    """PostgREST params for service-role reads, which bypass RLS."""
+    scoped = {"workspace_id": f"eq.{_workspace_id()}"}
+    if params:
+        scoped.update(params)
+    return scoped
 
 
 async def _rows(table: str, params: dict[str, str]) -> list[dict[str, Any]]:
     if not _configured():
         return []
     async with httpx.AsyncClient(timeout=10) as client:
-        response = await client.get(_url(table), params=params, headers=_headers())
+        response = await client.get(_url(table), params=_scoped_params(params), headers=_headers())
     data = response.json() if response.is_success else []
     return data if isinstance(data, list) else []
 
@@ -46,7 +58,7 @@ async def _rows(table: str, params: dict[str, str]) -> list[dict[str, Any]]:
 async def sync_experiment(experiment_id: str) -> dict[str, Any]:
     experiments = await _rows("experiments", {"id": f"eq.{experiment_id}", "limit": "1"})
     if not experiments:
-        return {"ok": False, "error": "experiment_not_found"}
+        return {"ok": False, "error": "experiment_not_found_in_workspace"}
     experiment = experiments[0]
     variants = await _rows("experiment_variants", {"experiment_id": f"eq.{experiment_id}", "order": "created_at.asc"})
     if not variants:
