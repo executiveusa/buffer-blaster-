@@ -31,7 +31,6 @@ git fetch origin
 git checkout "$BRANCH"
 git pull --ff-only origin "$BRANCH"
 
-# Do not allow the autonomous loop to absorb unrelated operator changes.
 if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
   die "tracked working tree is dirty before finisher start"
 fi
@@ -71,9 +70,6 @@ for ((cycle=1; cycle<=MAX_CYCLES; cycle++)); do
   ralphy_status=$?
   set -e
   printf '\n- cycle_%s_ralphy_exit: %s\n' "$cycle" "$ralphy_status" >>"$REPORT"
-
-  # Ralphy is allowed to surface a blocked external integration. Continue if it
-  # made progress; fail only after the no-progress guard above trips.
   git status --short >>"$REPORT" || true
   git rev-parse HEAD >>"$REPORT"
 done
@@ -104,8 +100,6 @@ python scripts/production/verify.py identity
 python scripts/production/verify.py prd "$PRD"
 python scripts/production/verify.py gauntlet ops/final-gauntlet/adpanel-receipt.json
 
-# Commit only the bounded finisher result. Secret/env paths are protected by
-# repository rules and .ralphy boundaries; this explicit check is defense in depth.
 if git status --porcelain | grep -Eq '(^|/)(\.env|.*\.pem$|.*\.key$|secrets/)'; then
   die "refusing to commit a secret-like path"
 fi
@@ -134,7 +128,11 @@ if [[ "$DEPLOY_AFTER_MERGE" == "1" ]]; then
   git fetch origin
   git checkout main
   git reset --hard origin/main
-  docker compose -f docker-compose.prod.yml ${BUFFER_BLASTER_COMPOSE_OVERRIDE:+-f "$BUFFER_BLASTER_COMPOSE_OVERRIDE"} up -d --build --remove-orphans
+  COMPOSE=(docker compose -f docker-compose.prod.yml)
+  if [[ -n "${BUFFER_BLASTER_COMPOSE_OVERRIDE:-}" ]]; then
+    COMPOSE+=(-f "$BUFFER_BLASTER_COMPOSE_OVERRIDE")
+  fi
+  "${COMPOSE[@]}" up -d --build --remove-orphans
   bash scripts/selfhost/preflight.sh
   bash scripts/selfhost/smoke.sh
   python scripts/production/verify.py health
