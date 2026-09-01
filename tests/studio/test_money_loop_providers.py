@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 from typing import Any
 
 import httpx
@@ -183,8 +184,9 @@ async def test_meta_creates_complete_paused_hierarchy(monkeypatch) -> None:
     assert calls[0][2]["data"]["status"] == "PAUSED"
     assert calls[1][2]["data"]["campaign_id"] == "campaign-1"
     assert calls[1][2]["data"]["status"] == "PAUSED"
+    assert json.loads(calls[2][2]["data"]["object_story_spec"]) == {"page_id": "p"}
     assert calls[3][2]["data"]["adset_id"] == "adset-1"
-    assert calls[3][2]["data"]["creative"] == {"creative_id": "creative-1"}
+    assert json.loads(calls[3][2]["data"]["creative"]) == {"creative_id": "creative-1"}
     assert calls[3][2]["data"]["status"] == "PAUSED"
 
 
