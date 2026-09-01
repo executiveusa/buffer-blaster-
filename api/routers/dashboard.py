@@ -1,4 +1,4 @@
-"""Dashboard router — greets Stavarai by name, returns summary metrics.
+"""Dashboard router — returns the Buffer Blaster operator summary.
 
 Demo mode returns seeded metrics. Production queries Supabase.
 """
@@ -17,7 +17,7 @@ async def dashboard(_=Depends(verify_session)) -> dict:
     clients = demo.list_clients()
     pending = demo.pending_approvals()
     return {
-        "greeting": "Welcome back, Stavarai.",
+        "greeting": "Welcome back to Buffer Blaster.",
         "active_clients": len(clients),
         "posts_this_week": demo.posts_this_week(),
         "pending_approvals": pending,
