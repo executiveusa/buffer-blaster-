@@ -7,6 +7,7 @@ object is moved to ACTIVE.
 """
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime, timezone
 from typing import Any
@@ -56,6 +57,14 @@ class MetaAdsProvider:
         data = response.json() if response.content else {}
         return data if isinstance(data, dict) else {}
 
+    @staticmethod
+    def _form(payload: dict[str, Any]) -> dict[str, Any]:
+        """Encode nested Marketing API form fields as compact JSON strings."""
+        return {
+            key: json.dumps(value, separators=(",", ":")) if isinstance(value, (dict, list)) else value
+            for key, value in payload.items()
+        }
+
     async def _post_object(
         self,
         client: httpx.AsyncClient,
@@ -64,7 +73,7 @@ class MetaAdsProvider:
     ) -> tuple[bool, dict[str, Any], int]:
         response = await client.post(
             f"{self._base()}/{path.lstrip('/')}",
-            data={**payload, "access_token": self._token()},
+            data={**self._form(payload), "access_token": self._token()},
         )
         data = self._body(response)
         return response.is_success and bool(data.get("id")), data, response.status_code
