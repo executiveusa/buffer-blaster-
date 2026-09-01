@@ -60,6 +60,13 @@ def test_money_loop_queries_are_scoped_to_configured_workspace(monkeypatch) -> N
     }
 
 
+def test_paid_media_providers_report_campaign_only_launch_scope() -> None:
+    for provider in (MetaAdsProvider(), TikTokAdsProvider()):
+        status = provider.status()
+        assert status["launch_scope"] == "campaign_container_only"
+        assert status["delivery_ready"] is False
+
+
 @pytest.mark.asyncio
 async def test_meta_launch_requires_human_approval() -> None:
     result = await MetaAdsProvider().create_experiment({"campaign": {"name": "test"}}, approved=False)
