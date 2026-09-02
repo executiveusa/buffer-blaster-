@@ -1,38 +1,41 @@
 # Application Boundaries
 
-## Strict Isolation: Buffer Blaster vs. Downstream Services
+## Buffer Blaster vs. downstream services
 
-Buffer Blaster / Social Studio is a standalone, proprietary content-operations and UGC generation system.
+Buffer Blaster is a standalone, proprietary creative-operations and UGC production system. **Studio** is the human workspace inside Buffer Blaster; it is not a separate product identity.
 
-External scheduling, publishing, or social distribution platforms (such as TryPost, PostaStudios, or other third-party schedulers) are completely separate applications.
+External stores, ad networks, schedulers, and publishing platforms remain separate systems connected through optional adapters.
 
-### Buffer Blaster Owns
-- Campaign planning and strategy
-- Brand and product memory / creative inputs
-- Content ideation, creative angles, hooks, and scripts
-- UGC video prompting and multi-modal prompt compilation
-- Image and video rendering (via configured media engines such as Fal)
-- Media library and asset management
-- Content scoring and creative evaluation
-- Human review and strict approval gate enforcement
-- Studio analytics and creator performance insights
-- Agent, REST, MCP, CLI, and voice interfaces
-- Dedicated Redis session and cache state
-- Dedicated Supabase schema and data scope
-- Dedicated secrets and deployment lifecycle
+### Buffer Blaster owns
+- campaign and creative planning;
+- brand/product context and creative inputs;
+- angles, hooks, scripts, and UGC production plans;
+- image/video rendering through configured media providers;
+- media library and asset state;
+- creative evaluation and experiment records;
+- human review and approval enforcement;
+- server-owned generation allowances and provider-cost budgets;
+- commerce/performance attribution records when integrations are configured;
+- Studio, REST, MCP, CLI, and voice interfaces;
+- dedicated Redis state;
+- dedicated Supabase schema/data scope;
+- dedicated secrets and deployment lifecycle.
 
-### Downstream Publishers Own
-- Their own source code and repositories
-- Their own frontend and backend runtimes
-- Their own databases, schemas, and persistence
-- Their own credentials, API keys, and OAuth connection tokens
-- Their own social account connections (Instagram, TikTok, YouTube, X, etc.)
-- Their own scheduling queues and worker infrastructure
-- Their own deployment lifecycles
+### Downstream systems own
+- their source code and runtimes;
+- their databases and persistence;
+- their OAuth/API credentials;
+- social/store/ad-account connections;
+- platform-specific delivery and scheduling infrastructure;
+- their independent deployment lifecycle.
 
-### Architectural Invariants
-1. **No Code Merging**: External publishing code is never vendored or merged into Buffer Blaster.
-2. **No Shared Infrastructure**: Buffer Blaster does not share Docker Compose services, Redis cache, database tables, or migrations with external publishers.
-3. **Optional Downstream Boundary**: External publishing is an optional downstream integration.
-4. **Independent Core Readiness**: Buffer Blaster boots, passes preflight, reports healthy, creates campaigns, generates UGC, and enforces human approvals completely independently. The absence of an external publishing integration is NOT an error or blocker for Buffer Blaster core operations.
-5. **Fail-Closed Approval**: Under all circumstances, unapproved content can never be published.
+Examples include Shopify, Meta Ads, TikTok Ads, Buffer, and any alternate publisher selected later.
+
+### Architectural invariants
+1. **No code merging:** external application source trees are not vendored into Buffer Blaster.
+2. **No shared authority:** provider credentials remain server-side and scoped to the integration that needs them.
+3. **Optional downstream boundary:** Buffer Blaster remains useful when an external publisher or paid-media provider is absent.
+4. **Independent core readiness:** research, planning, UGC production, review, ledger persistence, and approval controls must work independently of downstream publishing.
+5. **Fail-closed approval:** unapproved content cannot publish, and unapproved paid generation/ad activation cannot spend.
+6. **Provider truth:** an adapter being implemented does not mean an external account is live-verified. Live status requires real account authentication and readback proof.
+7. **One creative system:** UI, REST, MCP, CLI, and voice call the same canonical backend rather than maintaining separate business logic.
