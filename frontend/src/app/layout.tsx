@@ -3,14 +3,16 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Social Studio — Find the angle. Make the ad.",
-    template: "%s · Social Studio",
+    default: "Buffer Blaster — Private creative infrastructure",
+    template: "%s · Buffer Blaster",
   },
-  description: "Turn product truth into testable UGC: research the pain, gate the script, approve the render, and keep the receipt.",
+  description:
+    "Private creative infrastructure for client teams: research, concepts, UGC production, approvals, cost controls, and evidence in one governed system.",
   metadataBase: new URL("https://stavarai-platform.vercel.app"),
   openGraph: {
-    title: "Social Studio — Find the angle. Make the ad. Prove what works.",
-    description: "A research-first UGC ad factory with explicit spend approval, inspectable scripts, and render receipts.",
+    title: "Buffer Blaster — Find the angle. Make the ad. Learn what works.",
+    description:
+      "A private creative operating system for managed client work and dedicated installations — built for people and agents, with human control where it matters.",
     type: "website",
   },
 };

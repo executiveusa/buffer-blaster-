@@ -1,99 +1,76 @@
 import Link from "next/link";
-import { Check, CircleDollarSign, FileSearch, ReceiptText, ShieldCheck } from "lucide-react";
-import { CheckoutButton } from "@/components/checkout-button";
+import { ArrowRight, Bot, Check, ServerCog, ShieldCheck } from "lucide-react";
 
-const offers = [
+const accessModels = [
   {
-    id: "trial-7",
-    eyebrow: "Lowest-risk start",
-    name: "7-Day Test Drive",
-    price: "$19",
-    cadence: "one-time",
-    credits: "3 Ad Credits",
-    badge: "Start here",
-    body: "A small paid pass to test the real workflow without committing to a subscription.",
-    features: ["7 days of access", "3 included Ad Credits", "No watermark", "Scripts + production receipts", "Exact credit cost shown before generation"],
-    cta: "Start the 7-day test",
+    eyebrow: "Managed",
+    name: "Creative Engine",
+    badge: "Most common",
+    body: "We operate Buffer Blaster as part of the client engagement. Your team gets the output, approvals, visibility, and learning loop without managing another software stack.",
+    features: [
+      "Research, concepts, and UGC-style production",
+      "Human review before consequential actions",
+      "Client workspace and evidence trail",
+      "Usage and generation-cost controls",
+      "Optional Shopify and paid-media connections per account",
+    ],
+    icon: ShieldCheck,
   },
   {
-    id: "trial-30",
-    eyebrow: "More room to learn",
-    name: "30-Day Launch Pass",
-    price: "$49",
-    cadence: "one-time",
-    credits: "8 Ad Credits",
-    badge: "Best trial value",
-    body: "Run more angles across a month and learn the workflow before choosing a recurring plan.",
-    features: ["30 days of access", "8 included Ad Credits", "No watermark", "Full UGC factory + final asset receipts", "Credits expire with the pass"],
-    cta: "Start the 30-day pass",
-  },
-  {
-    id: "starter-monthly",
-    eyebrow: "Consistent testing",
-    name: "Starter",
-    price: "$99",
-    cadence: "per month",
-    credits: "20 Ad Credits",
-    badge: "Most popular",
-    body: "For a brand that wants a steady creative testing cadence without an agency production bill.",
-    features: ["20 Ad Credits / month", "Campaign planning", "UGC factory", "Asset library + receipts", "Human approval before paid generation"],
-    cta: "Choose Starter",
-  },
-  {
-    id: "pro-monthly",
-    eyebrow: "Higher-volume operator",
-    name: "Pro",
-    price: "$199",
-    cadence: "per month",
-    credits: "50 Ad Credits",
-    badge: "Best unit value",
-    body: "For teams and agents that need more testing volume plus programmatic control surfaces.",
-    features: ["50 Ad Credits / month", "REST + MCP + CLI", "Higher-volume creative testing", "Canonical job receipts", "Approval and spend guards stay on"],
-    cta: "Choose Pro",
+    eyebrow: "Dedicated",
+    name: "Private Install",
+    badge: "For internal teams",
+    body: "For teams that need their own infrastructure, Buffer Blaster can run as a dedicated deployment with the same governed workflow available to people and approved agents.",
+    features: [
+      "Dedicated deployment and database boundary",
+      "Studio + REST + MCP + CLI access",
+      "Workspace-level approval and budget limits",
+      "Operator-owned provider credentials",
+      "Handoff, documentation, and rollback path",
+    ],
+    icon: ServerCog,
   },
 ] as const;
 
-export default function PricingPage() {
+export default function AccessPage() {
   return <main className="min-h-screen bg-[#f4f3ef] text-[#151613]">
     <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
-      <Link href="/" className="text-lg font-semibold tracking-[-0.04em]">Social Studio</Link>
-      <div className="flex items-center gap-2"><Link href="/" className="hidden px-4 py-2 text-sm text-black/55 sm:block">Overview</Link><Link href="/studio/create" className="rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white">Open studio</Link></div>
+      <Link href="/" className="text-lg font-semibold tracking-[-0.04em]">Buffer Blaster</Link>
+      <div className="flex items-center gap-2"><Link href="/" className="hidden px-4 py-2 text-sm text-black/60 sm:block">Overview</Link><Link href="/studio" className="rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white">Open Studio</Link></div>
     </header>
 
-    <section className="mx-auto max-w-7xl px-5 pb-20 pt-16 sm:px-8 sm:pt-24">
+    <section className="mx-auto max-w-7xl px-5 pb-20 pt-14 sm:px-8 sm:pt-24">
       <div className="mx-auto max-w-4xl text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-black/35">Paid test before subscription</p>
-        <h1 className="mt-5 text-balance text-5xl font-semibold leading-[.95] tracking-[-0.07em] sm:text-7xl">Pay a little. Make real ads. <span className="text-black/35">Then decide.</span></h1>
-        <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-black/50">Start with a bounded paid pass instead of handing over a large monthly fee before you know the workflow fits. Your pass includes Ad Credits, and the studio shows the credit requirement before any paid generation starts.</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-black/50">Private client access</p>
+        <h1 className="mt-5 text-balance text-5xl font-semibold leading-[.95] tracking-[-0.07em] sm:text-7xl">The software is not the offer. <span className="text-black/45">The output is.</span></h1>
+        <p className="mx-auto mt-6 max-w-3xl text-base leading-7 text-black/62">Buffer Blaster is built to remove subscriptions, handoffs, and repetitive creative operations from client work. We either run it for the engagement or deploy a dedicated instance when ownership matters.</p>
       </div>
 
-      <div className="mt-14 grid gap-4 lg:grid-cols-4">
-        {offers.map((offer, index) => <article key={offer.id} className={`relative flex flex-col rounded-[26px] border p-6 ${index === 1 ? "border-black bg-[#10110f] text-white shadow-[0_30px_90px_rgba(0,0,0,.14)]" : "border-black/7 bg-white"}`}>
-          <div className="flex items-start justify-between gap-3"><div><p className={`text-[10px] uppercase tracking-[.14em] ${index === 1 ? "text-white/38" : "text-black/35"}`}>{offer.eyebrow}</p><h2 className="mt-2 text-xl font-semibold tracking-tight">{offer.name}</h2></div><span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${index === 1 ? "bg-[#b9ff66] text-black" : "bg-[#f0f0ed] text-black/55"}`}>{offer.badge}</span></div>
-          <div className="mt-7"><span className="text-5xl font-semibold tracking-[-0.07em]">{offer.price}</span><span className={`ml-2 text-xs ${index === 1 ? "text-white/38" : "text-black/35"}`}>{offer.cadence}</span></div>
-          <p className={`mt-2 text-xs font-medium ${index === 1 ? "text-[#b9ff66]" : "text-[#2357ff]"}`}>{offer.credits}</p>
-          <p className={`mt-5 min-h-20 text-sm leading-6 ${index === 1 ? "text-white/50" : "text-black/48"}`}>{offer.body}</p>
-          <ul className="mt-5 flex-1 space-y-3">{offer.features.map((feature) => <li key={feature} className={`flex items-start gap-2 text-xs leading-5 ${index === 1 ? "text-white/68" : "text-black/58"}`}><Check className={`mt-0.5 h-4 w-4 shrink-0 ${index === 1 ? "text-[#b9ff66]" : "text-[#159653]"}`} />{feature}</li>)}</ul>
-          <CheckoutButton offer={offer.id} label={offer.cta} className={`mt-7 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium ${index === 1 ? "bg-white text-black" : "bg-black text-white"}`} />
+      <div className="mx-auto mt-14 grid max-w-5xl gap-4 lg:grid-cols-2">
+        {accessModels.map(({eyebrow,name,badge,body,features,icon:Icon}, index) => <article key={name} className={`relative flex flex-col rounded-[24px] border p-7 sm:p-8 ${index === 0 ? "border-black bg-[#10110f] text-white shadow-[0_30px_90px_rgba(0,0,0,.12)]" : "border-black/8 bg-white"}`}>
+          <div className="flex items-start justify-between gap-3"><div><div className={`grid h-10 w-10 place-items-center rounded-xl ${index===0?"bg-white/10":"bg-[#ecece8]"}`}><Icon className="h-5 w-5"/></div><p className={`mt-6 text-[10px] uppercase tracking-[.14em] ${index===0?"text-white/52":"text-black/48"}`}>{eyebrow}</p><h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{name}</h2></div><span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${index===0?"bg-[#b9ff66] text-black":"bg-[#ecece8] text-black/65"}`}>{badge}</span></div>
+          <p className={`mt-5 text-sm leading-6 ${index===0?"text-white/62":"text-black/60"}`}>{body}</p>
+          <ul className="mt-7 space-y-3">{features.map(feature => <li key={feature} className={`flex items-start gap-2 text-sm leading-5 ${index===0?"text-white/74":"text-black/68"}`}><Check className={`mt-0.5 h-4 w-4 shrink-0 ${index===0?"text-[#b9ff66]":"text-[#159653]"}`}/>{feature}</li>)}</ul>
         </article>)}
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <TrustCard icon={<CircleDollarSign className="h-5 w-5"/>} title="One credit has a cost ceiling" body="A standard generation estimated under $1 uses one Ad Credit. More expensive models, longer outputs, or retries can require more credits. You see that before approval." />
-        <TrustCard icon={<ShieldCheck className="h-5 w-5"/>} title="No surprise provider spend" body="The server reserves both your Ad Credits and the internal generation-cost allowance before calling a media provider. If the allowance cannot cover the request, the render is blocked." />
-        <TrustCard icon={<ReceiptText className="h-5 w-5"/>} title="The receipt stays with the asset" body="Plan version, scripts, approval, provider requests, QA state, and final asset state are retained together. Queued work is never labeled finished." />
+      <div className="mx-auto mt-6 max-w-5xl border-t border-black/12 pt-8">
+        <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">Why no public $20 plan?</p><h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">Because another login is not leverage.</h2><p className="mt-4 max-w-3xl text-sm leading-6 text-black/62">The value is a working creative system connected to the way the client already operates: brand context, approvals, generation, agents, store data, and the evidence that informs the next round. Access and operating scope are set per engagement instead of forcing every client into the same token plan.</p></div><Link href="/studio" className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-medium text-white">View the Studio <ArrowRight className="h-4 w-4"/></Link></div>
       </div>
 
-      <div className="mt-6 grid gap-4 rounded-[24px] border border-black/7 bg-white p-6 lg:grid-cols-[1fr_1fr]">
-        <div><div className="flex items-center gap-2"><FileSearch className="h-4 w-4 text-black/45"/><p className="text-sm font-medium">What an Ad Credit means</p></div><p className="mt-3 text-xs leading-5 text-black/48">An Ad Credit is our customer-facing usage unit, not an opaque provider token. When a finished-ad attempt fits under the standard $1 generation-cost ceiling, one credit covers it. If the estimated provider cost is $1.60, the studio requires two credits before it can run.</p></div>
-        <div><p className="text-sm font-medium">What we do not promise</p><p className="mt-3 text-xs leading-5 text-black/48">No guaranteed ROAS, conversion lift, or automatic “winning ad” claim. Trial credits are usage allowance, not cash, and unused trial credits expire with the pass. Performance becomes evidence only after real traffic produces real results.</p></div>
+      <div className="mx-auto mt-14 grid max-w-5xl gap-4 lg:grid-cols-3">
+        <TrustCard title="People stay in control" body="The system can prepare work automatically; spend, publishing, and other consequential transitions remain approval-gated." />
+        <TrustCard title="Agents use the same rules" body="Approved agents can enter through MCP, REST, or CLI instead of creating a shadow workflow outside the Studio." />
+        <TrustCard title="Connections are client-scoped" body="Shopify and paid-media adapters are enabled per client account. Credentials and provider activation are never assumed." />
       </div>
+
+      <div className="mx-auto mt-14 max-w-5xl rounded-[22px] bg-[#dfff67] p-7 sm:p-9"><div className="flex items-start gap-3"><Bot className="mt-1 h-5 w-5 shrink-0"/><div><p className="text-sm font-semibold">Built to become part of the operating system</p><p className="mt-2 max-w-3xl text-sm leading-6 text-black/62">Buffer Blaster is most valuable when it is not another destination a client has to remember. The goal is to let the client, operator, or agent call the creative system from wherever the work already starts.</p></div></div></div>
     </section>
 
-    <footer className="border-t border-black/7 px-5 py-8 text-xs text-black/38 sm:px-8"><div className="mx-auto flex max-w-7xl items-center justify-between"><span>Social Studio · paid test before subscription</span><Link href="/">Overview</Link></div></footer>
+    <footer className="border-t border-black/7 px-5 py-8 text-xs text-black/50 sm:px-8"><div className="mx-auto flex max-w-7xl items-center justify-between"><span>Buffer Blaster · private access</span><Link href="/">Overview</Link></div></footer>
   </main>;
 }
 
-function TrustCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
-  return <article className="rounded-[22px] border border-black/7 bg-white p-6"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[#f0f0ed] text-black/55">{icon}</div><h2 className="mt-5 text-lg font-semibold tracking-tight">{title}</h2><p className="mt-2 text-sm leading-6 text-black/45">{body}</p></article>;
+function TrustCard({ title, body }: { title: string; body: string }) {
+  return <article className="border-t border-black/15 pt-5"><h2 className="text-lg font-semibold tracking-tight">{title}</h2><p className="mt-2 text-sm leading-6 text-black/60">{body}</p></article>;
 }
