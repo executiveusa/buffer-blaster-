@@ -1,4 +1,4 @@
-"""MCP JSON-RPC surface over the same canonical Studio services.
+"""Buffer Blaster MCP JSON-RPC surface over the canonical Studio services.
 
 Agents can plan freely. Paid generation requires an active server-owned wallet
 and explicit approval, exactly like the REST/UI path. Publishing remains an
@@ -41,10 +41,10 @@ _FACTORY_PROPERTIES = {
 
 MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "studio_status", "description": "Return canonical media, storage, ledger, pricing, publishing and approval status.", "inputSchema": {"type": "object", "properties": {}}},
-    {"name": "get_pricing", "description": "Return sellable package economics and the standard Ad Credit cost ceiling.", "inputSchema": {"type": "object", "properties": {}}},
+    {"name": "get_pricing", "description": "Return configured package economics and the standard generation cost ceiling.", "inputSchema": {"type": "object", "properties": {}}},
     {"name": "list_creative_jobs", "description": "List canonical creative-job receipts from the Studio ledger.", "inputSchema": {"type": "object", "properties": {"limit": {"type": "integer", "minimum": 1, "maximum": 200}}}},
     {"name": "get_creative_job", "description": "Get one canonical creative-job receipt by id.", "inputSchema": {"type": "object", "required": ["job_id"], "properties": {"job_id": {"type": "string"}}}},
-    {"name": "get_usage_wallet", "description": "Get the remaining Ad Credits, provider-cost budget, state and expiration for a server-owned wallet.", "inputSchema": {"type": "object", "required": ["wallet_id"], "properties": {"wallet_id": {"type": "string"}}}},
+    {"name": "get_usage_wallet", "description": "Get the remaining generation allowance, provider-cost budget, state and expiration for a server-owned wallet.", "inputSchema": {"type": "object", "required": ["wallet_id"], "properties": {"wallet_id": {"type": "string"}}}},
     {"name": "create_campaign_plan", "description": "Create and persist a bounded social campaign plan from a brand objective.", "inputSchema": {"type": "object", "required": ["brand", "objective"], "properties": {"brand": {"type": "string"}, "objective": {"type": "string"}, "audience": {"type": "string"}, "offer": {"type": "string"}, "duration_days": {"type": "integer", "minimum": 1, "maximum": 30}, "platforms": {"type": "array", "items": {"type": "string"}}}}},
     {"name": "create_ugc_prompt", "description": "Compile a no-spend UGC video prompt from a structured brief.", "inputSchema": {"type": "object", "required": ["idea"], "properties": {"idea": {"type": "string"}, "product": {"type": "string"}, "camera": {"type": "string"}, "subject": {"type": "string"}, "environment": {"type": "string"}, "lighting": {"type": "string"}, "style": {"type": "string"}, "motion": {"type": "string"}, "dialogue": {"type": ["string", "null"]}, "platform": {"type": "string"}, "aspect_ratio": {"type": "string"}}}},
     {"name": "create_ugc_ad_factory_plan", "description": "Turn product truth into a gated two-clip UGC production plan with cost estimate and continuity rules. This does not spend.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism"], "properties": _FACTORY_PROPERTIES}},
@@ -112,7 +112,7 @@ async def mcp(request: Request) -> JSONResponse:
     if message.get("jsonrpc") != "2.0":
         return JSONResponse(_error(request_id, -32600, "Invalid Request"), status_code=400)
     if method == "initialize":
-        return JSONResponse(_ok(request_id, {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}}, "serverInfo": {"name": "social-studio", "version": "2.0.0"}}))
+        return JSONResponse(_ok(request_id, {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}}, "serverInfo": {"name": "buffer-blaster", "version": "2.0.0"}}))
     if method == "notifications/initialized":
         return JSONResponse({}, status_code=204)
     if method == "ping":

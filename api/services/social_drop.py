@@ -55,7 +55,7 @@ class SocialDrop:
 
 
 def platform_payload(drop: SocialDrop) -> list[dict[str, Any]]:
-    """Strip local-only keys before sending platform objects to TryPost."""
+    """Strip local-only keys before sending platform objects to the configured publisher."""
     out: list[dict[str, Any]] = []
     for item in drop.platforms:
         payload = {

@@ -84,31 +84,31 @@ jobs:
       - name: Validate production compose
         run: |
           cp .env.production.example .env.production
-          docker compose -f docker-compose.prod.yml config > /tmp/stavarai-compose.yml
+          docker compose -f docker-compose.prod.yml config > /tmp/buffer-blaster-compose.yml
       - name: Build production API image
-        run: docker build -t stavarai-api:ci .
+        run: docker build -t buffer-blaster-api:ci .
       - name: Smoke production API image
         run: |
-          docker run -d --name stavarai-api-ci \
+          docker run -d --name buffer-blaster-api-ci \
             -p 127.0.0.1:18000:8000 \
             -e MASTER_ENCRYPTION_KEY=ci-only-key \
             -e DEMO_PASSWORD=ci-only-password \
             -e BLASTER_API_KEY=ci-only-api-key \
             -e WEB_CONCURRENCY=1 \
-            stavarai-api:ci
-          trap 'docker rm -f stavarai-api-ci >/dev/null 2>&1 || true' EXIT
+            buffer-blaster-api:ci
+          trap 'docker rm -f buffer-blaster-api-ci >/dev/null 2>&1 || true' EXIT
           READY=0
           for attempt in {1..30}; do
-            if [[ "$(docker inspect -f '{{.State.Running}}' stavarai-api-ci 2>/dev/null || true)" != "true" ]]; then
-              docker logs stavarai-api-ci || true
+            if [[ "$(docker inspect -f '{{.State.Running}}' buffer-blaster-api-ci 2>/dev/null || true)" != "true" ]]; then
+              docker logs buffer-blaster-api-ci || true
               exit 1
             fi
-            if curl -fsS http://127.0.0.1:18000/api/health > /tmp/stavarai-health.json 2>/dev/null; then READY=1; break; fi
+            if curl -fsS http://127.0.0.1:18000/api/health > /tmp/buffer-blaster-health.json 2>/dev/null; then READY=1; break; fi
             sleep 1
           done
-          if [[ "$READY" != "1" ]]; then docker logs stavarai-api-ci || true; exit 1; fi
-          grep -q '"status":"ok"' /tmp/stavarai-health.json
-          grep -q '"approval_gate":true' /tmp/stavarai-health.json
+          if [[ "$READY" != "1" ]]; then docker logs buffer-blaster-api-ci || true; exit 1; fi
+          grep -q '"status":"ok"' /tmp/buffer-blaster-health.json
+          grep -q '"approval_gate":true' /tmp/buffer-blaster-health.json
           STATUS=$(curl -fsS -H 'x-api-key: ci-only-api-key' http://127.0.0.1:18000/api/studio/status)
           echo "$STATUS" | grep -q '"approval_gate":true'
           echo "$STATUS" | grep -q '"provider":null'
@@ -156,7 +156,7 @@ jobs:
           path: /tmp/frontend-build.log
       - name: Smoke public, studio, checkout, trial, creator, and export routes
         run: |
-          npm run start -- -H 127.0.0.1 -p 3000 > /tmp/social-studio-next.log 2>&1 &
+          npm run start -- -H 127.0.0.1 -p 3000 > /tmp/buffer-blaster-next.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
 
@@ -164,7 +164,7 @@ jobs:
           for attempt in {1..30}; do
             if ! kill -0 "$SERVER_PID" 2>/dev/null; then
               echo "Next server exited during startup"
-              cat /tmp/social-studio-next.log || true
+              cat /tmp/buffer-blaster-next.log || true
               exit 1
             fi
             if curl -fsS http://127.0.0.1:3000/ > /tmp/ready.html 2>/dev/null; then
@@ -175,7 +175,7 @@ jobs:
           done
           if [[ "$READY" != "1" ]]; then
             echo "Next server did not become ready"
-            cat /tmp/social-studio-next.log || true
+            cat /tmp/buffer-blaster-next.log || true
             exit 1
           fi
 
@@ -185,7 +185,7 @@ jobs:
             echo "Checking page $path"
             if ! curl -fsS "http://127.0.0.1:3000${path}" > /tmp/page.html; then
               echo "HTTP failure for $path"
-              cat /tmp/social-studio-next.log || true
+              cat /tmp/buffer-blaster-next.log || true
               exit 1
             fi
             if ! grep -q "$needle" /tmp/page.html; then
@@ -205,13 +205,13 @@ jobs:
             if [[ "$status" != "$expected" ]]; then
               echo "$label returned $status, expected $expected"
               cat /tmp/api-body.json || true
-              cat /tmp/social-studio-next.log || true
+              cat /tmp/buffer-blaster-next.log || true
               exit 1
             fi
           }
 
           check_page / 'Find the angle'
-          check_page /pricing '7-Day Test Drive'
+          check_page /pricing 'The software is not the offer'
           check_page /studio 'Run social from one command'
           check_page /studio/create 'Build ad plan'
           check_page /studio/library 'Everything you have made'
@@ -224,6 +224,8 @@ jobs:
           check_page /admin 'Opening console'
           check_page /admin/dashboard 'Dashboard'
 
+          # Legacy checkout/trial compatibility routes remain fail-closed even though
+          # the public site no longer sells low-ticket plans.
           check_api invalid-offer 400 -X POST http://127.0.0.1:3000/api/checkout/offer -H 'Content-Type: application/json' --data '{"offer":"not-a-real-offer"}'
           grep -q 'Unknown offer' /tmp/api-body.json
 
