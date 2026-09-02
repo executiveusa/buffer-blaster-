@@ -7,39 +7,40 @@ def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_homepage_leads_with_testable_ad_outcome_not_generic_content_cadence():
+def test_homepage_leads_with_testable_creative_outcome_not_generic_content_cadence():
     page = _read("frontend/src/app/page.tsx")
-    for phrase in ["Find the angle.", "Make the ad.", "Prove what works."]:
+    for phrase in ["Find the angle.", "Make the ad.", "Learn what works."]:
         assert phrase in page
+    assert "Private creative infrastructure" in page
     assert "research" in page.lower()
-    assert "receipt" in page.lower()
+    assert "evidence" in page.lower()
     assert "winning ads" not in page.lower()
+    assert "$19" not in page
+    assert "$49" not in page
 
 
-def test_global_metadata_matches_launch_positioning():
+def test_global_metadata_matches_buffer_blaster_positioning():
     layout = _read("frontend/src/app/layout.tsx")
-    assert "Find the angle" in layout
-    assert "Make the content. Keep the cadence." not in layout
+    assert "Buffer Blaster" in layout
+    assert "Private creative infrastructure" in layout
+    assert "Social Studio" not in layout
 
 
-def test_pricing_uses_paid_test_passes_and_margin_safe_ad_credits():
+def test_access_page_sells_managed_outcome_and_private_install_not_token_plans():
     page = _read("frontend/src/app/pricing/page.tsx")
     for phrase in [
-        "7-Day Test Drive",
-        "$19",
-        "3 Ad Credits",
-        "30-Day Launch Pass",
-        "$49",
-        "8 Ad Credits",
-        "$99",
-        "$199",
-        "under $1",
-        "unused trial credits expire",
+        "The software is not the offer",
+        "Managed",
+        "Creative Engine",
+        "Dedicated",
+        "Private Install",
+        "Studio + REST + MCP + CLI access",
+        "approval and budget limits",
+        "another login is not leverage",
     ]:
         assert phrase.lower() in page.lower()
-    assert "free trial" not in page.lower()
-    assert "Founding Ad Batch" not in page
-    assert "3 vertical UGC ads" not in page
+    for retired_public_offer in ["7-Day Test Drive", "$19", "$49", "$99", "$199", "Ad Credits", "CheckoutButton"]:
+        assert retired_public_offer.lower() not in page.lower()
 
 
 def test_create_surface_is_factory_plan_first_and_finishes_the_ad():
@@ -64,10 +65,19 @@ def test_studio_shell_uses_approval_state_not_fake_credit_usage():
     assert "Growth workspace" not in shell
 
 
-def test_public_launch_copy_keeps_internal_codenames_out():
+def test_public_launch_copy_uses_buffer_blaster_identity_without_internal_codenames():
     public = "\n".join([_read("frontend/src/app/page.tsx"), _read("frontend/src/app/pricing/page.tsx")]).lower()
-    for codename in ["buffer blaster", "stavarai", "hermes", "higgsfield"]:
+    assert "buffer blaster" in public
+    assert "social studio" not in public
+    for codename in ["stavarai", "hermes", "higgsfield"]:
         assert codename not in public
+
+
+def test_public_copy_does_not_claim_unverified_provider_state():
+    public = "\n".join([_read("frontend/src/app/page.tsx"), _read("frontend/src/app/pricing/page.tsx")]).lower()
+    for unsafe_claim in ["meta connected", "tiktok connected", "shopify connected", "guaranteed roas", "guaranteed conversion"]:
+        assert unsafe_claim not in public
+    assert "optional shopify and paid-media connections per account" in public
 
 
 def test_live_studio_does_not_hardcode_fake_operating_metrics():
