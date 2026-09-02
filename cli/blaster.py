@@ -1,4 +1,4 @@
-"""Command-line client for the Social Studio API.
+"""Command-line client for the Buffer Blaster API.
 
 Examples:
   python -m cli.blaster status
@@ -97,6 +97,7 @@ def main() -> int:
     elif command == "mcp-info":
         result = {
             "ok": True,
+            "product": "Buffer Blaster",
             "url": f"{BASE}/api/mcp",
             "transport": "http-json-rpc",
             "auth": "Bearer BLASTER_API_KEY",
