@@ -16,22 +16,17 @@ export default function LandingPage() {
       <div className="flex items-center gap-2"><Link href="/studio" className="hidden rounded-full px-4 py-2 text-sm font-medium sm:block">Open Studio</Link><Link href="#access" className="rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white">See how we use it</Link></div>
     </header>
 
-    <section className="mx-auto max-w-7xl px-5 pb-16 pt-14 text-center sm:px-8 sm:pt-24">
-      <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-black/60"><Sparkles className="h-3.5 w-3.5 text-[#2357ff]"/>Private creative infrastructure</div>
-      <h1 className="mx-auto mt-6 max-w-6xl text-balance text-5xl font-semibold leading-[.92] tracking-[-0.075em] sm:text-7xl lg:text-[94px]">Find the angle.<br/>Make the ad.<br/><span className="text-black/45">Learn what works.</span></h1>
-      <p className="mx-auto mt-7 max-w-3xl text-balance text-base leading-7 text-black/62 sm:text-lg">Buffer Blaster is the private creative system we use to turn product truth and customer signals into testable UGC-style ads — with the approvals, cost controls, and learning loop kept in one place.</p>
-      <div className="mt-8 flex flex-col justify-center gap-2 sm:flex-row"><Link href="#system" className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-medium text-white">See the system <ArrowRight className="h-4 w-4"/></Link><Link href="/studio" className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-medium">Open the Studio</Link></div>
-      <div className="mx-auto mt-8 flex max-w-3xl flex-wrap justify-center gap-x-5 gap-y-2 text-[11px] text-black/55"><span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]"/>Built for client work</span><span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]"/>Human approval before paid actions</span><span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]"/>Usable by people or agents</span></div>
-
-      <div className="relative mx-auto mt-16 max-w-6xl overflow-hidden rounded-[26px] border border-black/8 bg-[#deded9] p-3 text-left shadow-[0_35px_110px_rgba(0,0,0,.12)]">
-        <div className="rounded-[20px] bg-[#fbfbf9] p-5 sm:p-7">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs text-black/50">Client workspace · Product launch</p><h2 className="mt-1 text-xl font-semibold tracking-tight">Three angles. One clear production trail.</h2></div><span className="self-start rounded-full bg-[#ecf8f1] px-3 py-1.5 text-[10px] font-semibold text-[#117341]">READY TO REVIEW</span></div>
-          <div className="mt-6 grid gap-3 md:grid-cols-4">{steps.map(({n,title,body,icon:Icon},index)=><article key={title} className={`border-t pt-4 ${index===2?"border-[#2357ff]":"border-black/15"}`}><div className="flex items-center justify-between"><span className="text-[9px] font-semibold tracking-[.14em] text-black/40">{n}</span><Icon className="h-4 w-4 text-black/45"/></div><p className="mt-5 text-sm font-semibold">{title}</p><p className="mt-2 text-[11px] leading-5 text-black/58">{body}</p></article>)}</div>
-          <div className="mt-8 grid gap-3 md:grid-cols-[1.3fr_.7fr]">
-            <div className="rounded-2xl bg-[#10110f] p-5 text-white"><div className="flex items-center gap-2 text-xs text-white/55"><Film className="h-4 w-4 text-[#b9ff66]"/>Creative angle · problem and tension</div><p className="mt-4 max-w-xl text-lg leading-7 tracking-[-0.02em]">“I kept paying for coffee that still tasted flat. Better beans did not fix the part I was getting wrong every morning.”</p><div className="mt-5 flex flex-wrap gap-2 text-[9px]"><span className="rounded-full bg-white/10 px-3 py-1.5">24 WORDS</span><span className="rounded-full bg-white/10 px-3 py-1.5">PROBLEM-LED</span><span className="rounded-full bg-[#b9ff66] px-3 py-1.5 text-black">READY FOR REVIEW</span></div></div>
-            <div className="border-t border-black/15 pt-5 md:border-l md:border-t-0 md:pl-5 md:pt-0"><div className="flex items-center gap-2"><ReceiptText className="h-4 w-4 text-[#2357ff]"/><p className="text-xs font-medium">What stays attached</p></div><div className="mt-4 space-y-3"><ProofRow text="Research and brand context" done/><ProofRow text="Script and creative decision" done/><ProofRow text="Human approval"/><ProofRow text="Cost and performance evidence"/></div></div>
-          </div>
+    <section className="mx-auto max-w-7xl px-5 pb-16 pt-14 sm:px-8 sm:pt-24">
+      <div className="grid gap-12 lg:grid-cols-[.82fr_1.18fr] lg:items-center lg:gap-16">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-black/60"><Sparkles className="h-3.5 w-3.5 text-[#2357ff]"/>Private creative infrastructure</div>
+          <h1 className="mt-6 max-w-3xl text-balance text-5xl font-semibold leading-[.92] tracking-[-0.075em] sm:text-7xl lg:text-[84px]">Find the angle.<br/>Make the ad.<br/><span className="text-black/45">Learn what works.</span></h1>
+          <p className="mt-7 max-w-2xl text-balance text-base leading-7 text-black/62 sm:text-lg">Turn product truth and customer signals into testable UGC creative — with review, cost control, and real learning kept in one private system.</p>
+          <div className="mt-8 flex flex-col gap-2 sm:flex-row"><Link href="#system" className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-medium text-white">See the system <ArrowRight className="h-4 w-4"/></Link><Link href="/studio" className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-medium">Open the Studio</Link></div>
+          <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-black/55"><span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]"/>Built for client work</span><span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]"/>Human approval before paid actions</span><span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]"/>People or agents</span></div>
         </div>
+
+        <DeviceStage />
       </div>
     </section>
 
@@ -54,6 +49,41 @@ export default function LandingPage() {
   </main>;
 }
 
-function ProofRow({text,done=false}:{text:string;done?:boolean}){return <div className="flex items-center gap-2 text-xs text-black/60"><span className={`h-2 w-2 rounded-full ${done?"bg-[#159653]":"bg-black/18"}`}/>{text}</div>}
+function DeviceStage(){
+  return <div className="relative mx-auto min-h-[500px] w-full max-w-[760px] sm:min-h-[600px] lg:min-h-[650px]" aria-label="UGC creative generated inside Buffer Blaster">
+    <div className="absolute inset-x-0 bottom-4 top-8 rounded-[40px] bg-[#e9e7e0]"/>
+    <div className="absolute left-[3%] right-[3%] top-[5%] aspect-[16/10] rounded-[24px] border-[8px] border-[#1b1c19] bg-[#11120f] shadow-[0_38px_90px_rgba(0,0,0,.18)] sm:border-[10px]">
+      <div className="relative h-full w-full overflow-hidden rounded-[14px] bg-[#151713] sm:rounded-[16px]">
+        <video className="h-full w-full object-cover" autoPlay muted loop playsInline preload="metadata" poster="/media/ugc-hero-poster.svg">
+          <source src="/media/ugc-skincare.mp4" type="video/mp4"/>
+        </video>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/5"/>
+        <div className="pointer-events-none absolute bottom-5 left-5 right-5 flex items-end justify-between text-white sm:bottom-7 sm:left-7 sm:right-7">
+          <div><p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/65">Creative 01</p><p className="mt-1 text-base font-medium tracking-[-0.02em] sm:text-xl">Skincare · problem-led UGC</p></div>
+          <span className="hidden rounded-full border border-white/20 bg-black/25 px-3 py-1.5 text-[9px] font-medium backdrop-blur sm:block">APPROVED OUTPUT</span>
+        </div>
+      </div>
+      <span className="absolute left-1/2 top-[-7px] h-1 w-12 -translate-x-1/2 rounded-full bg-black/70"/>
+    </div>
+    <div className="absolute left-[7%] right-[7%] top-[58%] h-[16px] rounded-b-[80%] bg-[#c8c7c1] shadow-[0_16px_28px_rgba(0,0,0,.12)] sm:h-[20px]"/>
+
+    <div className="absolute bottom-[1%] right-[4%] w-[30%] min-w-[132px] max-w-[190px] rounded-[30px] border-[7px] border-[#151613] bg-[#151613] p-[3px] shadow-[0_32px_70px_rgba(0,0,0,.28)] sm:bottom-[2%] sm:right-[7%] sm:rounded-[38px] sm:border-[8px]">
+      <div className="relative aspect-[9/18.8] overflow-hidden rounded-[20px] bg-[#11120f] sm:rounded-[27px]">
+        <video className="h-full w-full object-cover" autoPlay muted loop playsInline preload="metadata" poster="/media/ugc-hero-poster.svg">
+          <source src="/media/ugc-streetwear.mp4" type="video/mp4"/>
+        </video>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10"/>
+        <div className="pointer-events-none absolute bottom-4 left-3 right-3 text-white"><p className="text-[7px] font-semibold uppercase tracking-[0.18em] text-white/60">Creative 02</p><p className="mt-1 text-[10px] font-medium leading-tight sm:text-xs">Streetwear · creator demo</p></div>
+        <span className="absolute left-1/2 top-2 h-4 w-14 -translate-x-1/2 rounded-full bg-black/75"/>
+      </div>
+    </div>
+
+    <div className="absolute bottom-[8%] left-[4%] max-w-[250px] rounded-2xl border border-black/8 bg-white/88 p-4 shadow-[0_18px_50px_rgba(0,0,0,.1)] backdrop-blur sm:bottom-[11%] sm:left-[7%] sm:p-5">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/38">One system, multiple angles</p>
+      <p className="mt-2 text-sm font-medium leading-5 tracking-[-0.02em] sm:text-base">Brief → creator variation → review → evidence.</p>
+    </div>
+  </div>
+}
+
 function ReceiptRow({label,value}:{label:string;value:string}){return <div className="grid grid-cols-[85px_1fr] gap-3 border-b border-white/8 pb-4 last:border-0 last:pb-0"><span className="text-white/42">{label}</span><span className="text-white/72">{value}</span></div>}
 function TrustCard({title,body}:{title:string;body:string}){return <div className="rounded-xl bg-[#f5f5f2] p-4"><div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#159653]"/><p className="text-xs font-medium">{title}</p></div><p className="mt-2 text-[11px] leading-5 text-black/58">{body}</p></div>}
