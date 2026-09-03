@@ -1,0 +1,46 @@
+name: Materialize Buffer Blaster hero media
+
+on:
+  push:
+    branches:
+      - polish/ugc-device-hero
+    paths:
+      - .github/workflows/materialize-hero-assets.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: polish/ugc-device-hero
+          fetch-depth: 0
+      - name: Download approved Fal hero clips
+        run: |
+          set -euo pipefail
+          mkdir -p frontend/public/media
+          curl --fail --location --retry 4 --retry-all-errors \
+            'https://v3b.fal.media/files/b/0aa8d900/wv-O4NWWHaGbH-E21O5_6_minimax-h3.mp4' \
+            --output frontend/public/media/ugc-skincare.mp4
+          curl --fail --location --retry 4 --retry-all-errors \
+            'https://v3b.fal.media/files/b/0aa8d901/2rwHx3RUbLd2krI-jpa07_minimax-h3.mp4' \
+            --output frontend/public/media/ugc-streetwear.mp4
+          test -s frontend/public/media/ugc-skincare.mp4
+          test -s frontend/public/media/ugc-streetwear.mp4
+          file frontend/public/media/*.mp4
+      - name: Commit owned hero media
+        run: |
+          set -euo pipefail
+          git config user.name 'buffer-blaster-release-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add frontend/public/media/ugc-skincare.mp4 frontend/public/media/ugc-streetwear.mp4
+          if git diff --cached --quiet; then
+            echo 'Hero media already materialized.'
+            exit 0
+          fi
+          git commit -m 'Materialize approved Fal UGC hero media'
+          git push origin HEAD:polish/ugc-device-hero
