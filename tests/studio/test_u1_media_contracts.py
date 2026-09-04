@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from uuid import UUID
 
@@ -27,31 +26,46 @@ def _draft(**changes):
     return UGCPlanDraft(**payload)
 
 
+def _creator_source(**changes):
+    payload = {
+        "workspace_id": WORKSPACE_ID,
+        "kind": "creator_image",
+        "uri": "private://creator/reference.png",
+        "sha256": "a" * 64,
+        "mime_type": "image/png",
+        "owner": "client",
+        "rights_state": "owned",
+    }
+    payload.update(changes)
+    return CreativeSource(**payload)
+
+
 def test_source_contract_requires_explicit_creator_consent():
     with pytest.raises(ValidationError):
-        CreativeSource(
-            workspace_id=WORKSPACE_ID,
-            kind="creator_image",
-            uri="private://creator/reference.png",
-            sha256="a" * 64,
-            mime_type="image/png",
-            owner="client",
-            rights_state="owned",
-        )
+        _creator_source()
 
-    source = CreativeSource(
-        workspace_id=WORKSPACE_ID,
-        kind="creator_image",
-        uri="private://creator/reference.png",
+    source = _creator_source(
         sha256="A" * 64,
-        mime_type="image/png",
-        owner="client",
-        rights_state="owned",
         consent_state="granted",
         provider_export_allowed=True,
     )
     assert source.sha256 == "a" * 64
     assert source.provider_export_allowed is True
+
+
+def test_source_contract_fails_closed_on_provider_export_rights_and_pending_consent():
+    with pytest.raises(ValidationError):
+        _creator_source(
+            rights_state="authorized_analysis",
+            consent_state="granted",
+            provider_export_allowed=True,
+        )
+    with pytest.raises(ValidationError):
+        _creator_source(
+            rights_state="owned",
+            consent_state="pending",
+            provider_export_allowed=True,
+        )
 
 
 def test_ugc_plan_contract_requires_cost_idempotency_and_creator_rights():
@@ -170,12 +184,16 @@ def test_u1_rest_mcp_cli_use_same_no_spend_contract():
     assert '"paid_generation": False' in service
 
 
-def test_u1_migration_is_additive_rls_and_idempotent_by_workspace():
+def test_u1_migration_is_additive_rls_and_workspace_scoped():
     sql = (ROOT / "supabase/migrations/013_ugc_canonical_receipts.sql").read_text(encoding="utf-8").lower()
     for table in ["creative_sources", "strategy_receipts", "ugc_plans", "media_takes"]:
         assert f"create table if not exists buffer_blaster.{table}" in sql
         assert f"alter table buffer_blaster.{table} enable row level security" in sql
     assert "unique (workspace_id, idempotency_key)" in sql
+    assert "foreign key (workspace_id, creator_source_ref)" in sql
+    assert "foreign key (workspace_id, strategy_receipt_ref)" in sql
+    assert "foreign key (workspace_id, plan_id)" in sql
+    assert "provider_export_allowed or rights_state in ('owned','licensed')" in sql
     assert "estimated_cost_ceiling_cents integer not null" in sql
     assert "drop table" not in sql
     assert "drop schema" not in sql
