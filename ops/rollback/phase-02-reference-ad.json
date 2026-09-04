@@ -1,0 +1,11 @@
+{
+  "phase": "02-reference-ad",
+  "rollback_type": "application_revert_with_additive_schema_retention",
+  "instructions": [
+    "Revert the Phase 02 squash merge for application/interface behavior.",
+    "Migration 014 only adds nullable idempotency_key, metadata, checks and a unique partial index to strategy_receipts.",
+    "Do not drop reference strategy columns, index, creative_sources, strategy_receipts or linked ugc_plans during an emergency application rollback; retain provenance/history unless a separate destructive-retention decision is approved."
+  ],
+  "data_loss_expected": false,
+  "secret_rotation_required": false
+}
