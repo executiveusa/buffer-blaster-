@@ -1,8 +1,9 @@
-"""Media generation provider boundary for V1.
+"""Media generation provider boundary for Buffer Blaster.
 
-No model IDs are hardcoded. Fal endpoints and input capabilities are selected
-with environment variables so the studio can move between video models without
-changing campaign, factory, or UI code.
+Fal remains the first hosted implementation, but callers can now plan and
+submit through a provider-neutral UGC job contract. Model IDs and capability
+pricing stay configuration-owned rather than leaking into UI or business logic.
+Legacy ``submit_video``/``fetch_url`` methods remain for backwards compatibility.
 """
 from __future__ import annotations
 
@@ -11,6 +12,32 @@ from typing import Any
 from urllib.parse import urlparse
 
 import httpx
+
+from .media_contracts import ProviderCapabilities
+from .provider_contracts import UGCProviderJob
+
+
+def _csv(name: str) -> list[str]:
+    return [item.strip() for item in os.getenv(name, "").split(",") if item.strip()]
+
+
+def _int_csv(name: str) -> list[int]:
+    values: list[int] = []
+    for raw in _csv(name):
+        try:
+            value = int(raw)
+        except ValueError:
+            continue
+        if value > 0:
+            values.append(value)
+    return values
+
+
+def _money_env(name: str, default: int) -> int:
+    try:
+        return max(0, int(os.getenv(name, str(default))))
+    except (TypeError, ValueError):
+        return default
 
 
 class FalVideoProvider:
@@ -36,6 +63,72 @@ class FalVideoProvider:
             "text_video": bool(self.text_model),
             "image_video": bool(self.image_model),
         }
+
+    def capabilities(self) -> ProviderCapabilities:
+        """Return configuration-derived capabilities without exposing secrets."""
+        health = "ready" if self.configured else "unavailable"
+        commercial = os.getenv("FAL_COMMERCIAL_USE_STATUS", "review_required").strip().lower()
+        if commercial not in {"approved", "restricted", "review_required", "unknown"}:
+            commercial = "unknown"
+        return ProviderCapabilities(
+            provider="fal",
+            text_to_video=bool(self.text_model),
+            image_to_video=bool(self.image_model),
+            max_reference_images=1 if self.image_model else 0,
+            deployment="hosted",
+            supported_ratios=_csv("FAL_SUPPORTED_RATIOS"),
+            supported_durations_seconds=_int_csv("FAL_SUPPORTED_DURATIONS_SECONDS"),
+            estimated_cost_cents=_money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 80),
+            consent_requirements=["owned_or_licensed_assets", "explicit_person_or_voice_consent"],
+            commercial_use_status=commercial,
+            health=health,
+        )
+
+    def plan_job(self, job: UGCProviderJob) -> UGCProviderJob:
+        """Bind a neutral job to Fal configuration without spending or calling Fal."""
+        model = self.image_model if job.actor_reference_url else self.text_model
+        return job.model_copy(
+            update={
+                "provider": "fal",
+                "model_name": model or None,
+                "estimated_cost_cents": _money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 80),
+                "state": "planned",
+            }
+        )
+
+    async def submit_job(self, job: UGCProviderJob) -> UGCProviderJob:
+        """Submit only a contract-approved job that remains inside its cost ceiling."""
+        planned = self.plan_job(job)
+        if planned.approval_state != "approved":
+            return planned.model_copy(
+                update={"state": "spend_blocked", "failure": {"error": "approval_required"}}
+            )
+        if not planned.within_cost_ceiling:
+            return planned.model_copy(
+                update={
+                    "state": "spend_blocked",
+                    "failure": {
+                        "error": "estimated_cost_exceeds_ceiling",
+                        "estimated_cost_cents": planned.estimated_cost_cents,
+                        "estimated_cost_ceiling_cents": planned.estimated_cost_ceiling_cents,
+                    },
+                }
+            )
+        if not planned.model_name:
+            return planned.model_copy(
+                update={"state": "failed", "failure": {"error": "provider_model_not_configured"}}
+            )
+
+        receipt = await self.submit_video(
+            prompt=planned.prompt,
+            image_url=planned.actor_reference_url,
+            duration=str(planned.duration_seconds),
+            aspect_ratio=planned.aspect_ratio,
+            generate_audio=planned.generate_audio,
+        )
+        if not receipt.get("ok"):
+            return planned.model_copy(update={"state": "failed", "failure": dict(receipt)})
+        return planned.model_copy(update={"state": "submitted", "output_receipt": dict(receipt), "failure": {}})
 
     async def submit_video(
         self,
