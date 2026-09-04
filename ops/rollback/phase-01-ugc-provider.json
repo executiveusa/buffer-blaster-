@@ -1,0 +1,11 @@
+{
+  "phase": "01-ugc-provider",
+  "rollback_type": "application_revert",
+  "instructions": [
+    "Revert the Phase 01 squash merge on main.",
+    "The provider contract is additive and introduces no schema migration.",
+    "Legacy Fal submit_video/fetch_url behavior remains in place, so reverting restores the exact pre-phase API boundary."
+  ],
+  "data_loss_expected": false,
+  "secret_rotation_required": false
+}
