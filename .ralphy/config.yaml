@@ -9,17 +9,18 @@ commands:
   build: "cd frontend && npm run build"
 
 rules:
-  - "Read AGENTS.md and EMERALD_TABLETS.md before changing code."
-  - "Work only on outcomes in docs/PRODUCTION_FINISH_PRD.md; do not invent new features."
+  - "Read AGENTS.md, CONTEXT.md and EMERALD_TABLETS.md before changing code."
+  - "Read docs/AUTONOMOUS_FINISH_LOOP.md and work only on the currently supplied docs/autonomous/phase-*.md PRD. Do not jump ahead or invent unrelated features."
+  - "Use the installed Unlazy skill: acceptance tasks are evidence ledgers, not prose checkboxes. Do not mark a task complete until its observable outcome is verified."
   - "Use the smallest necessary change: reuse repository code, stdlib, native platform features, and installed dependencies before adding abstractions."
-  - "Never weaken auth, RLS, validation, accessibility, observability, rollback, approval, spend, or publish guards to reduce code."
+  - "Study referenced open-source repos for patterns first. Do not copy source code unless license compatibility and provenance are explicitly recorded."
+  - "Never weaken auth, RLS, validation, accessibility, observability, rollback, approval, spend, tenant isolation, or publish guards to reduce code."
   - "Never print or commit secrets."
-  - "Real ad activation or spend requires the existing explicit human approval gate and a concrete budget ceiling; never invent either."
-  - "Provider verification may create only objects proven paused/disabled and non-spending."
-  - "Keep public copy plain, specific, sourced, and free of AI filler or unsupported claims."
+  - "Real paid generation, ad activation, publishing, destructive data operations, or contractual commitments require the existing explicit human approval control and any required concrete budget ceiling."
+  - "Browser or remote agents may request capabilities and plans but may not increase server-owned wallet or budget authority."
   - "Every task completion requires executable evidence; rerun affected tests after changes."
-  - "A provider blocker does not stop independent repo, runtime, UX, Hermes-contract, identity, or gauntlet work."
-  - "Final visual/product comparison uses https://www.adpanel.io/ as the named bar and a fresh independent critic with a binary ours/reference choice."
+  - "A provider/credential blocker does not stop independent repo, runtime, UX, ICM, docs, security or interface work."
+  - "Final visual/product review uses a fresh independent Gauntlet critic: AdPanel for clarity/product presentation and the repository Collins protocol for identity, restraint, typography and mobile craft. Binary ours/reference choice, never self-scoring."
 
 boundaries:
   never_touch:
