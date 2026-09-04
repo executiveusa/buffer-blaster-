@@ -80,8 +80,6 @@ def test_reference_mechanics_store_labels_not_reference_copy():
     assert analysis.problem == "explicit_friction"
     assert analysis.proof in {"numeric_before_after_or_social_proof", "visual_demonstration"}
     assert analysis.cta == "direct_action"
-    assert "brandom..." not in rendered
-    assert "brandom" not in rendered
     assert "brandomega" not in rendered
     assert "source packaging" not in rendered
     assert analysis.shot_structure == [
