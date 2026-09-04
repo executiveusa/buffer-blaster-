@@ -1,0 +1,5 @@
+phase=02-reference-ad
+operation=additive_strategy_receipt_idempotency
+base_sha=341a45e28f8ae4cb4e9ccf929c714b91f0a5265d
+rollback=application_revert_plus_preserve_receipts
+reason=reference-ad analysis requires replay-safe aggregate receipt linking source,strategy,variant plans
