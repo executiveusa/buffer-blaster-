@@ -19,6 +19,7 @@ from ..services.media_ops import get_media_ops
 from ..services.media_receipts import create_ugc_plan, get_ugc_plan
 from ..services.pricing import public_pricing
 from ..services.publishing import PublishRequest, get_publisher
+from ..services.reference_ad import ReferenceAdIntake, analyze_reference_ad, get_reference_strategy
 from ..services.social_drop import SocialDrop, platform_payload
 from ..services.studio_ledger import create_campaign, get_job, list_jobs, summary
 from ..services.ugc_executor import execute_ugc_factory_ad
@@ -42,6 +43,7 @@ _FACTORY_PROPERTIES = {
 }
 
 _UGC_PLAN_SCHEMA = UGCPlanDraft.model_json_schema()
+_REFERENCE_SCHEMA = ReferenceAdIntake.model_json_schema()
 
 MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "studio_status", "description": "Return canonical media, storage, ledger, pricing, publishing and approval status.", "inputSchema": {"type": "object", "properties": {}}},
@@ -53,6 +55,8 @@ MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "create_ugc_prompt", "description": "Compile a no-spend UGC video prompt from a structured brief.", "inputSchema": {"type": "object", "required": ["idea"], "properties": {"idea": {"type": "string"}, "product": {"type": "string"}, "camera": {"type": "string"}, "subject": {"type": "string"}, "environment": {"type": "string"}, "lighting": {"type": "string"}, "style": {"type": "string"}, "motion": {"type": "string"}, "dialogue": {"type": ["string", "null"]}, "platform": {"type": "string"}, "aspect_ratio": {"type": "string"}}}},
     {"name": "create_ugc_plan", "description": "Create and persist a provider-neutral, no-spend UGC plan receipt with workspace-scoped idempotency.", "inputSchema": _UGC_PLAN_SCHEMA},
     {"name": "get_ugc_plan", "description": "Read one canonical UGC plan receipt inside the configured workspace.", "inputSchema": {"type": "object", "required": ["plan_id"], "properties": {"plan_id": {"type": "string", "format": "uuid"}}}},
+    {"name": "analyze_reference_ad", "description": "Analyze a rights-authorized reference ad into mechanics and persist control plus two original no-spend UGC plans.", "inputSchema": _REFERENCE_SCHEMA},
+    {"name": "get_reference_strategy", "description": "Read one reference strategy receipt and its linked variant plans inside the configured workspace.", "inputSchema": {"type": "object", "required": ["receipt_id"], "properties": {"receipt_id": {"type": "string", "format": "uuid"}}}},
     {"name": "create_ugc_ad_factory_plan", "description": "Turn product truth into a gated two-clip UGC production plan with cost estimate and continuity rules. This does not spend.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism"], "properties": _FACTORY_PROPERTIES}},
     {"name": "execute_ugc_ad_factory", "description": "Execute a full two-clip UGC ad to a durable final asset. Requires explicit approval and an active paid wallet; provider spend is reserved server-side before generation.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism", "wallet_id", "approved"], "properties": {**_FACTORY_PROPERTIES, "wallet_id": {"type": "string"}, "approved": {"type": "boolean"}}}},
     {"name": "list_social_accounts", "description": "List social accounts from the optional downstream publishing integration.", "inputSchema": {"type": "object", "properties": {}}},
@@ -154,6 +158,10 @@ async def mcp(request: Request) -> JSONResponse:
             value = await create_ugc_plan(UGCPlanDraft(**args))
         elif name == "get_ugc_plan":
             value = await get_ugc_plan(str(args.get("plan_id", "")))
+        elif name == "analyze_reference_ad":
+            value = await analyze_reference_ad(ReferenceAdIntake(**args))
+        elif name == "get_reference_strategy":
+            value = await get_reference_strategy(str(args.get("receipt_id", "")))
         elif name == "create_ugc_ad_factory_plan":
             value = build_ugc_factory_plan(UGCFactoryBrief(**args))
         elif name == "execute_ugc_ad_factory":
