@@ -13,8 +13,10 @@ from fastapi.responses import JSONResponse
 
 from ..services.asset_storage import get_asset_storage
 from ..services.integration_auth import verify_operator
+from ..services.media_contracts import UGCPlanDraft
 from ..services.media_generation import get_media_provider
 from ..services.media_ops import get_media_ops
+from ..services.media_receipts import create_ugc_plan, get_ugc_plan
 from ..services.pricing import public_pricing
 from ..services.publishing import PublishRequest, get_publisher
 from ..services.social_drop import SocialDrop, platform_payload
@@ -39,6 +41,8 @@ _FACTORY_PROPERTIES = {
     "visual_lane": {"type": "string"},
 }
 
+_UGC_PLAN_SCHEMA = UGCPlanDraft.model_json_schema()
+
 MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "studio_status", "description": "Return canonical media, storage, ledger, pricing, publishing and approval status.", "inputSchema": {"type": "object", "properties": {}}},
     {"name": "get_pricing", "description": "Return configured package economics and the standard generation cost ceiling.", "inputSchema": {"type": "object", "properties": {}}},
@@ -47,6 +51,8 @@ MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "get_usage_wallet", "description": "Get the remaining generation allowance, provider-cost budget, state and expiration for a server-owned wallet.", "inputSchema": {"type": "object", "required": ["wallet_id"], "properties": {"wallet_id": {"type": "string"}}}},
     {"name": "create_campaign_plan", "description": "Create and persist a bounded social campaign plan from a brand objective.", "inputSchema": {"type": "object", "required": ["brand", "objective"], "properties": {"brand": {"type": "string"}, "objective": {"type": "string"}, "audience": {"type": "string"}, "offer": {"type": "string"}, "duration_days": {"type": "integer", "minimum": 1, "maximum": 30}, "platforms": {"type": "array", "items": {"type": "string"}}}}},
     {"name": "create_ugc_prompt", "description": "Compile a no-spend UGC video prompt from a structured brief.", "inputSchema": {"type": "object", "required": ["idea"], "properties": {"idea": {"type": "string"}, "product": {"type": "string"}, "camera": {"type": "string"}, "subject": {"type": "string"}, "environment": {"type": "string"}, "lighting": {"type": "string"}, "style": {"type": "string"}, "motion": {"type": "string"}, "dialogue": {"type": ["string", "null"]}, "platform": {"type": "string"}, "aspect_ratio": {"type": "string"}}}},
+    {"name": "create_ugc_plan", "description": "Create and persist a provider-neutral, no-spend UGC plan receipt with workspace-scoped idempotency.", "inputSchema": _UGC_PLAN_SCHEMA},
+    {"name": "get_ugc_plan", "description": "Read one canonical UGC plan receipt inside the configured workspace.", "inputSchema": {"type": "object", "required": ["plan_id"], "properties": {"plan_id": {"type": "string", "format": "uuid"}}}},
     {"name": "create_ugc_ad_factory_plan", "description": "Turn product truth into a gated two-clip UGC production plan with cost estimate and continuity rules. This does not spend.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism"], "properties": _FACTORY_PROPERTIES}},
     {"name": "execute_ugc_ad_factory", "description": "Execute a full two-clip UGC ad to a durable final asset. Requires explicit approval and an active paid wallet; provider spend is reserved server-side before generation.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism", "wallet_id", "approved"], "properties": {**_FACTORY_PROPERTIES, "wallet_id": {"type": "string"}, "approved": {"type": "boolean"}}}},
     {"name": "list_social_accounts", "description": "List social accounts from the optional downstream publishing integration.", "inputSchema": {"type": "object", "properties": {}}},
@@ -144,6 +150,10 @@ async def mcp(request: Request) -> JSONResponse:
             value = {"ok": not bool(persisted.get("ledger_error")), "plan": plan, "ledger": persisted}
         elif name == "create_ugc_prompt":
             value = {"ok": True, "prompt": compile_video_prompt(VideoPromptInput(**args)), "paid_generation": False}
+        elif name == "create_ugc_plan":
+            value = await create_ugc_plan(UGCPlanDraft(**args))
+        elif name == "get_ugc_plan":
+            value = await get_ugc_plan(str(args.get("plan_id", "")))
         elif name == "create_ugc_ad_factory_plan":
             value = build_ugc_factory_plan(UGCFactoryBrief(**args))
         elif name == "execute_ugc_ad_factory":
