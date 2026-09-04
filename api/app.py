@@ -26,6 +26,7 @@ from .routers import (
     media_receipts,
     money_loop,
     pipeline,
+    reference_ads,
     settings as settings_router,
     shopify_webhooks,
     studio,
@@ -83,6 +84,7 @@ app.include_router(voice.router)
 app.include_router(discovery.router)
 app.include_router(studio.router)
 app.include_router(media_receipts.router)
+app.include_router(reference_ads.router)
 app.include_router(money_loop.router)
 app.include_router(hermes_bridge.router)
 app.include_router(shopify_webhooks.router)

@@ -48,7 +48,7 @@ jobs:
           );
           SQL
 
-      - name: Apply canonical self-host schema through U1 twice
+      - name: Apply canonical self-host schema through Phase 02 twice
         run: |
           for pass in 1 2; do
             echo "Self-host schema pass $pass"
@@ -59,25 +59,30 @@ jobs:
               supabase/migrations/010_buffer_blaster_default_workspace.sql \
               supabase/migrations/011_money_loop_experiments.sql \
               supabase/migrations/012_selfhost_postgrest_access.sql \
-              supabase/migrations/013_ugc_canonical_receipts.sql; do
+              supabase/migrations/013_ugc_canonical_receipts.sql \
+              supabase/migrations/014_reference_strategy_receipts.sql; do
               psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -v ON_ERROR_STOP=1 -f "$migration"
             done
           done
 
-      - name: Verify money-loop and U1 receipts RLS ids and service-role grants
+      - name: Verify money-loop and media receipts RLS ids grants and reference strategy metadata
         run: |
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select count(*) from information_schema.tables where table_schema='buffer_blaster' and table_name in ('experiments','experiment_variants','attribution_events','money_loop_receipts')")" = "4"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select count(*) from information_schema.tables where table_schema='buffer_blaster' and table_name in ('creative_sources','strategy_receipts','ugc_plans','media_takes')")" = "4"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select data_type from information_schema.columns where table_schema='buffer_blaster' and table_name='campaigns' and column_name='id'")" = "text"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select data_type from information_schema.columns where table_schema='buffer_blaster' and table_name='ugc_plans' and column_name='plan_id'")" = "uuid"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select count(*) from information_schema.columns where table_schema='buffer_blaster' and table_name='strategy_receipts' and column_name in ('idempotency_key','metadata')")" = "2"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select count(*) from pg_indexes where schemaname='buffer_blaster' and tablename='strategy_receipts' and indexname='strategy_receipts_workspace_idempotency_uq'")" = "1"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select data_type from information_schema.columns where table_schema='buffer_blaster' and table_name='performance_events' and column_name='value'")" = "numeric"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='buffer_blaster' and c.relname='experiments'")" = "t"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='buffer_blaster' and c.relname in ('creative_sources','strategy_receipts','ugc_plans','media_takes') and c.relrowsecurity")" = "4"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_schema_privilege('service_role','buffer_blaster','USAGE')")" = "t"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_table_privilege('service_role','buffer_blaster.experiments','SELECT,INSERT,UPDATE,DELETE')")" = "t"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_table_privilege('service_role','buffer_blaster.ugc_plans','SELECT,INSERT,UPDATE,DELETE')")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_table_privilege('service_role','buffer_blaster.strategy_receipts','SELECT,INSERT,UPDATE,DELETE')")" = "t"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_table_privilege('anon','buffer_blaster.experiments','SELECT')")" = "f"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_table_privilege('anon','buffer_blaster.ugc_plans','SELECT')")" = "f"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_phase4 -Atc "select has_table_privilege('anon','buffer_blaster.strategy_receipts','SELECT')")" = "f"
 
       - name: Verify self-host compose is container-network safe
         run: |
