@@ -64,8 +64,17 @@ def receipt_backend_status() -> dict[str, Any]:
     if _supabase_configured():
         return {"backend": "supabase", "persistent": True, "canonical": True}
     if os.getenv("REDIS_URL"):
-        return {"backend": "redis", "persistent": True, "canonical": True, "degraded_from": "supabase"}
+        return {"backend": "redis", "persistent": True, "canonical": False, "degraded_from": "supabase"}
     return {"backend": "unavailable", "persistent": False, "canonical": False}
+
+
+def _workspace_error() -> dict[str, Any]:
+    return {
+        "ok": False,
+        "error": "canonical_workspace_not_configured",
+        "paid_generation": False,
+        "backend": "unavailable",
+    }
 
 
 async def _get_supabase_plan_by_idempotency(workspace_id: UUID, idempotency_key: str) -> dict[str, Any] | None:
@@ -87,7 +96,10 @@ async def _get_supabase_plan_by_idempotency(workspace_id: UUID, idempotency_key:
 
 async def create_ugc_plan(draft: UGCPlanDraft) -> dict[str, Any]:
     """Persist one no-spend UGC plan with workspace-scoped idempotency."""
-    workspace_id = _workspace_id()
+    try:
+        workspace_id = _workspace_id()
+    except RuntimeError:
+        return _workspace_error()
     record = UGCPlan(workspace_id=workspace_id, **draft.model_dump()).model_dump(mode="json")
 
     if _supabase_configured():
@@ -157,9 +169,15 @@ async def create_ugc_plan(draft: UGCPlanDraft) -> dict[str, Any]:
         if not inserted:
             existing_raw = await client.get(idempotency_key)
             if existing_raw:
+                existing = json.loads(existing_raw)
+                existing_plan_id = existing.get("plan_id")
+                if existing_plan_id:
+                    # Repair the secondary lookup if a prior process died after
+                    # the idempotency write but before writing the plan key.
+                    await client.set(f"{_REDIS_PLAN_PREFIX}:{workspace_id}:{existing_plan_id}", existing_raw)
                 return {
                     "ok": True,
-                    "plan": json.loads(existing_raw),
+                    "plan": existing,
                     "created": False,
                     "idempotent_replay": True,
                     "paid_generation": False,
@@ -189,7 +207,10 @@ async def create_ugc_plan(draft: UGCPlanDraft) -> dict[str, Any]:
 
 async def get_ugc_plan(plan_id: str | UUID) -> dict[str, Any]:
     """Read one plan only inside the configured workspace boundary."""
-    workspace_id = _workspace_id()
+    try:
+        workspace_id = _workspace_id()
+    except RuntimeError:
+        return {**_workspace_error(), "plan": None}
     try:
         normalized_plan_id = UUID(str(plan_id))
     except ValueError:
