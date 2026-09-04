@@ -3,10 +3,15 @@
 -- Additive and idempotent. RLS is enabled with no public policies; migration
 -- 012 default privileges keep backend service-role access for future tables.
 
+-- Composite uniqueness lets new receipt foreign keys enforce workspace
+-- isolation even when the backend service role bypasses RLS.
+CREATE UNIQUE INDEX IF NOT EXISTS clients_workspace_id_id_uq
+  ON buffer_blaster.clients (workspace_id, id);
+
 CREATE TABLE IF NOT EXISTS buffer_blaster.creative_sources (
   source_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES buffer_blaster.workspaces(id) ON DELETE CASCADE,
-  client_id uuid REFERENCES buffer_blaster.clients(id) ON DELETE SET NULL,
+  client_id uuid,
   kind text NOT NULL CHECK (kind IN ('product_image','creator_image','reference_ad','source_video','source_audio','brand_asset','url')),
   uri text,
   storage_key text,
@@ -18,6 +23,9 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.creative_sources (
   provider_export_allowed boolean NOT NULL DEFAULT false,
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (workspace_id, source_id),
+  FOREIGN KEY (workspace_id, client_id)
+    REFERENCES buffer_blaster.clients (workspace_id, id) ON DELETE RESTRICT,
   CHECK (uri IS NOT NULL OR storage_key IS NOT NULL),
   CHECK (kind NOT IN ('creator_image','source_audio') OR consent_state <> 'not_applicable'),
   CHECK (NOT provider_export_allowed OR consent_state <> 'denied')
@@ -26,7 +34,7 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.creative_sources (
 CREATE TABLE IF NOT EXISTS buffer_blaster.strategy_receipts (
   receipt_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES buffer_blaster.workspaces(id) ON DELETE CASCADE,
-  client_id uuid REFERENCES buffer_blaster.clients(id) ON DELETE SET NULL,
+  client_id uuid,
   source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
   source_hashes jsonb NOT NULL DEFAULT '[]'::jsonb,
   hook_mechanic text NOT NULL DEFAULT '',
@@ -43,6 +51,9 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.strategy_receipts (
   recommended_test_variable text NOT NULL DEFAULT '',
   model_provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (workspace_id, receipt_id),
+  FOREIGN KEY (workspace_id, client_id)
+    REFERENCES buffer_blaster.clients (workspace_id, id) ON DELETE RESTRICT,
   CHECK (jsonb_typeof(source_refs) = 'array'),
   CHECK (jsonb_array_length(source_refs) > 0),
   CHECK (jsonb_typeof(source_hashes) = 'array'),
@@ -54,11 +65,11 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.strategy_receipts (
 CREATE TABLE IF NOT EXISTS buffer_blaster.ugc_plans (
   plan_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES buffer_blaster.workspaces(id) ON DELETE CASCADE,
-  client_id uuid REFERENCES buffer_blaster.clients(id) ON DELETE SET NULL,
+  client_id uuid,
   product_source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
-  creator_source_ref uuid REFERENCES buffer_blaster.creative_sources(source_id) ON DELETE SET NULL,
+  creator_source_ref uuid,
   setting_style_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
-  strategy_receipt_ref uuid REFERENCES buffer_blaster.strategy_receipts(receipt_id) ON DELETE SET NULL,
+  strategy_receipt_ref uuid,
   script text NOT NULL,
   shot_plan jsonb NOT NULL DEFAULT '[]'::jsonb,
   aspect_ratio text NOT NULL DEFAULT '9:16' CHECK (aspect_ratio IN ('9:16','16:9','1:1','4:5')),
@@ -72,7 +83,14 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.ugc_plans (
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (workspace_id, plan_id),
   UNIQUE (workspace_id, idempotency_key),
+  FOREIGN KEY (workspace_id, client_id)
+    REFERENCES buffer_blaster.clients (workspace_id, id) ON DELETE RESTRICT,
+  FOREIGN KEY (workspace_id, creator_source_ref)
+    REFERENCES buffer_blaster.creative_sources (workspace_id, source_id) ON DELETE RESTRICT,
+  FOREIGN KEY (workspace_id, strategy_receipt_ref)
+    REFERENCES buffer_blaster.strategy_receipts (workspace_id, receipt_id) ON DELETE RESTRICT,
   CHECK (jsonb_typeof(product_source_refs) = 'array'),
   CHECK (jsonb_array_length(product_source_refs) > 0),
   CHECK (jsonb_typeof(setting_style_refs) = 'array'),
@@ -85,8 +103,8 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.ugc_plans (
 CREATE TABLE IF NOT EXISTS buffer_blaster.media_takes (
   take_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES buffer_blaster.workspaces(id) ON DELETE CASCADE,
-  plan_id uuid NOT NULL REFERENCES buffer_blaster.ugc_plans(plan_id) ON DELETE CASCADE,
-  parent_take_id uuid REFERENCES buffer_blaster.media_takes(take_id) ON DELETE SET NULL,
+  plan_id uuid NOT NULL,
+  parent_take_id uuid,
   source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
   provider text NOT NULL,
   model_name text NOT NULL,
@@ -102,6 +120,11 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.media_takes (
   finish_state text NOT NULL DEFAULT 'raw' CHECK (finish_state IN ('raw','processing','finished','failed')),
   provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (workspace_id, take_id),
+  FOREIGN KEY (workspace_id, plan_id)
+    REFERENCES buffer_blaster.ugc_plans (workspace_id, plan_id) ON DELETE CASCADE,
+  FOREIGN KEY (workspace_id, parent_take_id)
+    REFERENCES buffer_blaster.media_takes (workspace_id, take_id) ON DELETE RESTRICT,
   CHECK (jsonb_typeof(source_refs) = 'array')
 );
 
@@ -112,7 +135,7 @@ CREATE INDEX IF NOT EXISTS strategy_receipts_workspace_created_idx
 CREATE INDEX IF NOT EXISTS ugc_plans_workspace_created_idx
   ON buffer_blaster.ugc_plans (workspace_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS media_takes_plan_created_idx
-  ON buffer_blaster.media_takes (plan_id, created_at DESC);
+  ON buffer_blaster.media_takes (workspace_id, plan_id, created_at DESC);
 
 ALTER TABLE buffer_blaster.creative_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE buffer_blaster.strategy_receipts ENABLE ROW LEVEL SECURITY;
