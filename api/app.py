@@ -23,6 +23,7 @@ from .routers import (
     discovery,
     hermes_bridge,
     mcp,
+    media_receipts,
     money_loop,
     pipeline,
     settings as settings_router,
@@ -81,6 +82,7 @@ app.include_router(blog.router)
 app.include_router(voice.router)
 app.include_router(discovery.router)
 app.include_router(studio.router)
+app.include_router(media_receipts.router)
 app.include_router(money_loop.router)
 app.include_router(hermes_bridge.router)
 app.include_router(shopify_webhooks.router)

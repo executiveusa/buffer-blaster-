@@ -1,0 +1,36 @@
+{
+  "change": "u1-canonical-media-contracts",
+  "baseline_main_sha": "211e1e5926cfc2130f004d90adbbdf4727ad1669",
+  "branch": "feat/u1-canonical-media-contracts",
+  "classification": "additive_receipt_foundation",
+  "application_rollback": {
+    "strategy": "revert_the_single_u1_squash_merge",
+    "restores": [
+      "pre_u1_rest_surface",
+      "pre_u1_mcp_tool_list",
+      "pre_u1_cli_commands"
+    ]
+  },
+  "database_rollback": {
+    "destructive_sql": false,
+    "strategy": "leave_013_receipt_tables_in_place_during_emergency_application_rollback",
+    "reason": "the migration is additive and may contain provenance or rights receipts; deletion requires a separate explicit retention decision"
+  },
+  "production_mutations": {
+    "provider_change": false,
+    "wallet_change": false,
+    "publishing_change": false,
+    "frontend_change": false,
+    "secret_change": false,
+    "deployment_change": false
+  },
+  "proof_required_before_merge": [
+    "python_tests",
+    "fresh_schema_applied_twice",
+    "new_receipt_tables_rls",
+    "workspace_idempotency_constraint",
+    "rest_mcp_roundtrip",
+    "cli_route_parity",
+    "independent_vibe_code_review"
+  ]
+}

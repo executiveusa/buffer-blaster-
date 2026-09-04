@@ -65,15 +65,19 @@ jobs:
               supabase/migrations/007_buffer_blaster_schema.sql \
               supabase/migrations/008_buffer_blaster_beta_scale.sql \
               supabase/migrations/009_buffer_blaster_storage.sql \
-              supabase/migrations/010_buffer_blaster_default_workspace.sql; do
+              supabase/migrations/010_buffer_blaster_default_workspace.sql \
+              supabase/migrations/013_ugc_canonical_receipts.sql; do
               psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -v ON_ERROR_STOP=1 -f "$migration"
             done
           done
-      - name: Verify canonical tables workspace RLS and private bucket
+      - name: Verify canonical tables workspace RLS receipts and private bucket
         run: |
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select count(*) from buffer_blaster.workspaces where id='00000000-0000-0000-0000-000000000001'::uuid")" = "1"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select count(*) from information_schema.tables where table_schema='buffer_blaster' and table_name in ('creative_jobs','usage_wallets','checkout_receipts','performance_events','source_assets')")" = "5"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select count(*) from information_schema.tables where table_schema='buffer_blaster' and table_name in ('creative_sources','strategy_receipts','ugc_plans','media_takes')")" = "4"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='buffer_blaster' and c.relname='creative_jobs'")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='buffer_blaster' and c.relname in ('creative_sources','strategy_receipts','ugc_plans','media_takes') and c.relrowsecurity")" = "4"
+          test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select count(*) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='buffer_blaster' and c.relname='ugc_plans' and con.contype='u' and pg_get_constraintdef(con.oid) like '%workspace_id, idempotency_key%'")" = "1"
           test "$(psql -h 127.0.0.1 -U postgres -d buffer_blaster_ci -Atc "select public from storage.buckets where id='buffer-blaster-assets'")" = "f"
 
   selfhost-package:
