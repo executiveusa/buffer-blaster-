@@ -1,0 +1,43 @@
+name: Autonomous finish loop validation
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/production/autonomous_finish_loop.sh'
+      - 'docs/AUTONOMOUS_FINISH_LOOP.md'
+      - 'docs/autonomous/**'
+      - '.ralphy/config.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/production/autonomous_finish_loop.sh'
+      - 'docs/AUTONOMOUS_FINISH_LOOP.md'
+      - 'docs/autonomous/**'
+      - '.ralphy/config.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate shell syntax
+        run: bash -n scripts/production/autonomous_finish_loop.sh
+      - name: Validate phase contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          phases = sorted(Path('docs/autonomous').glob('phase-*.md'))
+          assert len(phases) == 8, f'expected 8 phase PRDs, got {len(phases)}'
+          controller = Path('scripts/production/autonomous_finish_loop.sh').read_text()
+          for phase in phases:
+              text = phase.read_text()
+              assert '- [ ]' in text or '- [x]' in text, f'{phase} has no acceptance ledger'
+              assert str(phase) in controller, f'{phase} is not routed by controller'
+          contract = Path('docs/AUTONOMOUS_FINISH_LOOP.md').read_text()
+          for token in ('Ralphy', 'Unlazy', 'Gauntlet Loop', 'main', 'AUTONOMOUS_FINISH_VERIFIED'):
+              assert token in contract, f'missing contract token: {token}'
+          print('AUTONOMOUS_LOOP_STRUCTURE_OK')
+          PY
