@@ -22,7 +22,9 @@ PHASES=(
 log(){ printf '[autofinish] %s\n' "$*"; }
 die(){ printf '[autofinish] ERROR: %s\n' "$*" >&2; exit 1; }
 
-for cmd in git python npm docker gh gemini npx; do command -v "$cmd" >/dev/null 2>&1 || die "$cmd is required"; done
+for cmd in git python npm docker gh gemini npx; do
+  command -v "$cmd" >/dev/null 2>&1 || die "$cmd is required"
+done
 if command -v ralphy >/dev/null 2>&1; then RALPHY=(ralphy); else RALPHY=(npx -y ralphy-cli); fi
 
 install_skill(){
@@ -30,7 +32,6 @@ install_skill(){
   (cd "$HOME" && npx -y skills add "$repo" -y --all) >/tmp/buffer-blaster-skill-install.log 2>&1 || die "failed to install required skill $repo"
 }
 
-# Completion, simplification, prose, and independent-critic disciplines.
 install_skill Leonxlnx/unlazy
 install_skill DietrichGebert/ponytail
 install_skill blader/humanizer
@@ -66,11 +67,11 @@ run_post_merge_proof(){
 verify_external_review_failure(){
   local name="$1" link="$2" run_id
   run_id="$(printf '%s' "$link" | sed -nE 's#.*actions/runs/([0-9]+).*#\1#p')"
-  [[ -n "$run_id" ]] || die "$name failed but no review run id could be proven"
-  if ! gh run view "$run_id" --log 2>/dev/null | grep -q 'github_models_retirement_brownout'; then
+  [[ -n "$run_id" ]] || die "$name failed but no Actions run id could be proven"
+  gh run view "$run_id" --log >/tmp/buffer-blaster-review-failure.log 2>&1 || true
+  grep -q 'github_models_retirement_brownout' /tmp/buffer-blaster-review-failure.log || \
     die "$name failed for a reason other than the known GitHub Models retirement brownout"
-  fi
-  log "$name is externally blocked by the proven GitHub Models retirement brownout; not counted as a clean review"
+  log "$name is a proven external retirement-brownout failure; it is not counted as a clean review"
 }
 
 wait_for_ci(){
@@ -80,28 +81,44 @@ wait_for_ci(){
   local watch_rc=$?
   set -e
 
-  local checks
+  local checks external_file
   checks="$(gh pr checks "$pr" --json name,bucket,state,link 2>/dev/null || echo '[]')"
-  python - "$checks" <<'PY'
-import json,sys
-rows=json.loads(sys.argv[1])
-allowed=('OpenCodeReview','Vibe Code Review')
-material=[]
-for r in rows:
-    bucket=str(r.get('bucket','')).lower(); state=str(r.get('state','')).lower(); name=str(r.get('name',''))
-    failed=bucket in {'fail','cancel'} or state in {'failure','cancelled','error'}
-    if failed and not any(x.lower() in name.lower() for x in allowed):
-        material.append((name,bucket or state))
+  external_file="/tmp/buffer-blaster-external-review-failures.tsv"
+
+  python - "$checks" "$external_file" <<'PY'
+import json, sys
+rows = json.loads(sys.argv[1])
+external_path = sys.argv[2]
+allowed = ('OpenCodeReview', 'Vibe Code Review')
+material = []
+external = []
+for row in rows:
+    bucket = str(row.get('bucket', '')).lower()
+    state = str(row.get('state', '')).lower()
+    name = str(row.get('name', ''))
+    failed = bucket in {'fail', 'cancel'} or state in {'failure', 'cancelled', 'error'}
+    if not failed:
+        continue
+    if any(token.lower() in name.lower() for token in allowed):
+        external.append((name, str(row.get('link', ''))))
+    else:
+        material.append((name, bucket or state))
 if material:
-    print('Material CI failures:', material, file=sys.stderr); raise SystemExit(1)
+    print(f'Material CI failures: {material}', file=sys.stderr)
+    raise SystemExit(1)
+with open(external_path, 'w', encoding='utf-8') as fh:
+    for name, link in external:
+        fh.write(f'{name}\t{link}\n')
 PY
 
   while IFS=$'\t' read -r name link; do
     [[ -z "$name" ]] && continue
     verify_external_review_failure "$name" "$link"
-  done < <(printf '%s' "$checks" | python -c 'import json,sys,re; rows=json.load(sys.stdin); [print(f"{r.get(chr(110)+chr(97)+chr(109)+chr(101), chr(63))}\t{r.get(chr(108)+chr(105)+chr(110)+chr(107), chr(39)+chr(39))}") for r in rows if (str(r.get("bucket","")).lower() in {"fail","cancel"} or str(r.get("state","")).lower() in {"failure","cancelled","error"}) and re.search(r"OpenCodeReview|Vibe Code Review", str(r.get("name","")), re.I)]')
+  done <"$external_file"
 
-  if (( watch_rc != 0 )); then log "CI watch returned non-zero; all failed checks were either material-blocking or proven external brownouts"; fi
+  if (( watch_rc != 0 )); then
+    log "CI watch returned non-zero; no material failure remains and every tolerated review failure was independently proven external"
+  fi
 }
 
 for entry in "${PHASES[@]}"; do
@@ -123,7 +140,8 @@ for entry in "${PHASES[@]}"; do
   branch="autofinish/phase-${num}-${slug}"
   git checkout -B "$branch" origin/main
 
-  last=""; stalled=0
+  last=""
+  stalled=0
   for ((cycle=1; cycle<=MAX_CYCLES; cycle++)); do
     if ! grep -qE '^- \[ \]' "$prd"; then break; fi
     fingerprint="$(sha256sum "$prd" | awk '{print $1}')-$(git rev-parse HEAD)"
@@ -144,7 +162,9 @@ for entry in "${PHASES[@]}"; do
   log "phase $num deterministic gates"
   run_repo_gates
 
-  if git status --porcelain | grep -Eq '(^|/)(\.env($|\.)|.*\.pem$|.*\.key$|secrets/)'; then die "phase $num touched a secret-like path"; fi
+  if git status --porcelain | grep -Eq '(^|/)(\.env($|\.)|.*\.pem$|.*\.key$|secrets/)'; then
+    die "phase $num touched a secret-like path"
+  fi
 
   if [[ -n "$(git status --porcelain)" ]]; then
     git add -A
