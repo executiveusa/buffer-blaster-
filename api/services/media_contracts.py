@@ -59,10 +59,13 @@ class CreativeSource(BaseModel):
     def validate_source_boundary(self) -> "CreativeSource":
         if not self.uri and not self.storage_key:
             raise ValueError("creative source requires uri or storage_key")
-        if self.kind in {"creator_image", "source_audio"} and self.consent_state == "not_applicable":
+        person_or_voice = self.kind in {"creator_image", "source_audio"}
+        if person_or_voice and self.consent_state == "not_applicable":
             raise ValueError("creator/voice source requires explicit consent_state")
-        if self.provider_export_allowed and self.consent_state == "denied":
-            raise ValueError("provider export cannot be allowed when consent is denied")
+        if self.provider_export_allowed and self.rights_state not in {"owned", "licensed"}:
+            raise ValueError("provider export requires owned or licensed rights")
+        if person_or_voice and self.provider_export_allowed and self.consent_state != "granted":
+            raise ValueError("creator/voice provider export requires granted consent")
         return self
 
 
