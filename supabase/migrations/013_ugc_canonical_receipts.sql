@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.creative_sources (
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK (uri IS NOT NULL OR storage_key IS NOT NULL),
+  CHECK (kind NOT IN ('creator_image','source_audio') OR consent_state <> 'not_applicable'),
   CHECK (NOT provider_export_allowed OR consent_state <> 'denied')
 );
 
@@ -43,7 +44,11 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.strategy_receipts (
   model_provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK (jsonb_typeof(source_refs) = 'array'),
-  CHECK (jsonb_array_length(source_refs) > 0)
+  CHECK (jsonb_array_length(source_refs) > 0),
+  CHECK (jsonb_typeof(source_hashes) = 'array'),
+  CHECK (jsonb_typeof(shot_logic) = 'array'),
+  CHECK (jsonb_typeof(claims_brand_risks) = 'array'),
+  CHECK (jsonb_typeof(originality_transformations) = 'array')
 );
 
 CREATE TABLE IF NOT EXISTS buffer_blaster.ugc_plans (
@@ -70,8 +75,10 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.ugc_plans (
   UNIQUE (workspace_id, idempotency_key),
   CHECK (jsonb_typeof(product_source_refs) = 'array'),
   CHECK (jsonb_array_length(product_source_refs) > 0),
+  CHECK (jsonb_typeof(setting_style_refs) = 'array'),
   CHECK (jsonb_typeof(shot_plan) = 'array'),
   CHECK (jsonb_array_length(shot_plan) > 0),
+  CHECK (jsonb_typeof(consent_rights_refs) = 'array'),
   CHECK (creator_source_ref IS NULL OR jsonb_array_length(consent_rights_refs) > 0)
 );
 
@@ -94,7 +101,8 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.media_takes (
   derivation_state text NOT NULL DEFAULT 'generated' CHECK (derivation_state IN ('generated','derived')),
   finish_state text NOT NULL DEFAULT 'raw' CHECK (finish_state IN ('raw','processing','finished','failed')),
   provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (jsonb_typeof(source_refs) = 'array')
 );
 
 CREATE INDEX IF NOT EXISTS creative_sources_workspace_created_idx
@@ -114,4 +122,4 @@ ALTER TABLE buffer_blaster.media_takes ENABLE ROW LEVEL SECURITY;
 COMMENT ON TABLE buffer_blaster.creative_sources IS 'Canonical rights-aware media/evidence entering Buffer Blaster.';
 COMMENT ON TABLE buffer_blaster.strategy_receipts IS 'Provider-neutral creative strategy analysis receipt.';
 COMMENT ON TABLE buffer_blaster.ugc_plans IS 'Provider-neutral no-spend plan and approval/cost boundary before generation.';
-COMMENT ON TABLE buffer_blaster.media_takes IS 'Immutable generated or derived media take lineage; takes never overwrite one another.';
+COMMENT ON TABLE buffer_blaster.media_takes IS 'Generated or derived media-take lineage. Each new take receives its own identity rather than replacing a prior take.';
