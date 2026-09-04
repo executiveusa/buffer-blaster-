@@ -18,6 +18,7 @@
 | Product boundaries | `docs/APP_BOUNDARIES.md` |
 | Agent interfaces | `docs/AGENT_INTERFACES.md` |
 | Current positioning | `docs/POSITIONING.md` |
+| UGC upstream provenance / generation architecture | `docs/UGC_REFERENCE_MANIFEST.md` + `docs/UGC_EVOLUTION_PLAN.md` |
 
 ## Canonical interfaces
 - UI: `frontend/`
@@ -37,4 +38,5 @@ Agents may research, draft, prepare, test, and verify. Paid generation, publishi
 - No client-data mixing.
 - No hardcoded provider/model IDs.
 - Do not merge another application's identity, data, secrets, or runtime into Buffer Blaster.
+- Upstream UGC repositories are reference inputs, not implicit dependencies. Trace any adopted pattern/code/model to `docs/UGC_REFERENCE_MANIFEST.md` and its exact pinned revision/path before implementation.
 - Use the smallest change that produces verified value.
