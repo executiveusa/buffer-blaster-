@@ -22,12 +22,12 @@ PHASES=(
 log(){ printf '[autofinish] %s\n' "$*"; }
 die(){ printf '[autofinish] ERROR: %s\n' "$*" >&2; exit 1; }
 
-for cmd in git python npm docker gh gemini; do command -v "$cmd" >/dev/null 2>&1 || die "$cmd is required"; done
-if command -v ralphy >/dev/null 2>&1; then RALPHY=(ralphy); else command -v npx >/dev/null || die "ralphy or npx required"; RALPHY=(npx -y ralphy-cli); fi
+for cmd in git python npm docker gh gemini npx; do command -v "$cmd" >/dev/null 2>&1 || die "$cmd is required"; done
+if command -v ralphy >/dev/null 2>&1; then RALPHY=(ralphy); else RALPHY=(npx -y ralphy-cli); fi
 
 install_skill(){
   local repo="$1"
-  npx -y skills add "$repo" -y --all >/tmp/buffer-blaster-skill-install.log 2>&1 || die "failed to install required skill $repo"
+  (cd "$HOME" && npx -y skills add "$repo" -y --all) >/tmp/buffer-blaster-skill-install.log 2>&1 || die "failed to install required skill $repo"
 }
 
 # Completion, simplification, prose, and independent-critic disciplines.
@@ -59,8 +59,18 @@ run_repo_gates(){
 
 run_post_merge_proof(){
   python -m pytest tests -q
-  if [[ -f scripts/selfhost/smoke.sh ]]; then bash scripts/selfhost/smoke.sh; fi
-  if [[ -f scripts/production/verify.py ]]; then python scripts/production/verify.py identity || true; fi
+  bash scripts/selfhost/smoke.sh
+  python scripts/production/verify.py identity
+}
+
+verify_external_review_failure(){
+  local name="$1" link="$2" run_id
+  run_id="$(printf '%s' "$link" | sed -nE 's#.*actions/runs/([0-9]+).*#\1#p')"
+  [[ -n "$run_id" ]] || die "$name failed but no review run id could be proven"
+  if ! gh run view "$run_id" --log 2>/dev/null | grep -q 'github_models_retirement_brownout'; then
+    die "$name failed for a reason other than the known GitHub Models retirement brownout"
+  fi
+  log "$name is externally blocked by the proven GitHub Models retirement brownout; not counted as a clean review"
 }
 
 wait_for_ci(){
@@ -69,22 +79,29 @@ wait_for_ci(){
   gh pr checks "$pr" --watch
   local watch_rc=$?
   set -e
+
   local checks
-  checks="$(gh pr checks "$pr" --json name,bucket,state 2>/dev/null || echo '[]')"
+  checks="$(gh pr checks "$pr" --json name,bucket,state,link 2>/dev/null || echo '[]')"
   python - "$checks" <<'PY'
 import json,sys
 rows=json.loads(sys.argv[1])
-allowed_external=('OpenCodeReview','Vibe Code Review')
+allowed=('OpenCodeReview','Vibe Code Review')
 material=[]
 for r in rows:
     bucket=str(r.get('bucket','')).lower(); state=str(r.get('state','')).lower(); name=str(r.get('name',''))
-    if bucket in {'fail','cancel'} or state in {'failure','cancelled','error'}:
-        if any(x.lower() in name.lower() for x in allowed_external): continue
+    failed=bucket in {'fail','cancel'} or state in {'failure','cancelled','error'}
+    if failed and not any(x.lower() in name.lower() for x in allowed):
         material.append((name,bucket or state))
 if material:
     print('Material CI failures:', material, file=sys.stderr); raise SystemExit(1)
 PY
-  if (( watch_rc != 0 )); then log "CI watch returned non-zero; verified no material non-external failure remains"; fi
+
+  while IFS=$'\t' read -r name link; do
+    [[ -z "$name" ]] && continue
+    verify_external_review_failure "$name" "$link"
+  done < <(printf '%s' "$checks" | python -c 'import json,sys,re; rows=json.load(sys.stdin); [print(f"{r.get(chr(110)+chr(97)+chr(109)+chr(101), chr(63))}\t{r.get(chr(108)+chr(105)+chr(110)+chr(107), chr(39)+chr(39))}") for r in rows if (str(r.get("bucket","")).lower() in {"fail","cancel"} or str(r.get("state","")).lower() in {"failure","cancelled","error"}) and re.search(r"OpenCodeReview|Vibe Code Review", str(r.get("name","")), re.I)]')
+
+  if (( watch_rc != 0 )); then log "CI watch returned non-zero; all failed checks were either material-blocking or proven external brownouts"; fi
 }
 
 for entry in "${PHASES[@]}"; do
