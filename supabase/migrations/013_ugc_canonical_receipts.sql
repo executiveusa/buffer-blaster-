@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS buffer_blaster.creative_sources (
     REFERENCES buffer_blaster.clients (workspace_id, id) ON DELETE RESTRICT,
   CHECK (uri IS NOT NULL OR storage_key IS NOT NULL),
   CHECK (kind NOT IN ('creator_image','source_audio') OR consent_state <> 'not_applicable'),
-  CHECK (NOT provider_export_allowed OR consent_state <> 'denied')
+  CHECK (NOT provider_export_allowed OR rights_state IN ('owned','licensed')),
+  CHECK (kind NOT IN ('creator_image','source_audio') OR NOT provider_export_allowed OR consent_state = 'granted')
 );
 
 CREATE TABLE IF NOT EXISTS buffer_blaster.strategy_receipts (
