@@ -2,7 +2,7 @@
 
 The contract is intentionally small: provider adapters may translate it to
 vendor-specific payloads, while callers retain one stable receipt shape.
-Nothing in this module performs network calls or authorizes spend.
+Nothing in this module performs network calls or authorizes wallet spend.
 """
 from __future__ import annotations
 
@@ -60,8 +60,5 @@ class UGCProviderJob(BaseModel):
 
     @property
     def within_cost_ceiling(self) -> bool:
+        """Mechanical estimate check only; the server wallet remains authoritative."""
         return self.estimated_cost_cents <= self.estimated_cost_ceiling_cents
-
-    @property
-    def spend_authorized_by_contract(self) -> bool:
-        return self.approval_state == "approved" and self.within_cost_ceiling
