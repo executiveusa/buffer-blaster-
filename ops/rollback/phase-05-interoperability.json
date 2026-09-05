@@ -1,0 +1,26 @@
+{
+  "phase": "05-interoperability",
+  "baseline_main_sha": "e8262d3a600b71754df10f25e13ed842e8c68185",
+  "rollback": {
+    "application": "Revert the Phase 05 squash merge.",
+    "schema": "No schema migration in this phase.",
+    "data_loss_risk": "none"
+  },
+  "safety": {
+    "shopify_product_mutation": false,
+    "provider_spend_mutation": false,
+    "wallet_reservation_mutation": false,
+    "buffer_publish_without_approval": false,
+    "ad_activation_without_approval": false,
+    "secret_change": false
+  },
+  "proof_required": [
+    "workspace-scoped Shopify context receipt test",
+    "cross-workspace read denial test",
+    "REST MCP CLI parity test",
+    "disabled publisher fail-closed test",
+    "authenticated consequential surfaces test",
+    "experiment evidence readback parity",
+    "full repository CI"
+  ]
+}

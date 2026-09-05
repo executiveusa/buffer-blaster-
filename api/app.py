@@ -30,6 +30,7 @@ from .routers import (
     reference_ads,
     repurpose,
     settings as settings_router,
+    shopify_context,
     shopify_webhooks,
     studio,
     voice,
@@ -91,6 +92,7 @@ app.include_router(provider_routes.router)
 app.include_router(repurpose.router)
 app.include_router(money_loop.router)
 app.include_router(hermes_bridge.router)
+app.include_router(shopify_context.router)
 app.include_router(shopify_webhooks.router)
 app.include_router(assets.router)
 app.include_router(mcp.router)
