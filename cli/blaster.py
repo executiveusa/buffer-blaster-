@@ -13,6 +13,8 @@ Examples:
   python -m cli.blaster provider-route route.json
   python -m cli.blaster repurpose-plan repurpose.json
   python -m cli.blaster repurpose-get <plan-id>
+  python -m cli.blaster shopify-context product.json
+  python -m cli.blaster shopify-context-get <receipt-id>
   python -m cli.blaster ugc-execute approved-brief-with-wallet.json
   python -m cli.blaster wallet <wallet-id>
   python -m cli.blaster jobs
@@ -59,7 +61,7 @@ def _call(path: str, payload: dict | None = None) -> dict:
 
 def _help() -> None:
     print(
-        "blaster <status|pricing|campaign|ugc-prompt|ugc-plan|ugc-plan-create|ugc-plan-get|reference-analyze|reference-strategy|provider-capabilities|provider-route|repurpose-plan|repurpose-get|ugc-execute|wallet|jobs|job|accounts|schedule|mcp-info> [json-file-or-id]"
+        "blaster <status|pricing|campaign|ugc-prompt|ugc-plan|ugc-plan-create|ugc-plan-get|reference-analyze|reference-strategy|provider-capabilities|provider-route|repurpose-plan|repurpose-get|shopify-context|shopify-context-get|ugc-execute|wallet|jobs|job|accounts|schedule|mcp-info> [json-file-or-id]"
     )
 
 
@@ -96,6 +98,10 @@ def main() -> int:
         result = _call("/api/studio/repurpose/plans", _load(args[1]))
     elif command == "repurpose-get" and len(args) > 1:
         result = _call(f"/api/studio/repurpose/plans/{quote(args[1], safe='')}")
+    elif command == "shopify-context" and len(args) > 1:
+        result = _call("/api/studio/shopify/context", _load(args[1]))
+    elif command == "shopify-context-get" and len(args) > 1:
+        result = _call(f"/api/studio/shopify/context/{quote(args[1], safe='')}")
     elif command == "ugc-execute" and len(args) > 1:
         payload = _load(args[1])
         if payload.get("approved") is not True:
