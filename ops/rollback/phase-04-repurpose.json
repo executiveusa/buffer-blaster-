@@ -1,0 +1,26 @@
+{
+  "phase": "04-repurpose",
+  "baseline_main_sha": "4988a64c847b316651fa8324753d9e5074b5077b",
+  "rollback": {
+    "application": "Revert the Phase 04 squash merge.",
+    "schema": "No schema migration in this phase.",
+    "data_loss_risk": "none"
+  },
+  "safety": {
+    "transcription_provider_call": false,
+    "generation_provider_call": false,
+    "provider_spend_mutation": false,
+    "wallet_reservation_mutation": false,
+    "publishing_mutation": false,
+    "secret_change": false,
+    "deployment_change": false
+  },
+  "proof_required": [
+    "deterministic ranking test",
+    "overlap diversity test",
+    "source/transcript bounds test",
+    "idempotent replay and conflict test",
+    "REST MCP CLI parity test",
+    "full repository CI"
+  ]
+}
