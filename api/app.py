@@ -28,6 +28,7 @@ from .routers import (
     pipeline,
     provider_routes,
     reference_ads,
+    repurpose,
     settings as settings_router,
     shopify_webhooks,
     studio,
@@ -87,6 +88,7 @@ app.include_router(studio.router)
 app.include_router(media_receipts.router)
 app.include_router(reference_ads.router)
 app.include_router(provider_routes.router)
+app.include_router(repurpose.router)
 app.include_router(money_loop.router)
 app.include_router(hermes_bridge.router)
 app.include_router(shopify_webhooks.router)
