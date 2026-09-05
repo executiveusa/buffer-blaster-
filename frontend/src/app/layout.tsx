@@ -7,13 +7,20 @@ export const metadata: Metadata = {
     template: "%s · Buffer Blaster",
   },
   description:
-    "Private creative infrastructure for client teams: research, concepts, UGC production, approvals, cost controls, and evidence in one governed system.",
-  metadataBase: new URL("https://stavarai-platform.vercel.app"),
+    "Buffer Blaster turns product truth and customer signals into governed UGC creative, provider routes, approvals, and evidence. Private beta coming soon.",
+  metadataBase: new URL("https://bufferblaster.netlify.app"),
   openGraph: {
     title: "Buffer Blaster — Find the angle. Make the ad. Learn what works.",
     description:
-      "A private creative operating system for managed client work and dedicated installations — built for people and agents, with human control where it matters.",
+      "Private creative infrastructure for teams and AI agents. Join the Buffer Blaster beta.",
+    url: "https://bufferblaster.netlify.app",
+    siteName: "Buffer Blaster",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Buffer Blaster — Private beta",
+    description: "Find the angle. Make the ad. Learn what works.",
   },
 };
 
