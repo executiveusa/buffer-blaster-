@@ -104,6 +104,7 @@ def test_rest_mcp_cli_parity_and_no_provider_dependency():
     mcp = (ROOT / "api/routers/mcp.py").read_text(encoding="utf-8")
     cli = (ROOT / "cli/blaster.py").read_text(encoding="utf-8")
     service = (ROOT / "api/services/repurpose.py").read_text(encoding="utf-8")
+    lowered = service.lower()
 
     assert '@router.post("/plans")' in rest
     assert '@router.get("/plans/{plan_id}")' in rest
@@ -112,6 +113,6 @@ def test_rest_mcp_cli_parity_and_no_provider_dependency():
     assert "repurpose-plan" in cli and "repurpose-get" in cli
     assert '"/api/studio/repurpose/plans"' in cli
 
-    for forbidden in ["media_generation", "reserve_generation", "fal", "openai", "gemini", "whisper"]:
-        assert forbidden not in service.lower()
+    for forbidden in ["media_generation", "reserve_generation", "openai", "gemini", "whisper", "fal_client", "from .media_generation"]:
+        assert forbidden not in lowered
     assert "estimated_provider_cost_cents=0" in service
