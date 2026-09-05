@@ -17,6 +17,7 @@ from ..services.media_contracts import UGCPlanDraft
 from ..services.media_generation import get_media_provider
 from ..services.media_ops import get_media_ops
 from ..services.media_receipts import create_ugc_plan, get_ugc_plan
+from ..services.performance_ingestion import sync_experiment
 from ..services.pricing import public_pricing
 from ..services.provider_registry import ProviderRouteRequest, plan_provider_route, provider_registry
 from ..services.publishing import PublishRequest, get_publisher
@@ -69,6 +70,7 @@ MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "get_repurpose_plan", "description": "Read one canonical repurpose-plan receipt from the creative-job ledger.", "inputSchema": {"type": "object", "required": ["plan_id"], "properties": {"plan_id": {"type": "string"}}}},
     {"name": "create_shopify_product_context", "description": "Persist minimal Shopify product truth as a no-spend workspace-scoped creative context receipt.", "inputSchema": _SHOPIFY_CONTEXT_SCHEMA},
     {"name": "get_shopify_product_context", "description": "Read one Shopify product-context receipt inside the configured workspace.", "inputSchema": {"type": "object", "required": ["receipt_id"], "properties": {"receipt_id": {"type": "string"}}}},
+    {"name": "sync_experiment_evidence", "description": "Read provider metrics plus Shopify attribution for one workspace-scoped experiment and return the deterministic evaluation receipt. Does not launch or activate ads.", "inputSchema": {"type": "object", "required": ["experiment_id"], "properties": {"experiment_id": {"type": "string"}}}},
     {"name": "create_ugc_ad_factory_plan", "description": "Turn product truth into a gated two-clip UGC production plan with cost estimate and continuity rules. This does not spend.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism"], "properties": _FACTORY_PROPERTIES}},
     {"name": "execute_ugc_ad_factory", "description": "Execute a full two-clip UGC ad to a durable final asset. Requires explicit approval and an active paid wallet; provider spend is reserved server-side before generation.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism", "wallet_id", "approved"], "properties": {**_FACTORY_PROPERTIES, "wallet_id": {"type": "string"}, "approved": {"type": "boolean"}}}},
     {"name": "list_social_accounts", "description": "List social accounts from the optional downstream publishing integration.", "inputSchema": {"type": "object", "properties": {}}},
@@ -186,6 +188,8 @@ async def mcp(request: Request) -> JSONResponse:
             value = await create_shopify_context(ShopifyProductContextRequest(**args))
         elif name == "get_shopify_product_context":
             value = await get_shopify_context(str(args.get("receipt_id", "")))
+        elif name == "sync_experiment_evidence":
+            value = await sync_experiment(str(args.get("experiment_id", "")))
         elif name == "create_ugc_ad_factory_plan":
             value = build_ugc_factory_plan(UGCFactoryBrief(**args))
         elif name == "execute_ugc_ad_factory":
