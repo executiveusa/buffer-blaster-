@@ -1,0 +1,26 @@
+{
+  "phase": "03-avatar-routing",
+  "baseline_main_sha": "a1758efe48da680e6129de87b864a73600d126a2",
+  "rollback": {
+    "application": "Revert the Phase 03 squash merge.",
+    "schema": "No schema migration in this phase.",
+    "data_loss_risk": "none"
+  },
+  "safety": {
+    "provider_spend_mutation": false,
+    "wallet_reservation_mutation": false,
+    "publishing_mutation": false,
+    "secret_change": false,
+    "deployment_change": false
+  },
+  "proof_required": [
+    "provider fallback test",
+    "unavailable/restricted provider test",
+    "insufficient budget test",
+    "identity consent test",
+    "sovereign routing test",
+    "idempotent route receipt test",
+    "REST MCP CLI parity test",
+    "full repository CI"
+  ]
+}
