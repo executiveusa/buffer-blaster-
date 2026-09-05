@@ -182,7 +182,7 @@ def build_repurpose_plan(request: RepurposePlanRequest) -> dict[str, Any]:
     fingerprint = hashlib.sha256(
         json.dumps(fingerprint_payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
-    plan_id = str(uuid5(NAMESPACE_URL, f"buffer-blaster:repurpose:{request.idempotency_key}:{fingerprint}"))
+    plan_id = str(uuid5(NAMESPACE_URL, f"buffer-blaster:repurpose:{request.idempotency_key}"))
     return {
         "plan_id": plan_id,
         "request_fingerprint": fingerprint,
