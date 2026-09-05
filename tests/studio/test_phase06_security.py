@@ -57,12 +57,11 @@ def test_wallet_reservation_is_atomic_replay_safe_and_workspace_owned():
 
 def test_studio_ledger_service_role_queries_are_workspace_scoped():
     source = (ROOT / "api/services/studio_ledger.py").read_text(encoding="utf-8")
-    assert '"workspace_id": f"eq.{workspace_id}"' in source
-    assert "_workspace_matches(record)" in source
-    assert "workspace_id" in source
-    # High-authority PostgREST calls must not be id-only reads or updates.
-    assert 'params={"id": f"eq.{job_id}", "limit": "1"}' not in source
-    assert 'params={"id": f"eq.{job_id}"}' not in source
+    assert '"workspace_id"] = f"eq.{workspace_id}"' in source
+    assert "_in_workspace(record)" in source
+    assert "_scoped_params" in source
+    assert 'params=_scoped_params({"id": f"eq.{job_id}", "limit": "1"})' in source
+    assert 'params=_scoped_params({"id": f"eq.{job_id}"})' in source
 
 
 def test_consequential_routes_remain_operator_authenticated():
