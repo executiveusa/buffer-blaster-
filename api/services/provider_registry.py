@@ -109,7 +109,7 @@ def _supports(entry: ProviderRegistryEntry, request: ProviderRouteRequest) -> bo
     cap = entry.capabilities
     if not entry.enabled or cap.health != "ready":
         return False
-    if cap.commercial_use_status in {"restricted", "unknown"}:
+    if cap.commercial_use_status != "approved":
         return False
     if request.preference == "sovereign" and cap.deployment not in {"local", "hybrid"}:
         return False
