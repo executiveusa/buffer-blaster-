@@ -1,0 +1,18 @@
+{
+  "phase": "06-auth-budget-security",
+  "baseline_main_sha": "685068efeb2aa74a8d3d89a4ce986e53f8c4b9c7",
+  "rollback": {
+    "application": "Revert the Phase 06 squash merge if auth, workspace isolation, or wallet reservation behavior regresses.",
+    "data": "No schema migration is introduced. Do not delete wallet or creative-job receipts during rollback.",
+    "secrets": "No secret value is added or rotated by this phase."
+  },
+  "risk_controls": [
+    "Studio service-role job reads, updates and lists are workspace-scoped",
+    "Redis fallback rejects foreign-workspace records",
+    "new usage wallets carry server workspace ownership",
+    "paid UGC execution requires explicit approval and an idempotency key",
+    "wallet reservation replay cannot decrement budget twice",
+    "same reservation key with changed cost fails closed",
+    "deprecated direct paid render routes remain closed"
+  ]
+}

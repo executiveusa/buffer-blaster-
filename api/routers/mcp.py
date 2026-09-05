@@ -72,7 +72,7 @@ MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "get_shopify_product_context", "description": "Read one Shopify product-context receipt inside the configured workspace.", "inputSchema": {"type": "object", "required": ["receipt_id"], "properties": {"receipt_id": {"type": "string"}}}},
     {"name": "sync_experiment_evidence", "description": "Read provider metrics plus Shopify attribution for one workspace-scoped experiment and return the deterministic evaluation receipt. Does not launch or activate ads.", "inputSchema": {"type": "object", "required": ["experiment_id"], "properties": {"experiment_id": {"type": "string"}}}},
     {"name": "create_ugc_ad_factory_plan", "description": "Turn product truth into a gated two-clip UGC production plan with cost estimate and continuity rules. This does not spend.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism"], "properties": _FACTORY_PROPERTIES}},
-    {"name": "execute_ugc_ad_factory", "description": "Execute a full two-clip UGC ad to a durable final asset. Requires explicit approval and an active paid wallet; provider spend is reserved server-side before generation.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism", "wallet_id", "approved"], "properties": {**_FACTORY_PROPERTIES, "wallet_id": {"type": "string"}, "approved": {"type": "boolean"}}}},
+    {"name": "execute_ugc_ad_factory", "description": "Execute a full two-clip UGC ad to a durable final asset. Requires approval, an active wallet, and an idempotency key so retries cannot reserve spend twice.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism", "wallet_id", "idempotency_key", "approved"], "properties": {**_FACTORY_PROPERTIES, "wallet_id": {"type": "string"}, "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128}, "approved": {"type": "boolean"}}}},
     {"name": "list_social_accounts", "description": "List social accounts from the optional downstream publishing integration.", "inputSchema": {"type": "object", "properties": {}}},
     {"name": "schedule_social_drop", "description": "Schedule an explicitly approved Social Drop through the optional publishing boundary.", "inputSchema": {"type": "object", "required": ["id", "content", "format", "platforms", "scheduled_at", "approved"], "properties": {"id": {"type": "string"}, "content": {"type": "string"}, "format": {"type": "string"}, "platforms": {"type": "array", "items": {"type": "object"}}, "scheduled_at": {"type": "string"}, "approved": {"type": "boolean"}, "media_urls": {"type": "array", "items": {"type": "string"}}}}},
 ]
@@ -94,9 +94,12 @@ def _tool_result(value: Any, *, is_error: bool = False) -> dict[str, Any]:
 async def _execute_factory(args: dict[str, Any]) -> dict[str, Any]:
     render_args = dict(args)
     wallet_id = str(render_args.pop("wallet_id", ""))
+    idempotency_key = str(render_args.pop("idempotency_key", ""))
     approved = bool(render_args.pop("approved", False))
     if not approved:
         return {"ok": False, "error": "human_approval_required", "approval_required": True, "state": "planned"}
+    if len(idempotency_key) < 8:
+        return {"ok": False, "error": "idempotency_key_required", "state": "spend_blocked"}
     wallet = await get_wallet(wallet_id)
     if not wallet:
         return {"ok": False, "error": "wallet_not_found"}
@@ -115,7 +118,7 @@ async def _execute_factory(args: dict[str, Any]) -> dict[str, Any]:
     if not get_media_ops().available():
         return {"ok": False, "error": "ffmpeg_not_available", "state": "preflight_blocked"}
 
-    reservation = await reserve_generation(wallet_id, estimated_provider_cost_cents=estimated_cost)
+    reservation = await reserve_generation(wallet_id, estimated_provider_cost_cents=estimated_cost, idempotency_key=idempotency_key)
     if not reservation.get("ok"):
         return {**reservation, "state": "spend_blocked"}
     reservation["offer_id"] = wallet["offer_id"]
