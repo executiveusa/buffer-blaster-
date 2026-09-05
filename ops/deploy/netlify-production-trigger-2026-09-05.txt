@@ -1,0 +1,5 @@
+Production deploy trigger for Netlify.
+
+Site: bufferblaster
+Site ID: 60b472fa-a58b-4b6d-a218-6320bb098873
+Purpose: trigger connected Netlify production build from current main after Phase 06 security and Phase 07 beta-launch merges.
