@@ -62,6 +62,7 @@ class UGCFactoryPlanRequest(BaseModel):
 
 class UGCFactoryExecuteRequest(UGCFactoryPlanRequest):
     wallet_id: str
+    idempotency_key: str = Field(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$")
     approved: bool = False
 
 
@@ -184,14 +185,13 @@ async def execute_factory(request: UGCFactoryExecuteRequest, _=Depends(verify_op
     if wallet_state.get("state") != "active":
         return {"ok": False, "error": "wallet_not_active", "wallet_state": wallet_state.get("state")}
 
-    brief_fields = request.model_dump(exclude={"wallet_id", "approved"})
+    brief_fields = request.model_dump(exclude={"wallet_id", "idempotency_key", "approved"})
     service_brief = ServiceUGCFactoryBrief(**brief_fields)
     plan = build_ugc_factory_plan(service_brief)
     if not plan.get("ok"):
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
     estimated_cost = int(plan.get("commercial", {}).get("estimated_generation_cost_cents") or 0)
 
-    # Preflight expensive dependencies before consuming the wallet.
     if not get_media_provider().configured:
         return {"ok": False, "error": "media_provider_not_configured", "state": "preflight_blocked"}
     if not get_asset_storage().configured:
@@ -199,7 +199,11 @@ async def execute_factory(request: UGCFactoryExecuteRequest, _=Depends(verify_op
     if not get_media_ops().available():
         return {"ok": False, "error": "ffmpeg_not_available", "state": "preflight_blocked"}
 
-    reservation = await reserve_generation(request.wallet_id, estimated_provider_cost_cents=estimated_cost)
+    reservation = await reserve_generation(
+        request.wallet_id,
+        estimated_provider_cost_cents=estimated_cost,
+        idempotency_key=request.idempotency_key,
+    )
     if not reservation.get("ok"):
         return {**reservation, "state": "spend_blocked"}
     reservation["offer_id"] = wallet_state["offer_id"]
@@ -214,22 +218,12 @@ async def execute_factory(request: UGCFactoryExecuteRequest, _=Depends(verify_op
 
 @router.post("/ugc/render")
 async def render_ugc_deprecated(_brief: UGCBrief, _=Depends(verify_operator)) -> dict[str, Any]:
-    return {
-        "ok": False,
-        "error": "guarded_factory_required",
-        "message": "Paid generation must use /api/studio/ugc/factory/execute with an active server-owned wallet.",
-        "paid_generation": False,
-    }
+    return {"ok": False, "error": "guarded_factory_required", "message": "Paid generation must use /api/studio/ugc/factory/execute with an active server-owned wallet.", "paid_generation": False}
 
 
 @router.post("/ugc/factory/render")
 async def render_factory_clip_deprecated(_request: dict[str, Any], _=Depends(verify_operator)) -> dict[str, Any]:
-    return {
-        "ok": False,
-        "error": "guarded_factory_required",
-        "message": "Single-clip paid submission is no longer a public surface. Use /api/studio/ugc/factory/execute.",
-        "paid_generation": False,
-    }
+    return {"ok": False, "error": "guarded_factory_required", "message": "Single-clip paid submission is no longer a public surface. Use /api/studio/ugc/factory/execute.", "paid_generation": False}
 
 
 @router.post("/ugc/job")
@@ -247,26 +241,11 @@ async def social_accounts(_=Depends(verify_operator)) -> dict[str, Any]:
 async def schedule_social(request: ScheduleRequest, _=Depends(verify_operator)) -> dict[str, Any]:
     if not request.approved:
         return {"ok": False, "error": "human_approval_required"}
-    drop = SocialDrop(
-        id=request.id,
-        content=request.content,
-        format=request.format,
-        platforms=request.platforms,
-        scheduled_at=request.scheduled_at,
-        media_urls=request.media_urls,
-        approved=request.approved,
-        campaign_id=request.campaign_id,
-    )
+    drop = SocialDrop(id=request.id, content=request.content, format=request.format, platforms=request.platforms, scheduled_at=request.scheduled_at, media_urls=request.media_urls, approved=request.approved, campaign_id=request.campaign_id)
     errors = drop.validate()
     if errors:
         return {"ok": False, "error": "invalid_social_drop", "details": errors}
-    return await get_publisher().schedule(PublishRequest(
-        content=drop.content,
-        platforms=platform_payload(drop),
-        scheduled_at=drop.scheduled_at or "",
-        approved=drop.approved,
-        media_urls=drop.media_urls,
-    ))
+    return await get_publisher().schedule(PublishRequest(content=drop.content, platforms=platform_payload(drop), scheduled_at=drop.scheduled_at or "", approved=drop.approved, media_urls=drop.media_urls))
 
 
 @router.post("/agent/command")
