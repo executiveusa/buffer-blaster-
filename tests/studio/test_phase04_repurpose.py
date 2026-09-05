@@ -95,11 +95,8 @@ async def test_create_replays_same_plan_and_conflict_fails(monkeypatch):
     assert second["ok"] is True and second["idempotent_replay"] is True
     assert first["plan"]["plan_id"] == second["plan"]["plan_id"]
 
-    # Same deterministic idempotency key but materially different request creates a different
-    # fingerprint/plan id instead of overwriting the original receipt.
     changed = await repurpose.create_repurpose_plan(_request(title="Different source title"))
-    assert changed["ok"] is True
-    assert changed["plan"]["plan_id"] != first["plan"]["plan_id"]
+    assert changed == {"ok": False, "error": "idempotency_conflict", "paid_generation": False}
 
 
 def test_rest_mcp_cli_parity_and_no_provider_dependency():
