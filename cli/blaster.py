@@ -9,6 +9,8 @@ Examples:
   python -m cli.blaster ugc-plan-get <plan-id>
   python -m cli.blaster reference-analyze reference.json
   python -m cli.blaster reference-strategy <receipt-id>
+  python -m cli.blaster provider-capabilities
+  python -m cli.blaster provider-route route.json
   python -m cli.blaster ugc-execute approved-brief-with-wallet.json
   python -m cli.blaster wallet <wallet-id>
   python -m cli.blaster jobs
@@ -55,7 +57,7 @@ def _call(path: str, payload: dict | None = None) -> dict:
 
 def _help() -> None:
     print(
-        "blaster <status|pricing|campaign|ugc-prompt|ugc-plan|ugc-plan-create|ugc-plan-get|reference-analyze|reference-strategy|ugc-execute|wallet|jobs|job|accounts|schedule|mcp-info> [json-file-or-id]"
+        "blaster <status|pricing|campaign|ugc-prompt|ugc-plan|ugc-plan-create|ugc-plan-get|reference-analyze|reference-strategy|provider-capabilities|provider-route|ugc-execute|wallet|jobs|job|accounts|schedule|mcp-info> [json-file-or-id]"
     )
 
 
@@ -84,6 +86,10 @@ def main() -> int:
         result = _call("/api/studio/reference-ads/analyze", _load(args[1]))
     elif command == "reference-strategy" and len(args) > 1:
         result = _call(f"/api/studio/reference-ads/strategy/{quote(args[1], safe='')}")
+    elif command == "provider-capabilities":
+        result = _call("/api/studio/providers/capabilities")
+    elif command == "provider-route" and len(args) > 1:
+        result = _call("/api/studio/providers/route", _load(args[1]))
     elif command == "ugc-execute" and len(args) > 1:
         payload = _load(args[1])
         if payload.get("approved") is not True:
