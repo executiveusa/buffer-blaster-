@@ -82,10 +82,12 @@ async def test_auto_route_prefers_lowest_cost_and_is_idempotent(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_provider_fallback_skips_unavailable_and_restricted(monkeypatch):
+async def test_provider_fallback_skips_unavailable_and_unapproved_commercial_use(monkeypatch):
     monkeypatch.setattr(routing, "provider_registry", lambda: [
         _entry("offline", cost=1, health="unavailable"),
         _entry("restricted", cost=2, commercial="restricted"),
+        _entry("needs-review", cost=3, commercial="review_required"),
+        _entry("unknown-license", cost=4, commercial="unknown"),
         _entry("fallback", cost=30),
     ])
 
@@ -93,7 +95,7 @@ async def test_provider_fallback_skips_unavailable_and_restricted(monkeypatch):
     assert result["ok"] is True
     assert result["provider"] == "fallback"
     rejected = {item["provider"] for item in result["rejected"]}
-    assert {"offline", "restricted"}.issubset(rejected)
+    assert {"offline", "restricted", "needs-review", "unknown-license"}.issubset(rejected)
 
 
 @pytest.mark.asyncio
@@ -188,5 +190,6 @@ def test_rest_mcp_cli_share_no_spend_provider_route_contract():
 
     assert "reserve_generation" not in service
     assert "execute_ugc_factory_ad" not in service
+    assert 'cap.commercial_use_status != "approved"' in service
     assert '"paid_generation": False' in service
     assert '"spend_reserved": False' in service
