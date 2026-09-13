@@ -23,7 +23,7 @@ jobs:
       run:
         working-directory: rust_core/stavarai_core
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -40,7 +40,7 @@ jobs:
           cp target/release/libstavarai_core.so ../../rust_core/native/libstavarai_core.so
       - name: Upload Linux shared-library artifact
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: libstavarai_core-linux-x86_64
           path: rust_core/native/libstavarai_core.so
