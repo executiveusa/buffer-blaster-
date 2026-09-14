@@ -17,3 +17,5 @@ export function formatDate(iso: string): string {
     day: "numeric",
   });
 }
+
+// build-trigger: 2026-09-14T03:20 preview rebuild after rootDirectory=frontend fix
