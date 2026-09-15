@@ -46,7 +46,7 @@ export function StudioShell({ children, eyebrow }: { children: ReactNode; eyebro
       <aside className="fixed inset-y-0 left-[68px] z-20 hidden w-[260px] flex-col border-r border-black/8 bg-[#f7f7f5] px-4 py-6 lg:flex">
         <div className="px-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/38">Buffer Blaster</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em]">Create → prove</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em]">Create ads</h1>
         </div>
         <nav className="mt-7 space-y-1">
           {nav.map(([href, label, Icon]) => {
@@ -57,15 +57,15 @@ export function StudioShell({ children, eyebrow }: { children: ReactNode; eyebro
         <div className="mt-5 border-t border-black/8 pt-5">
           <div className="rounded-2xl border border-black/8 bg-white p-4 shadow-[0_12px_35px_rgba(0,0,0,.04)]">
             <p className="text-xs font-medium">Agent mode</p>
-            <div className="mt-3 flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#18a957]" /><span className="text-xs text-black/55">Ready for commands</span></div>
-            <Link href="/studio" className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-black px-3 py-2.5 text-xs font-medium text-white"><Command className="h-3.5 w-3.5" />Open command center</Link>
+            <div className="mt-3 flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#18a957]" /><span className="text-xs text-black/55">Ready</span></div>
+            <Link href="/studio" className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-black px-3 py-2.5 text-xs font-medium text-white"><Command className="h-3.5 w-3.5" />Open commands</Link>
           </div>
         </div>
         <div className="mt-auto rounded-2xl bg-[#eeeeeb] p-4">
-          <div className="flex items-center gap-2 text-xs font-medium"><ShieldCheck className="h-4 w-4 text-[#159653]"/><span>Approval gate</span></div>
+          <div className="flex items-center gap-2 text-xs font-medium"><ShieldCheck className="h-4 w-4 text-[#159653]"/><span>Approvals</span></div>
           <div className="mt-3 flex items-center justify-between text-[11px] text-black/48"><span>Planning</span><span className="font-medium text-[#117341]">No spend</span></div>
           <div className="mt-2 flex items-center justify-between text-[11px] text-black/48"><span>Render / publish</span><span className="font-medium">Human approval</span></div>
-          <p className="mt-3 text-[11px] leading-relaxed text-black/42">The system keeps paid generation and publishing behind explicit approval.</p>
+          <p className="mt-3 text-[11px] leading-relaxed text-black/42">You approve renders and publishing.</p>
         </div>
       </aside>
 

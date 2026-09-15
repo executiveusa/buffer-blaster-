@@ -45,8 +45,7 @@ export function backendBaseUrl() {
   return (process.env.BLASTER_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
 }
 
-export function backendHeaders() {
+export function backendHeaders(): Record<string, string> {
   const key = process.env.BLASTER_API_KEY?.trim();
-  if (!key) throw new Error("BLASTER_API_KEY is required for server proxy calls");
-  return { "Content-Type": "application/json", "x-api-key": key };
+  return key ? { "Content-Type": "application/json", "x-api-key": key } : { "Content-Type": "application/json" };
 }
