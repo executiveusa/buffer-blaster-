@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Bot, Check, FileSearch, Film, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
+import { Bot, Check, FileSearch, Film, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
 import { BetaWaitlist } from "@/components/BetaWaitlist";
 
 const steps = [
