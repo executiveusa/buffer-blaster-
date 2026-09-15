@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, Bot, Check, FileSearch, Film, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
+import { Bot, Check, FileSearch, Film, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
 import { BetaWaitlist } from "@/components/BetaWaitlist";
 
 const steps = [
-  { title: "Learn", body: "Pull together product truth, customer pain, brand context, references, and the angles worth testing.", icon: FileSearch },
-  { title: "Shape", body: "Turn the signal into scripts, concepts, and controlled variations your team can actually review.", icon: ShieldCheck },
-  { title: "Make", body: "Route creative through the right generation path only after the plan, rights, and cost are clear.", icon: Film },
-  { title: "Learn again", body: "Keep approvals, output, spend, and performance evidence attached so the next round gets smarter.", icon: ReceiptText },
+  { title: "Brief", body: "Add the product, buyer, problem, and offer.", icon: FileSearch },
+  { title: "Review", body: "Check the scripts and cost before anything runs.", icon: ShieldCheck },
+  { title: "Make", body: "Approve the ad and let the factory build it.", icon: Film },
+  { title: "Improve", body: "Use the receipt and results for the next ad.", icon: ReceiptText },
 ];
 
 export default function LandingPage() {
@@ -15,54 +15,50 @@ export default function LandingPage() {
       <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
         <Link href="/" className="text-lg font-semibold tracking-[-0.04em]">Buffer Blaster</Link>
         <nav className="hidden items-center gap-7 text-sm text-black/60 md:flex">
-          <Link href="#system">System</Link><Link href="#control">Control</Link><Link href="#agents">Agents</Link><Link href="#beta">Beta</Link>
+          <Link href="#system">How it works</Link><Link href="#control">Approval</Link><Link href="/studio/create">Create</Link>
         </nav>
-        <Link href="#beta" className="rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white">Join the beta</Link>
+        <Link href="/studio/create" className="rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white">Create an ad</Link>
       </header>
 
       <section className="mx-auto max-w-7xl px-5 pb-16 pt-12 sm:px-8 sm:pt-20 lg:pb-20">
         <div className="grid gap-12 lg:grid-cols-[.86fr_1.14fr] lg:items-center lg:gap-16">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-black/60"><Sparkles className="h-3.5 w-3.5 text-[#2357ff]" /> Private beta · coming soon</div>
-            <h1 className="mt-6 max-w-3xl text-balance text-5xl font-semibold leading-[.92] tracking-[-0.075em] sm:text-7xl lg:text-[82px]">Find the angle.<br />Make the ad.<br /><span className="text-black/42">Learn what works.</span></h1>
-            <p className="mt-7 max-w-2xl text-balance text-base leading-7 text-black/62 sm:text-lg">Buffer Blaster is private creative infrastructure for teams and agents that need to turn product truth into testable UGC, keep paid actions governed, and bring real evidence back into the next creative decision.</p>
-            <div className="mt-8"><BetaWaitlist /></div>
+            <h1 className="mt-6 max-w-3xl text-balance text-5xl font-semibold leading-[.92] tracking-[-0.075em] sm:text-7xl lg:text-[82px]">Make a better ad.<br /><span className="text-black/42">Know what it costs.</span></h1>
+            <p className="mt-7 max-w-2xl text-balance text-base leading-7 text-black/62 sm:text-lg">Brief the product. Review the script and cost. Approve when you are ready.</p>
+            <div className="mt-8 flex flex-wrap gap-3"><Link href="/studio/create" className="rounded-full bg-black px-6 py-3.5 text-sm font-medium text-white">Create an ad</Link><Link href="#system" className="rounded-full border border-black/15 bg-white px-6 py-3.5 text-sm font-medium">How it works</Link></div>
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-black/55">
-              <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]" />Built for real client work</span>
-              <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]" />Human approval before paid actions</span>
-              <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]" />UI, REST, MCP & CLI</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]" />Plan free</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]" />Approve before spend</span>
             </div>
-            <Link href="#system" className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-black/70 hover:text-black">See how it works <ArrowRight className="h-4 w-4" /></Link>
           </div>
           <DeviceStage />
         </div>
       </section>
 
-      <section className="border-y border-black/7 bg-[#e8e7e3] py-8"><div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-5 text-[10px] font-semibold tracking-[0.14em] text-black/48"><span>ECOMMERCE</span><span>SHOPIFY</span><span>CLIENT TEAMS</span><span>AGENCIES</span><span>AI AGENTS</span></div></section>
-
       <section id="system" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
         <div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
-          <div className="lg:sticky lg:top-12"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">The creative loop</p><h2 className="mt-4 max-w-xl text-4xl font-semibold leading-[1.01] tracking-[-0.06em] sm:text-5xl">One governed system from signal to evidence.</h2><p className="mt-5 max-w-lg text-base leading-7 text-black/60">Research, reference analysis, creative planning, provider routing, repurposing, approvals, Shopify context, distribution handoff, and performance evidence can share one operating model instead of becoming eight disconnected tools.</p></div>
+          <div className="lg:sticky lg:top-12"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">The creative loop</p><h2 className="mt-4 max-w-xl text-4xl font-semibold leading-[1.01] tracking-[-0.06em] sm:text-5xl">From brief to finished ad.</h2><p className="mt-5 max-w-lg text-base leading-7 text-black/60">One place to plan, review, make, and improve your ads.</p></div>
           <div className="grid gap-x-6 gap-y-10 sm:grid-cols-2">{steps.map(({ title, body, icon: Icon }, index) => <article key={title} className="border-t border-black/15 pt-5"><div className="grid h-9 w-9 place-items-center rounded-xl bg-[#e9e9e5]"><Icon className="h-4 w-4" /></div><p className="mt-6 text-[10px] uppercase tracking-[.15em] text-black/44">Step {index + 1}</p><h3 className="mt-2 text-xl font-semibold tracking-tight">{title}</h3><p className="mt-3 text-sm leading-6 text-black/58">{body}</p></article>)}</div>
         </div>
       </section>
 
       <section id="control" className="bg-[#10110f] text-white"><div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:py-28">
-        <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/48">Control stays with the operator</p><h2 className="mt-4 max-w-2xl text-4xl font-semibold leading-[1.01] tracking-[-0.06em] sm:text-5xl">Automation should remove busywork, not remove judgment.</h2><p className="mt-5 max-w-xl text-base leading-7 text-white/58">The system can research, draft, route, organize, and prepare the next move. Paid generation, publishing, and ad activation remain explicit decisions, with limits enforced on the server.</p><div className="mt-7 flex flex-wrap gap-2 text-[10px]"><span className="rounded-full bg-white/8 px-3 py-2">PLAN</span><span className="rounded-full bg-white/8 px-3 py-2">REVIEW</span><span className="rounded-full bg-white/8 px-3 py-2">APPROVE</span><span className="rounded-full bg-[#b9ff66] px-3 py-2 text-black">LEARN</span></div></div>
-        <div className="rounded-[22px] border border-white/10 bg-white/[.055] p-6"><div className="flex items-center gap-2"><ReceiptText className="h-4 w-4 text-[#b9ff66]" /><p className="text-sm font-medium">Every consequential job keeps its evidence</p></div><div className="mt-6 space-y-4 text-xs"><ReceiptRow label="Plan" value="what we are testing" /><ReceiptRow label="Rights" value="what can be used commercially" /><ReceiptRow label="Approval" value="who cleared the action" /><ReceiptRow label="Cost" value="what the action may spend" /><ReceiptRow label="Result" value="what actually happened" /></div></div>
+        <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/48">You approve the spend</p><h2 className="mt-4 max-w-2xl text-4xl font-semibold leading-[1.01] tracking-[-0.06em] sm:text-5xl">Nothing paid runs without your approval.</h2><p className="mt-5 max-w-xl text-base leading-7 text-white/58">Plan for free. See the cost. Approve the render. Publishing stays separate.</p><div className="mt-7 flex flex-wrap gap-2 text-[10px]"><span className="rounded-full bg-white/8 px-3 py-2">PLAN</span><span className="rounded-full bg-white/8 px-3 py-2">REVIEW</span><span className="rounded-full bg-white/8 px-3 py-2">APPROVE</span><span className="rounded-full bg-[#b9ff66] px-3 py-2 text-black">LEARN</span></div></div>
+        <div className="rounded-[22px] border border-white/10 bg-white/[.055] p-6"><div className="flex items-center gap-2"><ReceiptText className="h-4 w-4 text-[#b9ff66]" /><p className="text-sm font-medium">Every ad keeps a receipt</p></div><div className="mt-6 space-y-4 text-xs"><ReceiptRow label="Plan" value="what you asked for" /><ReceiptRow label="Rights" value="usage cleared" /><ReceiptRow label="Approval" value="who approved" /><ReceiptRow label="Cost" value="spend limit" /><ReceiptRow label="Result" value="finished result" /></div></div>
       </div></section>
 
       <section id="agents" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28"><div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-        <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">Agent-native</p><h2 className="mt-4 max-w-xl text-4xl font-semibold leading-[1.01] tracking-[-0.06em] sm:text-5xl">Use the Studio. Or let your agent call the same system.</h2><p className="mt-5 max-w-xl text-base leading-7 text-black/60">The browser is one doorway. REST, MCP, and CLI let approved agents use the same governed workflow without creating a second process or a second source of truth.</p><div className="mt-7 flex flex-wrap gap-2 text-[10px] font-medium"><span className="rounded-full border border-black/10 bg-white px-3 py-2">UI</span><span className="rounded-full border border-black/10 bg-white px-3 py-2">MCP</span><span className="rounded-full border border-black/10 bg-white px-3 py-2">REST</span><span className="rounded-full border border-black/10 bg-white px-3 py-2">CLI</span></div></div>
-        <div className="rounded-[22px] border border-black/8 bg-white p-6 shadow-[0_22px_70px_rgba(0,0,0,.06)]"><div className="flex items-center gap-2 text-xs text-black/50"><Bot className="h-4 w-4 text-[#2357ff]" />Agent request</div><p className="mt-5 text-xl leading-7 tracking-[-0.03em]">Analyze this reference. Build three original angles. Show me the route, rights, estimated cost, and plan before anything paid happens.</p><div className="mt-6 grid gap-2 sm:grid-cols-2"><TrustCard title="Prepare" body="No-spend research and planning can run automatically." /><TrustCard title="Commit" body="Consequential actions remain governed and explicit." /></div></div>
+        <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">Agent-native</p><h2 className="mt-4 max-w-xl text-4xl font-semibold leading-[1.01] tracking-[-0.06em] sm:text-5xl">Create in the Studio or by agent.</h2><p className="mt-5 max-w-xl text-base leading-7 text-black/60">Both use the same brief, approvals, and receipts.</p><div className="mt-7 flex flex-wrap gap-2 text-[10px] font-medium"><span className="rounded-full border border-black/10 bg-white px-3 py-2">UI</span><span className="rounded-full border border-black/10 bg-white px-3 py-2">MCP</span><span className="rounded-full border border-black/10 bg-white px-3 py-2">REST</span><span className="rounded-full border border-black/10 bg-white px-3 py-2">CLI</span></div></div>
+        <div className="rounded-[22px] border border-black/8 bg-white p-6 shadow-[0_22px_70px_rgba(0,0,0,.06)]"><div className="flex items-center gap-2 text-xs text-black/50"><Bot className="h-4 w-4 text-[#2357ff]" />Agent request</div><p className="mt-5 text-xl leading-7 tracking-[-0.03em]">Build three ad angles from this reference. Show the scripts and cost before rendering.</p><div className="mt-6 grid gap-2 sm:grid-cols-2"><TrustCard title="Prepare" body="Research and planning are free." /><TrustCard title="Commit" body="You approve paid actions." /></div></div>
       </div></section>
 
       <section id="beta" className="mx-auto max-w-6xl px-5 pb-24 sm:px-8"><div className="overflow-hidden rounded-[30px] bg-[#dfff67] px-6 py-12 sm:px-10 lg:px-12 lg:py-14">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/50">Private beta · coming soon</p>
-        <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_.9fr] lg:items-end"><div><h2 className="max-w-3xl text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">We sell the outcome. Buffer Blaster is how we deliver it.</h2><p className="mt-4 max-w-2xl text-sm leading-6 text-black/62">We’re opening the system to a small group of teams first. Join the list for beta access, build notes, and the first public demos while the production system finishes its final release gauntlet.</p></div><div className="lg:flex lg:justify-end"><BetaWaitlist compact /></div></div>
+        <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_.9fr] lg:items-end"><div><h2 className="max-w-3xl text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">Want early access?</h2><p className="mt-4 max-w-2xl text-sm leading-6 text-black/62">Join the beta list. We will send access and product updates.</p></div><div className="lg:flex lg:justify-end"><BetaWaitlist compact /></div></div>
       </div></section>
 
-      <footer className="border-t border-black/7 px-5 py-8 text-xs text-black/50 sm:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><span>Buffer Blaster · Private creative infrastructure</span><div className="flex gap-5"><Link href="#beta">Beta</Link><Link href="/studio">Studio</Link><Link href="/blog">Notes</Link></div></div></footer>
+      <footer className="border-t border-black/7 px-5 py-8 text-xs text-black/50 sm:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><span>Buffer Blaster · UGC ad creation</span><div className="flex gap-5"><Link href="#beta">Beta</Link><Link href="/studio">Studio</Link><Link href="/blog">Notes</Link></div></div></footer>
     </main>
   );
 }

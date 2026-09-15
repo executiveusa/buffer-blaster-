@@ -6,22 +6,25 @@ import { ArrowRight, Check } from "lucide-react";
 export function BetaWaitlist({ compact = false }: { compact?: boolean }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email.trim()) return;
     setState("sending");
-    const body = new URLSearchParams({ "form-name": "buffer-blaster-beta", email: email.trim() });
+    setMessage("");
+    const body = JSON.stringify({ email: email.trim() });
     try {
-      const response = await fetch("/", {
+      const response = await fetch("/api/beta", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
+        headers: { "Content-Type": "application/json" },
+        body,
       });
-      if (!response.ok) throw new Error("signup_failed");
+      if (!response.ok) { const payload = await response.json().catch(() => ({})); throw new Error(payload.detail || "signup_failed"); }
       setState("success");
       setEmail("");
-    } catch {
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : "Could not join the beta list.");
       setState("error");
     }
   }
@@ -69,7 +72,7 @@ export function BetaWaitlist({ compact = false }: { compact?: boolean }) {
         </button>
       </div>
       <p className={`mt-2.5 text-[11px] ${state === "error" ? "text-red-700" : "text-black/45"}`}>
-        {state === "error" ? "Couldn’t save that email. Try again." : "Private beta. Product updates only. No spam."}
+        {state === "error" ? message || "Could not join the beta list." : "Product updates only."}
       </p>
     </form>
   );

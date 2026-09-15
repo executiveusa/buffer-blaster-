@@ -214,17 +214,17 @@ jobs:
             fi
           }
 
-          check_page / 'Find the angle'
-          check_page /pricing 'The software is not the offer'
-          check_page /studio 'Run social from one command'
-          check_page /studio/create 'Build ad plan'
-          check_page /studio/library 'Everything you have made'
-          check_page /studio/moodboards 'Teach the studio what good looks like'
-          check_page /studio/canvas 'Build the creative flow visually'
-          check_page /studio/campaigns 'Give the agent an outcome'
-          check_page /studio/calendar 'See what goes live before it does'
-          check_page /studio/analytics 'No performance evidence yet'
-          check_page /studio/settings 'Connect the engines'
+          check_page / 'Make a better ad'
+          check_page /pricing 'Choose how you want to work'
+          check_page /studio 'Make your next ad'
+          check_page /studio/create 'Review scripts and cost'
+          check_page /studio/library 'Your ads'
+          check_page /studio/moodboards 'Save visual references'
+          check_page /studio/canvas 'See the ad flow'
+          check_page /studio/campaigns 'Plan a campaign'
+          check_page /studio/calendar 'Schedule a post'
+          check_page /studio/analytics 'No results yet'
+          check_page /studio/settings 'Connections'
           check_page /admin 'Opening console'
           check_page /admin/dashboard 'Dashboard'
 

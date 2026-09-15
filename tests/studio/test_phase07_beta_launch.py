@@ -7,9 +7,9 @@ def test_homepage_is_beta_portfolio_ready():
     page = (ROOT / "frontend/src/app/page.tsx").read_text(encoding="utf-8")
     assert "Private beta · coming soon" in page
     assert "Join the beta" in page
-    assert "Find the angle." in page
-    assert "Make the ad." in page
-    assert "Learn what works." in page
+    assert "Make a better ad." in page
+    assert "Know what it costs." in page
+    assert "From brief to finished ad." in page
     assert "BetaWaitlist" in page
     assert "Open Studio" not in page
 
@@ -21,7 +21,10 @@ def test_beta_waitlist_is_netlify_collectable_and_bot_protected():
     assert 'data-netlify-honeypot="bot-field"' in form
     assert 'type="email"' in form
     assert 'name="email"' in form
-    assert '"form-name": "buffer-blaster-beta"' in form
+    assert 'fetch("/api/beta"' in form
+    endpoint = (ROOT / "frontend/src/app/api/beta/route.ts").read_text(encoding="utf-8")
+    assert "BETA_WAITLIST_ENDPOINT" in endpoint
+    assert "not connected yet" in endpoint
 
 
 def test_public_metadata_points_to_buffer_blaster_not_unrelated_project():

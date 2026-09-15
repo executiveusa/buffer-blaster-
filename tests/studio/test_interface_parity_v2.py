@@ -106,7 +106,7 @@ def test_calendar_starts_empty_and_uses_real_account_and_receipt_contract():
         "scheduleDrop",
         "social_account_id",
         "scheduled_at",
-        "Only receipts count as scheduled",
+        "Scheduled posts",
         "No schedule receipt in this session",
         "Human approval",
     ]:

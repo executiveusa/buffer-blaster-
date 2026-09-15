@@ -9,9 +9,9 @@ def _read(path: str) -> str:
 
 def test_homepage_leads_with_testable_creative_outcome_not_generic_content_cadence():
     page = _read("frontend/src/app/page.tsx")
-    for phrase in ["Find the angle.", "Make the ad.", "Learn what works."]:
+    for phrase in ["Make a better ad.", "Know what it costs.", "Create an ad"]:
         assert phrase in page
-    assert "Private creative infrastructure" in page
+    assert "From brief to finished ad." in page
     assert "research" in page.lower()
     assert "evidence" in page.lower()
     assert "winning ads" not in page.lower()
@@ -22,21 +22,18 @@ def test_homepage_leads_with_testable_creative_outcome_not_generic_content_caden
 def test_global_metadata_matches_buffer_blaster_positioning():
     layout = _read("frontend/src/app/layout.tsx")
     assert "Buffer Blaster" in layout
-    assert "Private creative infrastructure" in layout
+    assert "Make better UGC ads" in layout
     assert "Social Studio" not in layout
 
 
 def test_access_page_sells_managed_outcome_and_private_install_not_token_plans():
     page = _read("frontend/src/app/pricing/page.tsx")
     for phrase in [
-        "The software is not the offer",
+        "Choose how you want to work",
         "Managed",
-        "Creative Engine",
-        "Dedicated",
-        "Private Install",
-        "Studio + REST + MCP + CLI access",
-        "approval and budget limits",
-        "another login is not leverage",
+        "Private install",
+        "Studio, REST, MCP, and CLI",
+        "Approval before spend",
     ]:
         assert phrase.lower() in page.lower()
     for retired_public_offer in ["7-Day Test Drive", "$19", "$49", "$99", "$199", "Ad Credits", "CheckoutButton"]:
@@ -46,14 +43,14 @@ def test_access_page_sells_managed_outcome_and_private_install_not_token_plans()
 def test_create_surface_is_factory_plan_first_and_finishes_the_ad():
     page = _read("frontend/src/app/studio/create/page.tsx")
     for phrase in [
-        "Build ad plan",
+        "Review scripts and cost",
         "Customer pain",
         "Product mechanism",
-        "Estimated generation reserve",
+        "Estimated cost",
         "Credits required",
-        "build final ad",
+        "and render",
         "Gate passed",
-        "Factory receipt",
+        "Receipt",
     ]:
         assert phrase.lower() in page.lower()
     assert "Approve & render clip 1" not in page
@@ -61,7 +58,7 @@ def test_create_surface_is_factory_plan_first_and_finishes_the_ad():
 
 def test_studio_shell_uses_approval_state_not_fake_credit_usage():
     shell = _read("frontend/src/components/studio-shell.tsx")
-    assert "Approval gate" in shell
+    assert "Approvals" in shell
     assert "Growth workspace" not in shell
 
 
@@ -77,7 +74,7 @@ def test_public_copy_does_not_claim_unverified_provider_state():
     public = "\n".join([_read("frontend/src/app/page.tsx"), _read("frontend/src/app/pricing/page.tsx")]).lower()
     for unsafe_claim in ["meta connected", "tiktok connected", "shopify connected", "guaranteed roas", "guaranteed conversion"]:
         assert unsafe_claim not in public
-    assert "optional shopify and paid-media connections per account" in public
+    assert "your provider accounts and limits" in public
 
 
 def test_live_studio_does_not_hardcode_fake_operating_metrics():
@@ -88,4 +85,4 @@ def test_live_studio_does_not_hardcode_fake_operating_metrics():
         assert fake not in overview
         assert fake not in library
         assert fake not in analytics
-    assert "No performance evidence yet" in analytics
+    assert "No results yet" in analytics

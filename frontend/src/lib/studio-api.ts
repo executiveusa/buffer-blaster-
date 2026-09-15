@@ -9,7 +9,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${API_URL}${path}`, { ...init, headers });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.detail || body.error || response.statusText);
+  if (!response.ok) throw new Error(body.detail || body.error || "That step is unavailable right now.");
   return body as T;
 }
 

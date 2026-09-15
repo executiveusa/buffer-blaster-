@@ -3,16 +3,16 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Buffer Blaster — Private creative infrastructure",
+    default: "Buffer Blaster — Make better UGC ads",
     template: "%s · Buffer Blaster",
   },
   description:
-    "Buffer Blaster turns product truth and customer signals into governed UGC creative, provider routes, approvals, and evidence. Private beta coming soon.",
+    "Brief the product, review the scripts and cost, then approve the render.",
   metadataBase: new URL("https://bufferblaster.netlify.app"),
   openGraph: {
-    title: "Buffer Blaster — Find the angle. Make the ad. Learn what works.",
+    title: "Buffer Blaster — Make better UGC ads",
     description:
-      "Private creative infrastructure for teams and AI agents. Join the Buffer Blaster beta.",
+      "Plan, review, and render UGC ads.",
     url: "https://bufferblaster.netlify.app",
     siteName: "Buffer Blaster",
     type: "website",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Buffer Blaster — Private beta",
-    description: "Find the angle. Make the ad. Learn what works.",
+    description: "Plan, review, and render UGC ads.",
   },
 };
 
