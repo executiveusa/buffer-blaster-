@@ -165,6 +165,11 @@ async def create_wallet(*, offer_id: str, customer_ref: str | None, checkout_ses
         existing = await client.get(session_key)
         if existing:
             wallet = await get_wallet(existing, client=client)
+            if wallet and (
+                wallet.get("offer_id") != offer_id
+                or (customer_ref or "") != (wallet.get("customer_ref") or "")
+            ):
+                return {"ok": False, "error": "session_ref_conflict", "offer_id": offer_id}
             return {"ok": True, "wallet": wallet, "idempotent": True}
 
         wallet_id = str(uuid.uuid4())
@@ -201,6 +206,30 @@ async def create_wallet(*, offer_id: str, customer_ref: str | None, checkout_ses
         return {"ok": False, "error": "wallet_store_failed", "detail": type(exc).__name__}
     finally:
         await client.aclose()
+
+
+async def provision_internal_wallet(
+    *,
+    offer_id: str,
+    customer_ref: str | None,
+    internal_ref: str,
+) -> dict[str, Any]:
+    """Provision an internal team wallet without Stripe checkout.
+
+    This is the free-for-the-team path: no customer is charged and no payment
+    provider is involved. The wallet still carries the package economics for
+    ``offer_id``, so provider spend stays bounded by the same server-owned
+    budget ceiling and human approval gates as a paid wallet. Idempotent on
+    ``internal_ref``: repeating the same reference replays the same wallet.
+    """
+    ref = " ".join((internal_ref or "").split()).strip()
+    if len(ref) < 8:
+        return {"ok": False, "error": "invalid_internal_ref"}
+    return await create_wallet(
+        offer_id=offer_id,
+        customer_ref=customer_ref,
+        checkout_session_id=f"internal:{ref}",
+    )
 
 
 def _decode(raw: dict[str, Any]) -> dict[str, Any]:
