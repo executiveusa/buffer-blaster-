@@ -10,10 +10,10 @@ name = "stavarai_core"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-aes-gcm = "0.10"
-rand = "0.8"
-sha2 = "0.10"
-base64 = "0.22"
+aes-gcm = "0.11"
+rand = "0.10"
+sha2 = "0.11"
+base64 = "0.23"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 subtle = "2.5"          # constant-time comparison (auth)
