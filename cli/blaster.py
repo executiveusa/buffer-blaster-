@@ -38,7 +38,7 @@ def _call(path: str, payload: dict | None = None) -> dict:
 
 def _help() -> None:
     print(
-        "blaster <status|pricing|campaign|ugc-prompt|ugc-plan|ugc-plan-create|ugc-plan-get|reference-analyze|reference-strategy|provider-capabilities|provider-route|repurpose-plan|repurpose-get|shopify-context|shopify-context-get|experiment-sync|ugc-execute|wallet|jobs|job|accounts|schedule|mcp-info> [json-file-or-id]"
+        "blaster <status|pricing|campaign|ugc-prompt|ugc-plan|ugc-plan-create|ugc-plan-get|reference-analyze|reference-strategy|provider-capabilities|provider-route|repurpose-plan|repurpose-get|shopify-context|shopify-context-get|experiment-sync|ugc-execute|wallet|wallet-provision|jobs|job|accounts|schedule|mcp-info> [json-file-or-id]"
     )
 
 
@@ -89,6 +89,8 @@ def main() -> int:
             result = {"ok": False, "error": "wallet_id_required"}
         else:
             result = _call("/api/studio/ugc/factory/execute", payload)
+    elif command == "wallet-provision" and len(args) > 1:
+        result = _call("/api/studio/billing/internal-wallet", _load(args[1]))
     elif command == "wallet" and len(args) > 1:
         result = _call(f"/api/studio/billing/wallet/{quote(args[1], safe='')}")
     elif command == "jobs":
