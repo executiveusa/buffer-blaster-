@@ -1,6 +1,8 @@
 """Agent-first operational API for campaigns, UGC, billing, and approvals."""
 from __future__ import annotations
 
+import os
+
 from datetime import datetime, timezone
 from typing import Any
 
@@ -20,7 +22,7 @@ from ..services.ugc_executor import execute_ugc_factory_ad
 from ..services.ugc_factory import UGCFactoryBrief as ServiceUGCFactoryBrief, build_ugc_factory_plan
 from ..services.video_prompt import VideoPromptInput, compile_video_prompt
 from ..services.voice_intent import parse_voice_intent
-from ..services.usage_wallet import get_wallet, reserve_generation
+from ..services.usage_wallet import get_wallet, provision_internal_wallet, reserve_generation
 
 router = APIRouter(prefix="/api/studio", tags=["studio"])
 
@@ -68,6 +70,12 @@ class UGCFactoryExecuteRequest(UGCFactoryPlanRequest):
 
 class BillingActivationRequest(BaseModel):
     checkout_session_id: str
+
+
+class InternalWalletRequest(BaseModel):
+    offer_id: str
+    customer_ref: str | None = None
+    internal_ref: str = Field(min_length=8, max_length=128)
 
 
 class ScheduleRequest(BaseModel):
@@ -149,6 +157,24 @@ async def job(job_id: str, _=Depends(verify_operator)) -> dict[str, Any]:
 @router.post("/billing/activate")
 async def activate_billing(request: BillingActivationRequest, _=Depends(verify_operator)) -> dict[str, Any]:
     return await activate_checkout_session(request.checkout_session_id)
+
+
+@router.post("/billing/internal-wallet")
+async def create_internal_team_wallet(request: InternalWalletRequest, _=Depends(verify_operator)) -> dict[str, Any]:
+    """Free-for-the-team wallet provisioning. Off unless the server opts in.
+
+    No Stripe, no customer charge. The wallet keeps package economics, so
+    provider spend stays behind the same server-owned budget ceiling and the
+    human approval gate. Disabled by default; enable explicitly with
+    INTERNAL_WALLET_PROVISIONING_ENABLED on the server.
+    """
+    if os.getenv("INTERNAL_WALLET_PROVISIONING_ENABLED", "").strip().lower() not in {"1", "true", "yes", "on"}:
+        return {"ok": False, "error": "internal_wallet_provisioning_disabled", "state": "disabled"}
+    return await provision_internal_wallet(
+        offer_id=request.offer_id,
+        customer_ref=request.customer_ref,
+        internal_ref=request.internal_ref,
+    )
 
 
 @router.get("/billing/wallet/{wallet_id}")
