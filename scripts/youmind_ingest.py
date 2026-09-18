@@ -23,6 +23,7 @@ SUPPORTED_LICENSES = {
 }
 SKIP_NAMES = {"readme.md", "license", "license.md", "contributing.md", "code_of_conduct.md"}
 CANDIDATE_SUFFIXES = {".md", ".txt"}
+HF_DATASET_CDN_BASE = "https://huggingface.co/datasets/GokuScraper/seedance-2-prompts-datasets/resolve/main"
 README_PROMPT_RE = re.compile(
     r"^###\s+No\.\s*(?P<number>\d+)\s*:\s*(?P<title>.+?)\s*$"
     r"(?P<body>.*?)(?=^###\s+No\.\s*\d+\s*:|\Z)",
@@ -30,6 +31,16 @@ README_PROMPT_RE = re.compile(
 )
 DESCRIPTION_RE = re.compile(r"^####\s+.*?Description\s*$\s*(?P<description>.*?)(?=^####\s+|\Z)", re.MULTILINE | re.DOTALL | re.IGNORECASE)
 PROMPT_RE = re.compile(r"^####\s+.*?Prompt\s*$\s*```[^\n]*\n(?P<prompt>.*?)\n```", re.MULTILINE | re.DOTALL | re.IGNORECASE)
+TITLED_SECTION_RE = re.compile(
+    r"^###\s+(?!No\.)(?P<title>.+?)\s*$"
+    r"(?P<body>.*?)(?=^###\s+|^##\s+|\Z)",
+    re.MULTILINE | re.DOTALL,
+)
+BLOCKQUOTE_RE = re.compile(r"^>\s*(?P<description>.+?)\s*$", re.MULTILINE)
+ATTRIBUTION_RE = re.compile(
+    r"\*\*Author:\*\*\s*(?P<author>.*?)\s*\|\s*\*\*Source:\*\*\s*(?P<source>.*?)\s*\|\s*\*\*Published:\*\*\s*(?P<published>.*?)\s*$",
+    re.MULTILINE,
+)
 
 
 @dataclass(frozen=True)
@@ -42,6 +53,13 @@ class Candidate:
     license: str
     content_hash: str
     adapter: str
+    tags: tuple = ()
+    author: str = ""
+    source_link: str = ""
+    subcategory: str = ""
+    featured: bool = False
+    dataset_record: bool = False
+    preview_url: str = ""
 
 
 def content_hash(value: str) -> str:
@@ -100,6 +118,90 @@ def iter_readme_prompt_candidates(repo: str, repo_dir: Path, license_name: str) 
         )
 
 
+def _first_link(value: str) -> str:
+    match = re.search(r"\((https?://[^)]+)\)", value)
+    if match:
+        return match.group(1)
+    match = re.search(r"(https?://\S+)", value)
+    return match.group(1) if match else ""
+
+
+def iter_titled_readme_candidates(repo: str, repo_dir: Path, license_name: str) -> Iterable[Candidate]:
+    """Parse `### Title` sections with Prompt blocks (e.g. awesome-list 'All Prompts' sections)."""
+    readme = repo_dir / "README.md"
+    if not readme.exists():
+        return
+    text = readme.read_text(encoding="utf-8", errors="ignore")
+    for match in TITLED_SECTION_RE.finditer(text):
+        body = match.group("body")
+        prompt_match = PROMPT_RE.search(body)
+        if not prompt_match:
+            continue
+        prompt = prompt_match.group("prompt").strip()
+        if len(prompt) < 20:
+            continue
+        quote_match = BLOCKQUOTE_RE.search(body)
+        description = clean_markdown(quote_match.group("description")) if quote_match else ""
+        attribution = ATTRIBUTION_RE.search(body)
+        author = clean_markdown(attribution.group("author")) if attribution else ""
+        source_link = _first_link(attribution.group("source")) if attribution else ""
+        digest = content_hash(prompt)
+        yield Candidate(
+            repo=repo,
+            source_path=f"README.md#{re.sub(r'[^a-z0-9]+', '-', match.group('title').lower()).strip('-')}",
+            title=clean_markdown(match.group("title")),
+            description=description,
+            prompt=prompt,
+            license=license_name,
+            content_hash=digest,
+            adapter="titled-readme",
+            author=author,
+            source_link=source_link,
+        )
+
+
+def iter_jsonl_dataset_candidates(repo: str, repo_dir: Path, license_name: str) -> Iterable[Candidate]:
+    """Parse a structured prompt dataset (metadata.jsonl) into one candidate per record.
+
+    Dataset records join the manifest and compiled catalogs but do not explode
+    into per-card ICM folders; the JSONL itself remains the benchmark artifact.
+    """
+    dataset = repo_dir / "metadata.jsonl"
+    if not dataset.exists():
+        return
+    for line_number, line in enumerate(dataset.read_text(encoding="utf-8-sig", errors="ignore").splitlines(), start=1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        en = (record.get("i18n") or {}).get("en") or {}
+        prompt = str(en.get("p") or record.get("raw_p") or "").strip()
+        if len(prompt) < 20:
+            continue
+        title = str(en.get("t") or record.get("slug") or record.get("id") or f"record-{line_number}").strip()
+        tags = tuple(str(tag) for tag in (en.get("tags") or []) if str(tag).strip())
+        file_name = str(record.get("file_name") or "").lstrip("./")
+        preview_url = f"{HF_DATASET_CDN_BASE}/{file_name}" if file_name else ""
+        yield Candidate(
+            repo=repo,
+            source_path=f"metadata.jsonl#{record.get('id') or line_number}",
+            title=title,
+            description="",
+            prompt=prompt,
+            license=license_name,
+            content_hash=content_hash(prompt),
+            adapter="jsonl-dataset",
+            tags=tags,
+            source_link=str(record.get("sourceLink") or ""),
+            subcategory=f"Seedance 2 \u00b7 {record.get('category')}" if record.get("category") else "Seedance 2",
+            featured=bool(record.get("is_featured")),
+            dataset_record=True,
+            preview_url=preview_url,
+        )
+
 def iter_file_candidates(repo: str, repo_dir: Path, license_name: str) -> Iterable[Candidate]:
     for path in sorted(repo_dir.rglob("*")):
         if not path.is_file() or path.suffix.lower() not in CANDIDATE_SUFFIXES:
@@ -125,9 +227,14 @@ def iter_file_candidates(repo: str, repo_dir: Path, license_name: str) -> Iterab
 def iter_candidates(repo: str, repo_dir: Path, license_name: str, kind: str) -> Iterable[Candidate]:
     if kind == "prompt-library":
         readme_candidates = list(iter_readme_prompt_candidates(repo, repo_dir, license_name))
-        if readme_candidates:
+        titled_candidates = list(iter_titled_readme_candidates(repo, repo_dir, license_name))
+        if readme_candidates or titled_candidates:
             yield from readme_candidates
+            yield from titled_candidates
             return
+    if kind == "prompt-dataset-jsonl":
+        yield from iter_jsonl_dataset_candidates(repo, repo_dir, license_name)
+        return
     yield from iter_file_candidates(repo, repo_dir, license_name)
 
 
@@ -195,12 +302,13 @@ def compile_registry(registry_path: Path, source_root: Path, output_root: Path) 
             relative_icm_path = f"cards/{category.lower()}/{repo_name}/{candidate.content_hash[:16]}"
             card = {
                 "id": f"upstream-{candidate.content_hash[:16]}",
+                "slug": re.sub(r"[^a-z0-9]+", "-", candidate.title.lower()).strip("-")[:80],
                 "title": candidate.title,
                 "description": candidate.description,
                 "prompt": candidate.prompt,
                 "category": category,
-                "subcategory": subcategory,
-                "tags": [],
+                "subcategory": candidate.subcategory or subcategory,
+                "tags": list(candidate.tags),
                 "adapter": candidate.adapter,
                 "source": {
                     "repo": candidate.repo,
@@ -212,8 +320,20 @@ def compile_registry(registry_path: Path, source_root: Path, output_root: Path) 
                 },
                 "icm_path": relative_icm_path,
             }
+            if candidate.author:
+                card["source"]["author"] = candidate.author
+            if candidate.source_link:
+                card["source"]["url"] = candidate.source_link
+            if candidate.dataset_record:
+                card["dataset_record"] = True
+                card["media_type"] = "video"
+                if candidate.featured:
+                    card["featured"] = True
+                if candidate.preview_url:
+                    card["source"]["preview_url"] = candidate.preview_url
             cards.append(card)
-            write_icm_card(output_root, card)
+            if not candidate.dataset_record:
+                write_icm_card(output_root, card)
 
     output_root.mkdir(parents=True, exist_ok=True)
     manifest = {
