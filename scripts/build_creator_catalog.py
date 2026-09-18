@@ -18,23 +18,32 @@ SEARCH_FIELDS = (
 )
 
 
+def _accept(card: dict[str, Any], cards: list[dict[str, Any]], seen_hashes: set[str]) -> None:
+    source = card.get("source") or {}
+    if source.get("license_verified") is not True:
+        return
+    prompt = str(card.get("prompt") or "").strip()
+    if not prompt:
+        return
+    prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+    if prompt_hash in seen_hashes:
+        return
+    seen_hashes.add(prompt_hash)
+    card.setdefault("prompt_content_hash", prompt_hash)
+    cards.append(card)
+
+
 def load_verified_cards(root: Path) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
     seen_hashes: set[str] = set()
     for path in sorted(root.rglob("card.json")):
-        card = json.loads(path.read_text(encoding="utf-8"))
-        source = card.get("source") or {}
-        if source.get("license_verified") is not True:
-            continue
-        prompt = str(card.get("prompt") or "").strip()
-        if not prompt:
-            continue
-        prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
-        if prompt_hash in seen_hashes:
-            continue
-        seen_hashes.add(prompt_hash)
-        card.setdefault("prompt_content_hash", prompt_hash)
-        cards.append(card)
+        _accept(json.loads(path.read_text(encoding="utf-8")), cards, seen_hashes)
+    # Dataset records live only in per-library manifests (no per-card folders).
+    for path in sorted(root.rglob("manifest.json")):
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        for card in manifest.get("cards", []):
+            if card.get("dataset_record") is True:
+                _accept(card, cards, seen_hashes)
     return sorted(cards, key=lambda item: str(item.get("id", "")))
 
 
@@ -45,7 +54,7 @@ def write_json(path: Path, value: Any) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="library/imported/youmind")
+    parser.add_argument("--input", default="library/imported")
     parser.add_argument("--output", default="library/compiled")
     args = parser.parse_args()
 

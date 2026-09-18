@@ -1,0 +1,22 @@
+{
+  "source": "Goku-OpenLab",
+  "purpose": "Upstream registry for provenance-aware prompt and skill ingestion.",
+  "policy": {
+    "publish_only_when_license_verified": true,
+    "preserve_source_repo": true,
+    "preserve_source_path": true,
+    "preserve_source_commit": true,
+    "dedupe_by_content_hash": true,
+    "quarantine_unknown_license": true
+  },
+  "repositories": [
+    {
+      "repo": "Goku-OpenLab/seedance-2-prompts-datasets",
+      "kind": "prompt-dataset-jsonl",
+      "license_status": "verified",
+      "license": "CC-BY-4.0",
+      "license_file_sha": "6bb01e935474af855c741b88603b4b90b9f4c839",
+      "source_ref": "6664a7bb9ff262faf8b009c752a4997488eba7f9"
+    }
+  ]
+}
