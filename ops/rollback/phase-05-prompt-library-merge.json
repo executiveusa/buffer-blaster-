@@ -1,0 +1,14 @@
+{
+  "phase": "05-prompt-library-merge",
+  "baseline_main_sha": "66f87f347a2d418be911b71e164e6caa6060a7c1",
+  "production_deployment": null,
+  "database_changes": false,
+  "affected_services": ["offline ingestion compiler", "upstream source registry", "icm templates", "skills", "tests"],
+  "rollback_steps": [
+    "Revert the phase squash commit through the protected-main PR path.",
+    "Delete generated library/imported and library/compiled output produced by the new registries; upstream source repositories remain untouched.",
+    "Remove skills/higgsfield/ (bolted-on OSideMedia skill, MIT) if the bolt-on must be withdrawn; it has no runtime callers.",
+    "No production deployment or database rollback is required; no runtime path reads the generated library."
+  ],
+  "data_loss_risk": "none"
+}

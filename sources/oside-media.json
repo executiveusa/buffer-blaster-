@@ -1,0 +1,22 @@
+{
+  "source": "OSideMedia",
+  "purpose": "Upstream registry for provenance-aware prompt and skill ingestion.",
+  "policy": {
+    "publish_only_when_license_verified": true,
+    "preserve_source_repo": true,
+    "preserve_source_path": true,
+    "preserve_source_commit": true,
+    "dedupe_by_content_hash": true,
+    "quarantine_unknown_license": true
+  },
+  "repositories": [
+    {
+      "repo": "OSideMedia/higgsfield-ai-prompt-skill",
+      "kind": "agent-skill",
+      "license_status": "verified",
+      "license": "MIT",
+      "license_file_sha": "bde5207152052e91eadf6162187f5d0c2e2f78e0",
+      "source_ref": "c0b73ab946df6658cca513db78bdc3909a655bfd"
+    }
+  ]
+}
