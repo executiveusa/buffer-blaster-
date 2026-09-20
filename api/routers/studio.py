@@ -264,7 +264,8 @@ async def render_factory_clip_deprecated(_request: dict[str, Any], _=Depends(ver
 @router.post("/ugc/job")
 async def get_render_job(payload: dict[str, str], _=Depends(verify_operator)) -> dict[str, Any]:
     url = payload.get("status_url") or payload.get("response_url") or ""
-    return await get_media_provider().fetch_url(url)
+    provider_name = (payload.get("provider_name") or "").strip() or None
+    return await get_media_provider(provider_name).fetch_url(url)
 
 
 @router.get("/social/accounts")
