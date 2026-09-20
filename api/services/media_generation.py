@@ -16,6 +16,7 @@ import httpx
 from .media_contracts import ProviderCapabilities
 from .provider_contracts import UGCProviderJob
 from .universal_media_gateway import UniversalVideoGatewayProvider
+from .gateway_fleet import configured_gateway_providers
 
 
 def _csv(name: str) -> list[str]:
@@ -243,15 +244,53 @@ class FalVideoProvider:
             return {"ok": True, "data": response.json()}
 
 
-def get_media_provider() -> FalVideoProvider | UniversalVideoGatewayProvider:
-    """Return the active server-owned media adapter.
+def media_providers() -> dict[str, FalVideoProvider | UniversalVideoGatewayProvider]:
+    """Return all configured executable media providers by public provider name."""
+    providers: dict[str, FalVideoProvider | UniversalVideoGatewayProvider] = {}
+    fal = FalVideoProvider()
+    if fal.configured:
+        providers["fal"] = fal
 
-    ACTIVE_MEDIA_PROVIDER=fal keeps the existing implementation.
-    ACTIVE_MEDIA_PROVIDER=gateway (or muapi/open_higgsfield) enables the
-    configurable async gateway adapter, which can target self-hosted gateways
-    or compatible hosted aggregators without changing Buffer Blaster business logic.
+    gateway = UniversalVideoGatewayProvider()
+    if gateway.configured:
+        providers[gateway.name] = gateway
+
+    for name, provider in configured_gateway_providers().items():
+        providers[name] = provider
+    return providers
+
+
+def get_media_provider(provider_name: str | None = None) -> FalVideoProvider | UniversalVideoGatewayProvider:
+    """Return one server-owned media adapter.
+
+    A named provider may be selected only when it exists in server configuration.
+    Without an explicit provider name, ACTIVE_MEDIA_PROVIDER retains rollback
+    compatibility with the original Fal/single-gateway setup.
     """
-    selected = (os.getenv("ACTIVE_MEDIA_PROVIDER", "fal") or "fal").strip().lower()
-    if selected in {"gateway", "universal", "muapi", "open_higgsfield", "open-higgsfield"}:
-        return UniversalVideoGatewayProvider()
+    providers = media_providers()
+    requested = (provider_name or "").strip()
+    if requested:
+        if requested not in providers:
+            # Return an unconfigured provider-shaped object so callers fail closed.
+            missing = UniversalVideoGatewayProvider(profile={
+                "name": requested,
+                "base_url": "",
+                "api_key_env": "__BUFFER_BLASTER_MISSING_PROVIDER_KEY__",
+                "text_model": "",
+                "image_model": "",
+            })
+            return missing
+        return providers[requested]
+
+    selected = (os.getenv("ACTIVE_MEDIA_PROVIDER", "fal") or "fal").strip()
+    aliases = {"gateway", "universal", "muapi", "open_higgsfield", "open-higgsfield"}
+    if selected in providers:
+        return providers[selected]
+    if selected.lower() in aliases:
+        gateway = UniversalVideoGatewayProvider()
+        return gateway
+    if "fal" in providers:
+        return providers["fal"]
+    if providers:
+        return next(iter(providers.values()))
     return FalVideoProvider()
