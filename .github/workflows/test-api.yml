@@ -214,8 +214,8 @@ jobs:
             fi
           }
 
-          check_page / 'Find the angle'
-          check_page /pricing 'The software is not the offer'
+          check_page / 'Own the system that turns products into ads.'
+          check_page /pricing 'Buy the install once.'
           check_page /studio 'Run social from one command'
           check_page /studio/create 'Build ad plan'
           check_page /studio/library 'Everything you have made'
