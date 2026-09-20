@@ -28,7 +28,7 @@ export function InstallInquiry({ compact = false }: { compact?: boolean }) {
 
   if (state === "success") {
     return (
-      <div className={`flex items-center gap-2 rounded-full border border-black/10 bg-white ${compact ? "px-4 py-3" : "px-5 py-4"}`}>
+      <div role="status" aria-live="polite" className={`flex items-center gap-2 rounded-full border border-black/10 bg-white ${compact ? "px-4 py-3" : "px-5 py-4"}`}>
         <span className="grid h-7 w-7 place-items-center rounded-full bg-[#dfff67]"><Check className="h-4 w-4" /></span>
         <span className="text-sm font-medium">Install request received.</span>
       </div>
@@ -68,7 +68,7 @@ export function InstallInquiry({ compact = false }: { compact?: boolean }) {
           {state !== "sending" && <ArrowRight className="h-4 w-4" />}
         </button>
       </div>
-      <p className={`mt-2.5 text-[11px] ${state === "error" ? "text-red-700" : "text-black/45"}`}>
+      <p aria-live="polite" className={`mt-2.5 text-[11px] ${state === "error" ? "text-red-700" : "text-black/45"}`}>
         {state === "error" ? "Couldn’t save that request. Try again." : "One-time private install. Provider usage is paid directly through the accounts you connect."}
       </p>
     </form>
