@@ -146,6 +146,9 @@ class JourneyFakeProvider:
     def status(self) -> dict[str, Any]:
         return {"configured": True, "provider": "journey-fake", "paid": False}
 
+    def estimate_clip_cost_cents(self, model_name=None, *, image_url=None):
+        return 80
+
     async def submit_video(self, **kwargs: Any) -> dict[str, Any]:
         self.calls += 1
         return {

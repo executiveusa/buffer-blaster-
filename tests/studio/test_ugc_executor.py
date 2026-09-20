@@ -7,8 +7,16 @@ from api.services.ugc_factory import UGCFactoryBrief
 
 
 class FakeProvider:
+    configured = True
+
     def __init__(self):
         self.calls = 0
+
+    def estimate_clip_cost_cents(self, model_name=None, *, image_url=None):
+        return 80
+
+    def status(self):
+        return {"provider": "fake"}
 
     async def submit_video(self, **kwargs):
         self.calls += 1

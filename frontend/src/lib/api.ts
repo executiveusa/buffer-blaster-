@@ -12,8 +12,8 @@ import {
   type ContentUnit,
 } from "./demo-data";
 
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
-const PUBLIC_CONSOLE = process.env.NEXT_PUBLIC_PUBLIC_CONSOLE !== "false";
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+const PUBLIC_CONSOLE = process.env.NEXT_PUBLIC_PUBLIC_CONSOLE === "true";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "operator_session_token";
 
