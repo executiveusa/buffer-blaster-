@@ -5,6 +5,7 @@ const root = process.cwd();
 const required = [
   "src/app/page.tsx",
   "src/app/pricing/page.tsx",
+  "src/app/install/page.tsx",
   "src/app/studio/page.tsx",
   "src/app/studio/create/page.tsx",
   "src/app/studio/library/page.tsx",
@@ -26,7 +27,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 for (const file of required) if (!fs.existsSync(path.join(root, file))) fail(`missing ${file}`);
 if (ok) pass("all public and Studio surfaces exist");
 
-const publicFiles = ["src/app/page.tsx", "src/app/pricing/page.tsx", "src/app/layout.tsx", "src/app/robots.ts", "src/app/sitemap.ts"];
+const publicFiles = ["src/app/page.tsx", "src/app/install/page.tsx", "src/app/pricing/page.tsx", "src/app/layout.tsx", "src/app/robots.ts", "src/app/sitemap.ts"];
 const forbidden = ["Social Studio", "Stavarai", "Hermes", "Higgsfield"];
 for (const file of publicFiles) {
   if (!fs.existsSync(path.join(root, file))) continue;
@@ -38,20 +39,26 @@ if (!combinedPublic.includes("Buffer Blaster")) fail("public surfaces do not ide
 if (ok) pass("public identity is Buffer Blaster without internal codenames");
 
 const home = read("src/app/page.tsx");
-for (const signal of ["Private creative infrastructure", "Find the angle.", "Make the ad.", "Learn what works.", "We sell the outcome. Buffer Blaster is how we deliver it."]) {
-  if (!home.includes(signal)) fail(`homepage missing positioning signal ${signal}`);
+for (const signal of ["AI ad factory · one-time private install", "Installed once. Yours to run.", "Watch real output", "Proof before promises.", "Request an install", "No Buffer Blaster subscription"]) {
+  if (!home.includes(signal)) fail(`homepage missing proof-first positioning signal ${signal}`);
 }
-for (const stale of ["See the $249 pilot", "Founding Ad Batch", "$249"] ) if (home.includes(stale)) fail(`homepage exposes retired offer ${stale}`);
-if (ok) pass("homepage leads with the private creative-infrastructure outcome");
+for (const stale of ["Private creative infrastructure", "Find the angle.<br />Make the ad.", "See the $249 pilot", "Founding Ad Batch", "$249"] ) {
+  if (home.includes(stale)) fail(`homepage exposes stale or infrastructure-first signal ${stale}`);
+}
+if (!home.includes('id="proof"')) fail("homepage has no proof section");
+if (!home.includes('id="ownership"')) fail("homepage has no ownership section");
+if (!home.includes('id="install"')) fail("homepage has no install conversion section");
+if (!home.includes("controls playsInline")) fail("homepage proof video is not directly watchable");
+if (ok) pass("homepage leads with category, outcome, proof, and a concrete action");
 
-const access = read("src/app/pricing/page.tsx");
-for (const signal of ["The software is not the offer", "Creative Engine", "Private Install", "another login is not leverage", "Studio + REST + MCP + CLI access"]) {
+const access = read("src/app/install/page.tsx");
+for (const signal of ["One-time private install", "Own the ad factory", "No recurring Buffer Blaster SaaS plan", "Studio + REST + MCP + CLI access", "Usage stays transparent"]) {
   if (!access.toLowerCase().includes(signal.toLowerCase())) fail(`access page missing private-infrastructure signal ${signal}`);
 }
-for (const stale of ["7-Day Test Drive", "$19", "$49", "$99", "$199", "Ad Credits", "CheckoutButton"]) {
+for (const stale of ["7-Day Test Drive", "$19", "$49", "$99", "$199", "Ad Credits", "CheckoutButton", "Join the beta", "Private beta"]) {
   if (access.toLowerCase().includes(stale.toLowerCase())) fail(`access page exposes retired public subscription signal ${stale}`);
 }
-if (ok) pass("access page sells managed outcomes and private installs rather than token plans");
+if (ok) pass("install page sells a one-time owned deployment rather than a recurring Buffer Blaster subscription");
 
 const shell = read("src/components/studio-shell.tsx");
 for (const signal of ["bg-[#e9e9e7]", "bg-[#f7f7f5]", "rounded-[26px]", "#2357ff", "Agent mode"]) if (!shell.includes(signal)) fail(`studio shell missing design-bar signal ${signal}`);
@@ -67,7 +74,6 @@ const calendar = read("src/app/studio/calendar/page.tsx");
 for (const signal of ["listSocialAccounts", "scheduleDrop", "social_account_id", "scheduled_at", "Simulation only"]) if (!calendar.includes(signal)) fail(`calendar missing scheduling signal ${signal}`);
 if (ok) pass("calendar preserves explicit publishing approval boundary");
 
-// Legacy checkout/trial routes may remain for compatibility, but the public access page must not depend on them.
 const accessImportsCheckout = access.includes("CheckoutButton") || access.includes("/api/checkout/offer");
 if (accessImportsCheckout) fail("private access page still depends on legacy public checkout");
 else pass("private access positioning is decoupled from legacy low-ticket checkout");

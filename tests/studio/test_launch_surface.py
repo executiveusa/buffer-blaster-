@@ -27,7 +27,7 @@ def test_global_metadata_matches_buffer_blaster_positioning():
 
 
 def test_access_page_sells_managed_outcome_and_private_install_not_token_plans():
-    page = _read("frontend/src/app/pricing/page.tsx")
+    page = _read("frontend/src/app/install/page.tsx")
     for phrase in [
         "The software is not the offer",
         "Managed",
@@ -66,7 +66,7 @@ def test_studio_shell_uses_approval_state_not_fake_credit_usage():
 
 
 def test_public_launch_copy_uses_buffer_blaster_identity_without_internal_codenames():
-    public = "\n".join([_read("frontend/src/app/page.tsx"), _read("frontend/src/app/pricing/page.tsx")]).lower()
+    public = "\n".join([_read("frontend/src/app/page.tsx"), _read("frontend/src/app/install/page.tsx")]).lower()
     assert "buffer blaster" in public
     assert "social studio" not in public
     for codename in ["stavarai", "hermes", "higgsfield"]:
