@@ -36,7 +36,9 @@ for (const file of publicFiles) {
 }
 const combinedPublic = publicFiles.filter(file => fs.existsSync(path.join(root, file))).map(read).join("\n");
 if (!combinedPublic.includes("Buffer Blaster")) fail("public surfaces do not identify the product as Buffer Blaster");
-if (ok) pass("public identity is Buffer Blaster without internal codenames");
+if (combinedPublic.includes("stavarai-platform.vercel.app")) fail("public SEO surfaces still point at the retired Stavarai domain");
+if (!combinedPublic.includes("bufferblaster.netlify.app")) fail("public SEO surfaces do not point at the Buffer Blaster canonical host");
+if (ok) pass("public identity and canonical host are Buffer Blaster without retired codenames");
 
 const home = read("src/app/page.tsx");
 for (const signal of ["AI video ad factory · private install", "Create AI ads.", "Own the factory.", "Watch real output", "Watch what Buffer Blaster makes.", "Request a private install", "No Buffer Blaster subscription"]) {
