@@ -38,11 +38,15 @@ if (!combinedPublic.includes("Buffer Blaster")) fail("public surfaces do not ide
 if (ok) pass("public identity is Buffer Blaster without internal codenames");
 
 const home = read("src/app/page.tsx");
-for (const signal of ["Private creative infrastructure", "Find the angle.", "Make the ad.", "Learn what works.", "We sell the outcome. Buffer Blaster is how we deliver it."]) {
-  if (!home.includes(signal)) fail(`homepage missing positioning signal ${signal}`);
+for (const signal of ["AI video ad factory", "Turn one product into ads worth testing.", "Watch real output", "Proof before promises.", "Build an ad plan"]) {
+  if (!home.includes(signal)) fail(`homepage missing proof-first positioning signal ${signal}`);
 }
-for (const stale of ["See the $249 pilot", "Founding Ad Batch", "$249"] ) if (home.includes(stale)) fail(`homepage exposes retired offer ${stale}`);
-if (ok) pass("homepage leads with the private creative-infrastructure outcome");
+for (const stale of ["Private creative infrastructure", "Find the angle.<br />Make the ad.", "See the $249 pilot", "Founding Ad Batch", "$249"] ) {
+  if (home.includes(stale)) fail(`homepage exposes stale or infrastructure-first signal ${stale}`);
+}
+if (!home.includes('id="proof"')) fail("homepage has no proof section");
+if (!home.includes("controls playsInline")) fail("homepage proof video is not directly watchable");
+if (ok) pass("homepage leads with category, outcome, proof, and a concrete action");
 
 const access = read("src/app/pricing/page.tsx");
 for (const signal of ["The software is not the offer", "Creative Engine", "Private Install", "another login is not leverage", "Studio + REST + MCP + CLI access"]) {
@@ -67,7 +71,6 @@ const calendar = read("src/app/studio/calendar/page.tsx");
 for (const signal of ["listSocialAccounts", "scheduleDrop", "social_account_id", "scheduled_at", "Simulation only"]) if (!calendar.includes(signal)) fail(`calendar missing scheduling signal ${signal}`);
 if (ok) pass("calendar preserves explicit publishing approval boundary");
 
-// Legacy checkout/trial routes may remain for compatibility, but the public access page must not depend on them.
 const accessImportsCheckout = access.includes("CheckoutButton") || access.includes("/api/checkout/offer");
 if (accessImportsCheckout) fail("private access page still depends on legacy public checkout");
 else pass("private access positioning is decoupled from legacy low-ticket checkout");
