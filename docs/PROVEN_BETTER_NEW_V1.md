@@ -44,3 +44,39 @@ Sharpest tensions: Adpanel already proves the combined workspace, so agent execu
 - Agency — **$299/mo**: 12 brands, 60 accounts, 40 UGC credits, API/MCP/CLI, plugin, white-label exports, priority queue.
 
 These are hypotheses, not validated willingness-to-pay. They deliberately anchor Creator to Creatify Starter, price Growth above Adpanel Scale because it adds autonomous campaign work and materially more UGC capacity, and reserve programmatic/agency packaging for the tier whose buyer can monetize it across clients.
+
+
+## Commercial direction update — 2026-09-20
+
+The monthly Creator / Growth / Agency pricing hypothesis above is **superseded for the current Buffer Blaster offer**.
+
+The proven category evidence remains useful: customers already pay for ad creation, UGC production, publishing operations, approvals, and programmatic access. The current experiment changes the commercial packaging, not those underlying category facts.
+
+### Current offer hypothesis
+
+Buffer Blaster is sold as a **one-time private install**.
+
+The install includes the Buffer Blaster application, private deployment, operator handoff, provider-neutral generation gateway, UI/REST/MCP/CLI access, approval and budget controls, documentation, and rollback path.
+
+It does **not** imply unlimited third-party model usage or bundled hosting. Infrastructure and generation charges remain with the server/provider accounts chosen by the operator.
+
+Optional support, customization, or managed operation can be sold separately, but recurring support is not required to keep using the installed software.
+
+### PROVEN → BETTER → NEW for the install offer
+
+- **Proven:** brands and agencies already spend recurring money on creative generation, UGC tools, publishing systems, and API-enabled marketing software.
+- **Better:** one governed system keeps strategy, generation routes, approvals, cost controls, assets, and evidence connected while the underlying model providers can change.
+- **New commercial wedge:** ownership. Instead of renting another monthly creative dashboard, the buyer receives a private installed system that can use operator-owned provider accounts and a sovereign deployment path.
+
+### Atomic commercial test
+
+Do not treat “one-time install” as validated merely because it is strategically attractive.
+
+Test with real prospects:
+1. show proof output first;
+2. explain the private install in one sentence;
+3. present a scoped install price;
+4. measure qualified inquiry rate and objections;
+5. compare objections against an equivalent managed-service offer.
+
+The install position wins only if customers value ownership, provider flexibility, and reduced recurring software dependence enough to pay the implementation price.
