@@ -26,7 +26,7 @@ export default function LandingPage() {
         <nav className="hidden items-center gap-7 text-sm text-black/60 md:flex">
           <Link href="#proof">Proof</Link><Link href="#how">How it works</Link><Link href="#ownership">Ownership</Link><Link href="#models">Models</Link>
         </nav>
-        <Link href="#install" className="rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white">Request install</Link>
+        <Link href="#install" className="rounded-full bg-black px-3.5 py-2.5 text-xs font-medium text-white sm:px-4 sm:text-sm">Request install</Link>
       </header>
 
       <section className="mx-auto max-w-7xl px-5 pb-14 pt-10 sm:px-8 sm:pt-16 lg:pb-20">
@@ -35,7 +35,7 @@ export default function LandingPage() {
             <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-black/60">
               <Sparkles className="h-3.5 w-3.5 text-[#2357ff]" /> AI video ad factory · private install
             </div>
-            <h1 className="mt-6 max-w-3xl text-balance text-5xl font-semibold leading-[.92] tracking-[-0.075em] sm:text-7xl lg:text-[82px]">
+            <h1 className="mt-6 max-w-3xl text-balance text-[44px] font-semibold leading-[.94] tracking-[-0.06em] min-[380px]:text-5xl sm:text-7xl sm:tracking-[-0.07em] lg:text-[82px]">
               Create AI ads. <span className="text-black/42">Own the factory.</span>
             </h1>
             <p className="mt-7 max-w-2xl text-balance text-base leading-7 text-black/62 sm:text-lg">
@@ -61,16 +61,15 @@ export default function LandingPage() {
 
       <section id="proof" className="border-y border-black/8 bg-[#11120f] text-white">
         <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:py-20">
-          <div className="grid gap-8 lg:grid-cols-[.72fr_1.28fr] lg:items-end">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Actual output</p>
-              <h2 className="mt-4 max-w-xl text-4xl font-semibold leading-[.98] tracking-[-0.06em] sm:text-5xl">Watch what Buffer Blaster makes.</h2>
-              <p className="mt-5 max-w-lg text-base leading-7 text-white/58">Finished vertical product ads from the current creative pipeline.</p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <ProofVideo src="https://d2ol7oe51mr4n9.cloudfront.net/user_33irX78ICVwRYWpFZ5l6a5vZbf5/2e5d7ea7-6ba9-48cb-9a51-9193c8f1cf7f.mp4" title="Selva & Sea" body="15s product UGC · real-use demo" />
-              <ProofVideo src="/media/ugc-streetwear.mp4" title="Streetwear" body="Creator product demo" />
-            </div>
+          <div className="max-w-2xl">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Actual output</p>
+            <h2 className="mt-4 text-4xl font-semibold leading-[.98] tracking-[-0.055em] sm:text-5xl">Watch what Buffer Blaster makes.</h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-white/58">Finished vertical product ads from the current creative pipeline. New work drops into the same proof wall as it is completed.</p>
+          </div>
+          <div className="mt-9 grid gap-4 md:grid-cols-3">
+            <ProofVideo src="https://d2ol7oe51mr4n9.cloudfront.net/user_33irX78ICVwRYWpFZ5l6a5vZbf5/2e5d7ea7-6ba9-48cb-9a51-9193c8f1cf7f.mp4" title="Selva & Sea" body="15s product UGC · real-use demo" />
+            <ProofVideo src="/media/ugc-streetwear.mp4" title="Streetwear" body="Creator product demo" />
+            <ProofPlaceholder slot="UGC slot 03" />
           </div>
         </div>
       </section>
@@ -165,7 +164,7 @@ export default function LandingPage() {
               <h2 className="max-w-3xl text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">Install the factory once. Bring your own providers.</h2>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-white/58">Buffer Blaster does not require a recurring software subscription. Hosting and model-generation usage remain with the infrastructure and provider accounts you choose.</p>
             </div>
-            <div className="lg:flex lg:justify-end"><InstallInquiry compact /></div>
+            <div className="lg:flex lg:justify-end"><InstallInquiry compact inverse /></div>
           </div>
         </div>
       </section>
@@ -209,6 +208,24 @@ function ProofStage() {
 
 function ProofVideo({ src, title, body }: { src: string; title: string; body: string }) {
   return <article className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[.055]"><div className="grid place-items-center bg-black/35 p-3"><video className="aspect-[9/16] max-h-[620px] w-full max-w-[349px] rounded-[14px] bg-black object-cover" controls playsInline preload="metadata" aria-label={`${title} video example`}><source src={src} type="video/mp4" /></video></div><div className="p-4"><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs text-white/48">{body}</p></div></article>;
+}
+
+function ProofPlaceholder({ slot }: { slot: string }) {
+  return (
+    <article className="overflow-hidden rounded-[22px] border border-dashed border-white/18 bg-white/[.025]">
+      <div className="grid aspect-[9/16] max-h-[620px] place-items-center p-6 text-center">
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/35">{slot}</p>
+          <p className="mt-3 text-xl font-semibold tracking-[-0.035em] text-white/75">Next UGC ad</p>
+          <p className="mx-auto mt-2 max-w-[210px] text-xs leading-5 text-white/38">Reserved for the next finished Buffer Blaster example.</p>
+        </div>
+      </div>
+      <div className="border-t border-white/8 p-4">
+        <p className="text-sm font-medium text-white/60">Coming later</p>
+        <p className="mt-1 text-xs text-white/34">Placeholder only · not proof</p>
+      </div>
+    </article>
+  );
 }
 
 function ReceiptRow({ label, value }: { label: string; value: string }) {
