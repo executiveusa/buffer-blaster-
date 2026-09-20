@@ -56,6 +56,7 @@ def _allowed_origins() -> list[str]:
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://buffer-blaster.vercel.app",
+        "https://bufferblaster.netlify.app",
     }
     site_url = os.getenv("SITE_URL", "").strip()
     if site_url:
