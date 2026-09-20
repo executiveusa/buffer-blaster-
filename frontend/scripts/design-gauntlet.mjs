@@ -5,6 +5,7 @@ const root = process.cwd();
 const required = [
   "src/app/page.tsx",
   "src/app/pricing/page.tsx",
+  "src/app/install/page.tsx",
   "src/app/studio/page.tsx",
   "src/app/studio/create/page.tsx",
   "src/app/studio/library/page.tsx",
@@ -26,7 +27,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 for (const file of required) if (!fs.existsSync(path.join(root, file))) fail(`missing ${file}`);
 if (ok) pass("all public and Studio surfaces exist");
 
-const publicFiles = ["src/app/page.tsx", "src/app/pricing/page.tsx", "src/app/layout.tsx", "src/app/robots.ts", "src/app/sitemap.ts"];
+const publicFiles = ["src/app/page.tsx", "src/app/install/page.tsx", "src/app/pricing/page.tsx", "src/app/layout.tsx", "src/app/robots.ts", "src/app/sitemap.ts"];
 const forbidden = ["Social Studio", "Stavarai", "Hermes", "Higgsfield"];
 for (const file of publicFiles) {
   if (!fs.existsSync(path.join(root, file))) continue;
@@ -50,7 +51,7 @@ if (!home.includes('id="install"')) fail("homepage has no install conversion sec
 if (!home.includes("controls playsInline")) fail("homepage proof video is not directly watchable");
 if (ok) pass("homepage leads with category, outcome, proof, and a concrete action");
 
-const access = read("src/app/pricing/page.tsx");
+const access = read("src/app/install/page.tsx");
 for (const signal of ["One-time private install", "Own the ad factory", "No recurring Buffer Blaster SaaS plan", "Studio + REST + MCP + CLI access", "Usage stays transparent"]) {
   if (!access.toLowerCase().includes(signal.toLowerCase())) fail(`access page missing private-infrastructure signal ${signal}`);
 }
