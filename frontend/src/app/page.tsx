@@ -173,7 +173,7 @@ export default function LandingPage() {
       <footer className="border-t border-black/7 px-5 py-8 text-xs text-black/50 sm:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <span>Buffer Blaster · AI Ad Factory · one-time private install</span>
-          <div className="flex gap-5"><Link href="#proof">Proof</Link><Link href="/pricing">Install</Link><Link href="/studio">Studio</Link></div>
+          <div className="flex gap-5"><Link href="#proof">Proof</Link><Link href="/install">Install</Link><Link href="/studio">Studio</Link></div>
         </div>
       </footer>
     </main>
