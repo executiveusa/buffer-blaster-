@@ -88,8 +88,8 @@ async def _wait_for_video(provider: Any, receipt: dict[str, Any], *, poll_interv
     return {"ok": False, "error": "provider_generation_timeout", "provider_response": last_payload}
 
 
-async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float) -> dict[str, Any]:
-    receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration="10", aspect_ratio="9:16", generate_audio=True)
+async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, model_name: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float) -> dict[str, Any]:
+    receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration="10", aspect_ratio="9:16", generate_audio=True, model_name=model_name)
     if not receipt.get("ok"):
         return {"ok": False, "error": "provider_submit_failed", "clip": clip_number, "receipt": receipt}
     completed = await _wait_for_video(provider, receipt, poll_interval_seconds=poll_interval_seconds, timeout_seconds=timeout_seconds)
@@ -181,11 +181,12 @@ async def execute_ugc_factory_ad(
     poll_interval = float(os.getenv("FAL_POLL_INTERVAL_SECONDS", "2")) if poll_interval_seconds is None else poll_interval_seconds
     timeout = float(os.getenv("FAL_RENDER_TIMEOUT_SECONDS", "600")) if timeout_seconds is None else timeout_seconds
     clip_receipts: list[dict[str, Any]] = []
+    provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
     seam_threshold = float(plan.get("continuity", {}).get("seam_threshold_mean_abs_diff") or (5 / 255))
 
     try:
         await update_job(job_id, state="rendering_clip_1", output={"allowance": allowance})
-        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=None, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
+        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=None, model_name=provider_model, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
         if not clip1.get("ok"):
             await update_job(job_id, state="clip_1_failed", provider_receipt={"clip_1": clip1})
             return {**clip1, "state": "clip_1_failed", "job_id": job_id, "allowance": allowance}
@@ -208,7 +209,7 @@ async def execute_ugc_factory_ad(
 
         async def render_second(attempt: int) -> dict[str, Any]:
             await update_job(job_id, state=f"rendering_clip_2_attempt_{attempt}")
-            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
+            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], model_name=provider_model, clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
 
         clip2 = await render_second(1)
         if not clip2.get("ok"):
