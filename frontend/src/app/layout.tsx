@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description:
     "Create AI ads and own the workflow. Buffer Blaster is a one-time private AI ad factory install that connects to the model providers you choose.",
   metadataBase: new URL("https://bufferblaster.netlify.app"),
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "Buffer Blaster — Create AI ads. Own the factory.",
     description:
