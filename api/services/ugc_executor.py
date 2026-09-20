@@ -159,6 +159,9 @@ async def execute_ugc_factory_ad(
     if not plan.get("ok"):
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
 
+    if not approved:
+        return {"ok": False, "error": "human_approval_required", "approval_required": True, "state": "planned"}
+
     provider = provider or get_media_provider()
     provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
     pricing = estimate_factory_generation_cost(provider, plan, provider_model)
@@ -175,9 +178,6 @@ async def execute_ugc_factory_ad(
     job_id = str(job.get("id") or "")
     if not job_id:
         return {"ok": False, "error": "ledger_job_creation_failed", "ledger": job}
-    if not approved:
-        return {"ok": False, "error": "human_approval_required", "approval_required": True, "state": "planned", "job_id": job_id}
-
     if reserved_allowance is not None:
         if not _valid_reserved_allowance(reserved_allowance, expected_cost=estimated_cost, offer_id=offer_id):
             await update_job(job_id, state="spend_blocked", output={"error": "invalid_spend_reservation"})
