@@ -185,13 +185,21 @@ function ProofStage() {
     <div className="relative mx-auto w-full max-w-[700px]">
       <div className="absolute -inset-4 rounded-[36px] bg-[#e7e5de]" />
       <div className="relative grid gap-4 rounded-[30px] border border-black/8 bg-white p-4 shadow-[0_30px_90px_rgba(0,0,0,.12)] sm:grid-cols-[1.22fr_.78fr] sm:p-5">
-        <div className="overflow-hidden rounded-[22px] bg-[#11120f]">
-          <video className="aspect-[16/11] h-full w-full object-cover" autoPlay muted loop playsInline preload="metadata" poster="/media/ugc-hero-poster.svg">
-            <source src="/media/ugc-skincare.mp4" type="video/mp4" />
+        <div className="grid place-items-center overflow-hidden rounded-[22px] bg-[#11120f] p-3 sm:p-4">
+          <video
+            className="aspect-[9/16] max-h-[560px] w-full max-w-[315px] rounded-[16px] bg-black object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-label="Selva & Sea product UGC example"
+          >
+            <source src="https://d2ol7oe51mr4n9.cloudfront.net/user_33irX78ICVwRYWpFZ5l6a5vZbf5/2e5d7ea7-6ba9-48cb-9a51-9193c8f1cf7f.mp4" type="video/mp4" />
           </video>
         </div>
         <div className="flex flex-col justify-between rounded-[22px] bg-[#151613] p-5 text-white">
-          <div><p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/45">Actual output</p><p className="mt-3 text-2xl font-semibold tracking-[-0.04em]">UGC product ad</p><p className="mt-3 text-sm leading-6 text-white/58">A working video output from the current Buffer Blaster creative pipeline.</p></div>
+          <div><p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/45">Actual output</p><p className="mt-3 text-2xl font-semibold tracking-[-0.04em]">Selva & Sea</p><p className="mt-3 text-sm leading-6 text-white/58">15-second vertical product UGC with product handling and real-use shots.</p></div>
           <a href="#proof" className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[#dfff67]">Watch the proof <ArrowRight className="h-4 w-4" /></a>
         </div>
       </div>
@@ -200,7 +208,7 @@ function ProofStage() {
 }
 
 function ProofVideo({ src, title, body }: { src: string; title: string; body: string }) {
-  return <article className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[.055]"><video className="aspect-[9/11] w-full object-cover" controls playsInline preload="metadata" poster="/media/ugc-hero-poster.svg"><source src={src} type="video/mp4" /></video><div className="p-4"><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs text-white/48">{body}</p></div></article>;
+  return <article className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[.055]"><div className="grid place-items-center bg-black/35 p-3"><video className="aspect-[9/16] max-h-[620px] w-full max-w-[349px] rounded-[14px] bg-black object-cover" controls playsInline preload="metadata" aria-label={`${title} video example`}><source src={src} type="video/mp4" /></video></div><div className="p-4"><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs text-white/48">{body}</p></div></article>;
 }
 
 function ReceiptRow({ label, value }: { label: string; value: string }) {
