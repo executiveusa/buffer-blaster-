@@ -1,6 +1,6 @@
 "use client";
 
-import { getToken, isDemoMode, isPublicConsole } from "./api";
+import { clearToken, getToken, isDemoMode, isPublicConsole } from "./api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -76,6 +76,11 @@ export async function createCampaignPlan(brief: CampaignBrief): Promise<Campaign
     cache: "no-store",
   });
   const body = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    clearToken();
+    if (typeof window !== "undefined") window.location.assign("/admin");
+    throw new Error("Operator session expired.");
+  }
   if (!response.ok || body.ok === false) throw new Error(body.detail || body.error || "Campaign planning failed.");
   return body as CampaignPlanResult;
 }
