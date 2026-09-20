@@ -16,17 +16,13 @@ def test_homepage_is_private_install_portfolio_ready():
     assert "Join the beta" not in page
 
 
-def test_install_inquiry_is_netlify_collectable_and_bot_protected():
+def test_install_inquiry_has_durable_api_transport_and_bot_field():
     form = (ROOT / "frontend/src/components/InstallInquiry.tsx").read_text(encoding="utf-8")
-    static_form = (ROOT / "frontend/public/forms.html").read_text(encoding="utf-8")
-    for source in [form, static_form]:
-        assert 'name="buffer-blaster-install"' in source
-        assert 'data-netlify="true"' in source
-        assert 'data-netlify-honeypot="bot-field"' in source
-        assert 'type="email"' in source
-        assert 'name="email"' in source
-    assert '"form-name": "buffer-blaster-install"' in form
-    assert 'aria-live="polite"' in form
+    route = (ROOT / "frontend/src/app/api/install-inquiry/route.ts").read_text(encoding="utf-8")
+    assert '/api/install-inquiry' in form
+    assert 'bot_field' in form
+    assert 'data-netlify' not in form
+    assert '/api/install-inquiries' in route
 
 
 def test_public_metadata_points_to_buffer_blaster_not_unrelated_project():
@@ -34,7 +30,8 @@ def test_public_metadata_points_to_buffer_blaster_not_unrelated_project():
     robots = (ROOT / "frontend/src/app/robots.ts").read_text(encoding="utf-8")
     sitemap = (ROOT / "frontend/src/app/sitemap.ts").read_text(encoding="utf-8")
     public_meta = "\n".join([layout, robots, sitemap])
-    assert "https://bufferblaster.netlify.app" in public_meta
+    assert "SITE_URL" in public_meta
+    assert "bufferblaster.netlify.app" not in public_meta
     assert "stavarai-platform" not in public_meta
     assert "Create AI ads. Own the factory." in layout
     assert "Private beta" not in layout

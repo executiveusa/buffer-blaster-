@@ -28,7 +28,8 @@ def test_global_metadata_matches_buffer_blaster_positioning():
     assert "Buffer Blaster" in layout
     assert "Create AI ads. Own the factory." in layout
     assert "one-time private AI ad factory install" in layout
-    assert "https://bufferblaster.netlify.app" in layout
+    assert "SITE_URL" in layout
+    assert "bufferblaster.netlify.app" not in layout
     assert "Social Studio" not in layout
     assert "stavarai-platform" not in layout
 

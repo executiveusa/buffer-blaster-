@@ -22,6 +22,7 @@ from .routers import (
     dashboard,
     discovery,
     hermes_bridge,
+    install_inquiries,
     mcp,
     media_receipts,
     money_loop,
@@ -77,6 +78,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(install_inquiries.router)
 app.include_router(dashboard.router)
 app.include_router(clients.router)
 app.include_router(settings_router.router)
