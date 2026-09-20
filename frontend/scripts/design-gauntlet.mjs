@@ -49,7 +49,14 @@ if (!home.includes('id="proof"')) fail("homepage has no proof section");
 if (!home.includes('id="ownership"')) fail("homepage has no ownership section");
 if (!home.includes('id="install"')) fail("homepage has no install conversion section");
 if (!home.includes("controls playsInline")) fail("homepage proof video is not directly watchable");
-if (ok) pass("homepage leads with outcome, proof, ownership, and a concrete install action");
+if (!home.includes("aspect-[9/16]")) fail("homepage vertical proof is not framed at 9:16");
+if (home.includes("/media/ugc-skincare.mp4")) fail("homepage still exposes the superseded skincare proof");
+if (!home.includes("Selva & Sea")) fail("homepage is missing the locked Selva & Sea proof");
+if (ok) pass("homepage leads with outcome, uncropped proof, ownership, and a concrete install action");
+
+const inquiry = read("src/components/InstallInquiry.tsx");
+if (!inquiry.includes('role="status"') || !inquiry.includes('aria-live="polite"')) fail("install inquiry does not announce success/error state accessibly");
+else pass("install inquiry exposes accessible success/error announcements");
 
 const access = read("src/app/install/page.tsx");
 for (const signal of ["One-time private install", "Install the factory once.", "One install. Yours to run.", "No recurring Buffer Blaster SaaS plan", "Studio + REST + MCP + CLI access", "Usage stays transparent"]) {
