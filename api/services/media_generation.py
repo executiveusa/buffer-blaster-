@@ -15,6 +15,7 @@ import httpx
 
 from .media_contracts import ProviderCapabilities
 from .provider_contracts import UGCProviderJob
+from .universal_media_gateway import UniversalVideoGatewayProvider
 
 
 def _csv(name: str) -> list[str]:
@@ -229,5 +230,15 @@ class FalVideoProvider:
             return {"ok": True, "data": response.json()}
 
 
-def get_media_provider() -> FalVideoProvider:
+def get_media_provider() -> FalVideoProvider | UniversalVideoGatewayProvider:
+    """Return the active server-owned media adapter.
+
+    ACTIVE_MEDIA_PROVIDER=fal keeps the existing implementation.
+    ACTIVE_MEDIA_PROVIDER=gateway (or muapi/open_higgsfield) enables the
+    configurable async gateway adapter, which can target self-hosted gateways
+    or compatible hosted aggregators without changing Buffer Blaster business logic.
+    """
+    selected = (os.getenv("ACTIVE_MEDIA_PROVIDER", "fal") or "fal").strip().lower()
+    if selected in {"gateway", "universal", "muapi", "open_higgsfield", "open-higgsfield"}:
+        return UniversalVideoGatewayProvider()
     return FalVideoProvider()
