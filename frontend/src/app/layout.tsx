@@ -1,3 +1,4 @@
+// Buffer Blaster production metadata.
 import type { Metadata } from "next";
 import "./globals.css";
 
