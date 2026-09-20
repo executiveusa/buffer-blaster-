@@ -1,6 +1,7 @@
 // Buffer Blaster production metadata.
 import type { Metadata } from "next";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: {
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   },
   description:
     "Create AI ads and own the workflow. Buffer Blaster is a one-time private AI ad factory install that connects to the model providers you choose.",
-  metadataBase: new URL("https://bufferblaster.netlify.app"),
+  metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: "/",
   },
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     title: "Buffer Blaster — Create AI ads. Own the factory.",
     description:
       "Turn one product brief into angles, scripts, and UGC-style video ads inside a private system you control.",
-    url: "https://bufferblaster.netlify.app",
+    url: SITE_URL,
     siteName: "Buffer Blaster",
     type: "website",
   },

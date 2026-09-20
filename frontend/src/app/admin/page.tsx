@@ -26,7 +26,8 @@ export default function AdminEntry() {
     setLoading(true);
     try {
       await verifyPassword(password);
-      router.push("/admin/dashboard");
+      const requested = new URLSearchParams(window.location.search).get("next") || "/admin/dashboard";
+      router.push(requested.startsWith("/studio") ? requested : "/admin/dashboard");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to sign in.");
     } finally {
