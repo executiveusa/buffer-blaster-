@@ -18,7 +18,7 @@ from ..services.pricing import public_pricing
 from ..services.publishing import PublishRequest, get_publisher
 from ..services.social_drop import SocialDrop, platform_payload
 from ..services.studio_ledger import create_campaign, get_job, list_jobs, summary
-from ..services.ugc_executor import execute_ugc_factory_ad
+from ..services.ugc_executor import execute_ugc_factory_ad, estimate_factory_generation_cost
 from ..services.ugc_factory import UGCFactoryBrief as ServiceUGCFactoryBrief, build_ugc_factory_plan
 from ..services.video_prompt import VideoPromptInput, compile_video_prompt
 from ..services.voice_intent import parse_voice_intent
@@ -217,10 +217,15 @@ async def execute_factory(request: UGCFactoryExecuteRequest, _=Depends(verify_op
     plan = build_ugc_factory_plan(service_brief)
     if not plan.get("ok"):
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
-    estimated_cost = int(plan.get("commercial", {}).get("estimated_generation_cost_cents") or 0)
-
-    if not get_media_provider().configured:
+    provider = get_media_provider()
+    if not provider.configured:
         return {"ok": False, "error": "media_provider_not_configured", "state": "preflight_blocked"}
+    provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
+    pricing = estimate_factory_generation_cost(provider, plan, provider_model)
+    if not pricing.get("ok"):
+        return {**pricing, "state": "preflight_blocked"}
+    estimated_cost = int(pricing["estimated_generation_cost_cents"])
+
     if not get_asset_storage().configured:
         return {"ok": False, "error": "asset_storage_not_configured", "state": "preflight_blocked"}
     if not get_media_ops().available():
@@ -240,6 +245,7 @@ async def execute_factory(request: UGCFactoryExecuteRequest, _=Depends(verify_op
         approved=True,
         offer_id=str(wallet_state["offer_id"]),
         reserved_allowance=reservation,
+        provider=provider,
     )
 
 
