@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getClients } from "@/lib/api";
 import { NICHE_LABELS, type Client } from "@/lib/demo-data";
-import { CheckCircle2, Plus } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -14,17 +14,11 @@ export default function ClientsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
-          <p className="mt-1 text-sm text-text-muted">
-            Each client gets an isolated, encrypted schema.
-          </p>
-        </div>
-        <button className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm text-text-muted transition hover:border-border-strong hover:text-text">
-          <Plus className="h-4 w-4" />
-          Add client
-        </button>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
+        <p className="mt-1 text-sm text-text-muted">
+          Each client gets an isolated, encrypted schema. Client creation stays behind the authenticated API until the admin form is fully implemented.
+        </p>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
