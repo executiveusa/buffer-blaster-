@@ -132,6 +132,14 @@ class UniversalVideoGatewayProvider:
             and (target.port or 443) == (base.port or 443)
         )
 
+    def models(self) -> list[str]:
+        models = set(self.allowed_models)
+        if self.text_model:
+            models.add(self.text_model)
+        if self.image_model:
+            models.add(self.image_model)
+        return sorted(models)
+
     def status(self) -> dict[str, Any]:
         return {
             "provider": self.name,
