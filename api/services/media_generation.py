@@ -57,6 +57,15 @@ class FalVideoProvider:
     def configured(self) -> bool:
         return bool(self.key and (self.text_model or self.image_model))
 
+    def models(self) -> list[str]:
+        return sorted({model for model in (self.text_model, self.image_model) if model})
+
+    def estimate_clip_cost_cents(self, model_name: str | None = None, *, image_url: str | None = None) -> int | None:
+        configured_model = self.image_model if image_url else self.text_model
+        if model_name and model_name != configured_model:
+            return None
+        return _money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 80) if configured_model else None
+
     def status(self) -> dict[str, Any]:
         return {
             "provider": "fal",
@@ -79,7 +88,7 @@ class FalVideoProvider:
             deployment="hosted",
             supported_ratios=_csv("FAL_SUPPORTED_RATIOS"),
             supported_durations_seconds=_int_csv("FAL_SUPPORTED_DURATIONS_SECONDS"),
-            estimated_cost_cents=_money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 80),
+            estimated_cost_cents=self.estimate_clip_cost_cents() if self.text_model else None,
             consent_requirements=["owned_or_licensed_assets", "explicit_person_or_voice_consent"],
             commercial_use_status=commercial,
             health=health,
