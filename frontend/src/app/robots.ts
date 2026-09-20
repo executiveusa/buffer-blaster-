@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE = "https://stavarai-platform.vercel.app";
+const SITE = "https://bufferblaster.netlify.app";
 
 export default function robots(): MetadataRoute.Robots {
   return {
