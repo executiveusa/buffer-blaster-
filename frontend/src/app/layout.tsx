@@ -7,12 +7,12 @@ export const metadata: Metadata = {
     template: "%s · Buffer Blaster",
   },
   description:
-    "Turn one product into ads worth testing. Buffer Blaster finds creative angles, builds UGC-style video ads, shows generation cost before spend, and keeps approvals and results with the work.",
+    "A one-time private AI ad factory install for turning product briefs into UGC-style video ads, routing approved models, and keeping costs, approvals, and evidence under your control.",
   metadataBase: new URL("https://bufferblaster.netlify.app"),
   openGraph: {
-    title: "Buffer Blaster — Turn one product into ads worth testing.",
+    title: "Buffer Blaster — Your AI ad factory. Installed once. Yours to run.",
     description:
-      "An AI ad factory for creative angles, UGC-style video, controlled generation spend, and repeatable testing.",
+      "Own the creative workflow instead of renting another subscription. Buffer Blaster installs privately and connects to approved model providers you choose.",
     url: "https://bufferblaster.netlify.app",
     siteName: "Buffer Blaster",
     type: "website",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Buffer Blaster — AI Ad Factory",
-    description: "Turn one product into ads worth testing.",
+    description: "One-time private install. Your stack, your provider accounts, your creative workflow.",
   },
 };
 
