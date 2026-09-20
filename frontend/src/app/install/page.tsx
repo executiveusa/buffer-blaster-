@@ -22,13 +22,13 @@ export default function InstallPage() {
   return <main className="min-h-screen bg-[#f4f3ef] text-[#151613]">
     <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
       <Link href="/" className="text-lg font-semibold tracking-[-0.04em]">Buffer Blaster</Link>
-      <div className="flex items-center gap-2"><Link href="/" className="hidden px-4 py-2 text-sm text-black/60 sm:block">Overview</Link><Link href="#request" className="rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white">Request install</Link></div>
+      <div className="flex items-center gap-2"><Link href="/" className="hidden px-4 py-2 text-sm text-black/60 sm:block">Overview</Link><Link href="#request" className="rounded-full bg-black px-3.5 py-2.5 text-xs font-medium text-white sm:px-4 sm:text-sm">Request install</Link></div>
     </header>
 
     <section className="mx-auto max-w-7xl px-5 pb-20 pt-14 sm:px-8 sm:pt-24">
       <div className="mx-auto max-w-4xl text-center">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-black/50">One-time private install</p>
-        <h1 className="mt-5 text-balance text-5xl font-semibold leading-[.95] tracking-[-0.07em] sm:text-7xl">Install the factory once. <span className="text-black/45">Keep the workflow.</span></h1>
+        <h1 className="mt-5 text-balance text-[44px] font-semibold leading-[.96] tracking-[-0.055em] min-[380px]:text-5xl sm:text-7xl sm:tracking-[-0.07em]">Install the factory once. <span className="text-black/45">Keep the workflow.</span></h1>
         <p className="mx-auto mt-6 max-w-3xl text-base leading-7 text-black/62">Buffer Blaster is installed for your team. Connect the provider accounts you want, keep the workflow under your control, and pay hosting or generation usage directly through those accounts.</p>
       </div>
 
