@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 
 from ..services.integration_auth import verify_operator
 from ..services.provider_registry import ProviderRouteRequest, plan_provider_route, provider_registry
-from ..services.media_generation import get_media_provider
+from ..services.media_generation import get_media_provider, media_providers
 
 
 router = APIRouter(prefix="/api/studio/providers", tags=["provider-routing"])
@@ -21,13 +21,24 @@ async def capabilities(_=Depends(verify_operator)) -> dict:
 
 
 @router.get("/models")
-async def models(_=Depends(verify_operator)) -> dict:
-    provider = get_media_provider()
-    items = provider.models() if hasattr(provider, "models") else []
+async def models(provider: str | None = None, _=Depends(verify_operator)) -> dict:
+    providers = media_providers()
+    if provider:
+        selected = providers.get(provider)
+        if not selected:
+            return {"ok": False, "error": "provider_not_configured", "provider": provider, "paid_generation": False}
+        return {
+            "ok": True,
+            "provider": provider,
+            "models": selected.models() if hasattr(selected, "models") else [],
+            "paid_generation": False,
+        }
     return {
         "ok": True,
-        "provider": provider.status().get("provider"),
-        "models": items,
+        "providers": {
+            name: (item.models() if hasattr(item, "models") else [])
+            for name, item in sorted(providers.items())
+        },
         "paid_generation": False,
     }
 
