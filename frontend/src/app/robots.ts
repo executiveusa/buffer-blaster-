@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 
-const SITE = "https://bufferblaster.netlify.app";
+import { SITE_URL } from "@/lib/site-url";
+
+const SITE = SITE_URL;
 
 export default function robots(): MetadataRoute.Robots {
   return {

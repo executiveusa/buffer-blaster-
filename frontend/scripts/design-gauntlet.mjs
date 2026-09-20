@@ -37,7 +37,7 @@ for (const file of publicFiles) {
 const combinedPublic = publicFiles.filter(file => fs.existsSync(path.join(root, file))).map(read).join("\n");
 if (!combinedPublic.includes("Buffer Blaster")) fail("public surfaces do not identify the product as Buffer Blaster");
 if (combinedPublic.includes("stavarai-platform.vercel.app")) fail("public SEO surfaces still point at the retired Stavarai domain");
-if (!combinedPublic.includes("bufferblaster.netlify.app")) fail("public SEO surfaces do not point at the Buffer Blaster canonical host");
+if (!combinedPublic.includes("SITE_URL") || combinedPublic.includes("bufferblaster.netlify.app")) fail("public SEO surfaces do not use the canonical Buffer Blaster SITE_URL");
 if (ok) pass("public identity and canonical host are Buffer Blaster without retired codenames");
 
 const home = read("src/app/page.tsx");

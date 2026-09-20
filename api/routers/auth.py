@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from ..services.native import get_core
 from ..services.operator_sessions import SessionBackendUnavailable, invalidate_session
-from ..deps import issue_session, rate_limit_auth
+from ..deps import issue_session, rate_limit_auth, verify_session
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -42,3 +42,8 @@ async def logout(request: Request):
         except SessionBackendUnavailable as exc:
             raise HTTPException(status_code=503, detail="Authentication backend unavailable") from exc
     return {"status": "logged out"}
+
+
+@router.get("/session")
+async def session(_=Depends(verify_session)):
+    return {"ok": True}

@@ -11,12 +11,12 @@ export function InstallInquiry({ compact = false, inverse = false }: { compact?:
     event.preventDefault();
     if (!email.trim()) return;
     setState("sending");
-    const body = new URLSearchParams({ "form-name": "buffer-blaster-install", email: email.trim() });
+    const body = { email: email.trim(), bot_field: "" };
     try {
-      const response = await fetch("/", {
+      const response = await fetch("/api/install-inquiry", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
       if (!response.ok) throw new Error("install_inquiry_failed");
       setState("success");
@@ -39,13 +39,9 @@ export function InstallInquiry({ compact = false, inverse = false }: { compact?:
     <form
       name="buffer-blaster-install"
       method="POST"
-      data-netlify="true"
-      data-netlify-honeypot="bot-field"
       onSubmit={submit}
       className={`w-full ${compact ? "max-w-xl" : "max-w-2xl"}`}
     >
-      <input type="hidden" name="form-name" value="buffer-blaster-install" />
-      <p className="hidden"><label>Don’t fill this out: <input name="bot-field" /></label></p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <label className="sr-only" htmlFor={compact ? "install-email-compact" : "install-email"}>Work email</label>
         <input
