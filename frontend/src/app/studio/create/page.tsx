@@ -103,7 +103,7 @@ export default function CreateUGCPage() {
     <PageHeader
       kicker="Create"
       title="Find the angle. See the cost. Then approve the ad."
-      body="Planning is free of provider spend. A paid generation starts only after the script gate passes, your active pass has enough credits, and you explicitly approve the estimated cost. The factory then runs both clips, continuity QA, stitching, storage, and the final receipt."
+      body="Planning is free of provider spend. Paid generation starts only after the script gate passes, a server-side generation allowance is active, and you explicitly approve the estimated cost. The factory then runs both clips, continuity QA, stitching, storage, and the final receipt."
       action={<StatusPill tone={trial.active ? "green" : "blue"}>{trial.active ? `${trial.trial?.remaining_ad_credits ?? 0} credits left` : "Plan before spend"}</StatusPill>}
     />
 
@@ -135,10 +135,10 @@ export default function CreateUGCPage() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-black/7 bg-white p-4"><div className="flex items-center gap-2"><CircleDollarSign className="h-4 w-4 text-black/38"/><p className="text-xs font-medium">Estimated generation reserve</p></div><p className="mt-3 text-2xl font-semibold tracking-tight">${(estimatedCost / 100).toFixed(2)}</p><p className="mt-1 text-[10px] leading-4 text-black/38">Conservative estimate includes the bounded continuity retry budget.</p></div>
-            <div className="rounded-2xl border border-black/7 bg-white p-4"><div className="flex items-center gap-2"><WalletCards className="h-4 w-4 text-[#2357ff]"/><p className="text-xs font-medium">Credits required</p></div><p className="mt-3 text-2xl font-semibold tracking-tight">{estimatedCredits}</p><p className="mt-1 text-[10px] leading-4 text-black/38">{trial.active ? `${trial.trial?.remaining_ad_credits ?? 0} available on your ${trial.trial?.offer_id}.` : "Start a paid pass to authorize generation."}</p></div>
+            <div className="rounded-2xl border border-black/7 bg-white p-4"><div className="flex items-center gap-2"><WalletCards className="h-4 w-4 text-[#2357ff]"/><p className="text-xs font-medium">Credits required</p></div><p className="mt-3 text-2xl font-semibold tracking-tight">{estimatedCredits}</p><p className="mt-1 text-[10px] leading-4 text-black/38">{trial.active ? `${trial.trial?.remaining_ad_credits ?? 0} available on your ${trial.trial?.offer_id}.` : "A server-side operator allowance is required before generation."}</p></div>
           </div>
 
-          {trial.active ? <button onClick={approveAndBuildFinalAd} disabled={!plan.gate.passed || !hasEnoughCredits || working !== null} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2357ff] px-4 py-3 text-sm font-medium text-white disabled:opacity-45">{working === "render" ? <Loader2 className="h-4 w-4 animate-spin"/> : <Play className="h-4 w-4"/>}Approve {estimatedCredits} credit{estimatedCredits === 1 ? "" : "s"} & build final ad</button> : <Link href="/pricing" className="flex w-full items-center justify-center rounded-xl bg-[#2357ff] px-4 py-3 text-sm font-medium text-white">Start with a paid test pass</Link>}
+          {trial.active ? <button onClick={approveAndBuildFinalAd} disabled={!plan.gate.passed || !hasEnoughCredits || working !== null} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2357ff] px-4 py-3 text-sm font-medium text-white disabled:opacity-45">{working === "render" ? <Loader2 className="h-4 w-4 animate-spin"/> : <Play className="h-4 w-4"/>}Approve {estimatedCredits} credit{estimatedCredits === 1 ? "" : "s"} & build final ad</button> : <Link href="/studio/settings" className="flex w-full items-center justify-center rounded-xl bg-[#2357ff] px-4 py-3 text-sm font-medium text-white">Verify generation allowance</Link>}
           {trial.active && !hasEnoughCredits ? <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">This plan needs {estimatedCredits} Ad Credits. Your active pass has {trial.trial?.remaining_ad_credits ?? 0}. Choose a lower-cost request or upgrade before generation.</p> : null}
         </>}
 
