@@ -60,6 +60,7 @@ class UGCFactoryPlanRequest(BaseModel):
     actor_description: str = "a natural creator speaking like they are sharing something they actually use"
     delivery_tone: str = "calm, honest and direct"
     visual_lane: str = "lane_zero"
+    provider_model: str = Field(default="", max_length=255)
 
 
 class UGCFactoryExecuteRequest(UGCFactoryPlanRequest):
