@@ -7,6 +7,7 @@ provider spend from the server-owned wallet before invoking this coordinator.
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import shutil
 import time
@@ -20,6 +21,30 @@ from .pricing import authorize_generation
 from .studio_ledger import create_job, update_job
 from .ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 
+
+
+def estimate_factory_generation_cost(provider: Any, plan: dict[str, Any], provider_model: str | None = None) -> dict[str, Any]:
+    """Price and validate the selected provider/model before wallet reservation."""
+    if not getattr(provider, "configured", False):
+        return {"ok": False, "error": "media_provider_not_configured"}
+    if not hasattr(provider, "estimate_clip_cost_cents"):
+        return {"ok": False, "error": "provider_cost_unavailable"}
+    per_clip = provider.estimate_clip_cost_cents(provider_model)
+    if per_clip is None:
+        return {"ok": False, "error": "provider_model_not_allowed_or_cost_unverified", "model": provider_model}
+    commercial = plan.get("commercial", {})
+    expected_calls = max(1, int(commercial.get("expected_paid_clip_calls") or 1))
+    safety_bps = max(10000, int(commercial.get("cost_safety_bps") or 10000))
+    estimated_total = math.ceil(int(per_clip) * expected_calls * safety_bps / 10000)
+    return {
+        "ok": True,
+        "provider": provider.status().get("provider"),
+        "model": provider_model,
+        "estimated_clip_cost_cents": int(per_clip),
+        "expected_paid_clip_calls": expected_calls,
+        "cost_safety_bps": safety_bps,
+        "estimated_generation_cost_cents": estimated_total,
+    }
 
 def extract_video_url(payload: Any) -> str | None:
     if isinstance(payload, str):
@@ -134,7 +159,11 @@ async def execute_ugc_factory_ad(
     if not plan.get("ok"):
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
 
-    estimated_cost = int(plan.get("commercial", {}).get("estimated_generation_cost_cents") or 0)
+    provider = provider or get_media_provider()
+    pricing = estimate_factory_generation_cost(provider, plan, provider_model)
+    if not pricing.get("ok"):
+        return {**pricing, "state": "preflight_blocked"}
+    estimated_cost = int(pricing["estimated_generation_cost_cents"])
     job = await create_job(
         kind="ugc_ad_factory",
         state="planned",
@@ -168,7 +197,6 @@ async def execute_ugc_factory_ad(
             await update_job(job_id, state="spend_blocked", output={"allowance": allowance})
             return {"ok": False, "error": allowance.get("error"), "state": "spend_blocked", "job_id": job_id, "allowance": allowance}
 
-    provider = provider or get_media_provider()
     storage = storage or get_asset_storage()
     media_ops = media_ops or get_media_ops()
     if hasattr(storage, "configured") and not storage.configured:
@@ -261,7 +289,7 @@ async def execute_ugc_factory_ad(
 
         state = "finished" if stitched.get("audio") else "visual_complete_needs_audio"
         qa = {"seam_diff": seam, "seam_threshold": seam_threshold, "seam_passed": seam < seam_threshold, "audio_present_in_both_clips": bool(stitched.get("audio")), "paid_generation_calls": len(clip_receipts)}
-        result = {"ok": state == "finished", "state": state, "job_id": job_id, "factory_version": plan.get("factory_version"), "allowance": allowance, "qa": qa, "final_asset": final_asset, "provider_receipts": clip_receipts, "approval_required_before_publish": True}
+        result = {"ok": state == "finished", "state": state, "job_id": job_id, "factory_version": plan.get("factory_version"), "allowance": allowance, "provider_pricing": pricing, "qa": qa, "final_asset": final_asset, "provider_receipts": clip_receipts, "approval_required_before_publish": True}
         await update_job(job_id, state=state, provider_receipt={"clips": clip_receipts}, output={"final_asset": final_asset, "qa": qa, "allowance": allowance})
         return result
     finally:
