@@ -80,6 +80,7 @@ class UniversalVideoGatewayProvider:
         self.status_path = os.getenv("GENERATION_GATEWAY_STATUS_PATH", "/v1/videos/{id}").strip() or "/v1/videos/{id}"
         self.auth_header = os.getenv("GENERATION_GATEWAY_AUTH_HEADER", "Authorization").strip() or "Authorization"
         self.auth_prefix = os.getenv("GENERATION_GATEWAY_AUTH_PREFIX", "Bearer ").replace("\\n", "\n")
+        self.poll_method = os.getenv("GENERATION_GATEWAY_POLL_METHOD", "GET").strip().upper() or "GET"
         self.model_in_body = _bool_env("GENERATION_GATEWAY_MODEL_IN_BODY", True)
         self.image_input_field = os.getenv("GENERATION_GATEWAY_IMAGE_INPUT_FIELD", "image_url").strip() or "image_url"
         self.duration_field = os.getenv("GENERATION_GATEWAY_DURATION_FIELD", "duration").strip() or "duration"
@@ -276,8 +277,13 @@ class UniversalVideoGatewayProvider:
             return {"ok": False, "error": "generation_gateway_not_configured"}
         if not self._same_origin(url):
             return {"ok": False, "error": "invalid_gateway_url_origin"}
+        if self.poll_method not in {"GET", "POST"}:
+            return {"ok": False, "error": "invalid_gateway_poll_method"}
         async with httpx.AsyncClient(timeout=60, follow_redirects=False) as client:
-            response = await client.get(url, headers=self._headers())
+            if self.poll_method == "POST":
+                response = await client.post(url, headers=self._headers(), json={})
+            else:
+                response = await client.get(url, headers=self._headers())
             if response.is_redirect:
                 return {"ok": False, "error": "gateway_redirect_rejected", "status": response.status_code}
             if response.is_error:
