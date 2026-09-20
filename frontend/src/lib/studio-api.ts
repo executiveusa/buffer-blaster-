@@ -1,4 +1,4 @@
-import { getToken, isDemoMode, isPublicConsole } from "./api";
+import { clearToken, getToken, isDemoMode, isPublicConsole } from "./api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const seeded = () => isDemoMode() || isPublicConsole();
@@ -9,6 +9,11 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${API_URL}${path}`, { ...init, headers });
   const body = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    clearToken();
+    if (typeof window !== "undefined") window.location.assign("/admin");
+    throw new Error("Operator session expired.");
+  }
   if (!response.ok) throw new Error(body.detail || body.error || response.statusText);
   return body as T;
 }
