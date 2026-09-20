@@ -69,7 +69,7 @@ def _first_string(payload: Any, keys: tuple[str, ...]) -> str | None:
 class UniversalVideoGatewayProvider:
     """Translate Buffer Blaster's stable media boundary to a configurable gateway."""
 
-    def __init__(self) -> None:
+    def __init__(self, profile: dict[str, Any] | None = None) -> None:
         self.name = os.getenv("GENERATION_GATEWAY_NAME", "gateway").strip() or "gateway"
         self.base_url = os.getenv("GENERATION_GATEWAY_BASE_URL", "").strip().rstrip("/")
         self.key = os.getenv("GENERATION_GATEWAY_API_KEY", "").strip()
@@ -88,6 +88,87 @@ class UniversalVideoGatewayProvider:
         self.aspect_ratio_field = os.getenv("GENERATION_GATEWAY_ASPECT_RATIO_FIELD", "aspect_ratio").strip() or "aspect_ratio"
         self.audio_field = os.getenv("GENERATION_GATEWAY_AUDIO_FIELD", "generate_audio").strip()
         self.extra_body = self._load_extra_body()
+        self.supported_ratios = _csv("GENERATION_GATEWAY_SUPPORTED_RATIOS")
+        self.supported_durations_seconds = _int_csv("GENERATION_GATEWAY_SUPPORTED_DURATIONS_SECONDS")
+        self.max_reference_images = _int_env("GENERATION_GATEWAY_MAX_REFERENCE_IMAGES", 1 if self.image_model else 0)
+        self.default_cost_cents = _int_env("GENERATION_GATEWAY_ESTIMATED_CLIP_COST_CENTS", 0)
+        self.estimated_latency_seconds = _int_env("GENERATION_GATEWAY_ESTIMATED_LATENCY_SECONDS", 0) or None
+        self.commercial_use_status = os.getenv("GENERATION_GATEWAY_COMMERCIAL_USE_STATUS", "review_required").strip().lower()
+        self.deployment = os.getenv("GENERATION_GATEWAY_DEPLOYMENT", "hosted").strip().lower()
+        self.lip_sync = _bool_env("GENERATION_GATEWAY_LIP_SYNC")
+        self.audio_driven = _bool_env("GENERATION_GATEWAY_AUDIO_DRIVEN")
+        self.body_motion = _bool_env("GENERATION_GATEWAY_BODY_MOTION")
+        self.quality_rank = _int_env("GENERATION_GATEWAY_QUALITY_RANK", 60)
+        self.cost_class = os.getenv("GENERATION_GATEWAY_COST_CLASS", "standard").strip() or "standard"
+        self.commercial_use_approved = _bool_env("GENERATION_GATEWAY_COMMERCIAL_USE_APPROVED")
+
+        if profile:
+            self._apply_profile(profile)
+
+    def _apply_profile(self, profile: dict[str, Any]) -> None:
+        """Apply one server-owned gateway profile without accepting secrets inline."""
+        self.name = str(profile.get("name") or self.name).strip() or self.name
+        self.base_url = str(profile.get("base_url") or "").strip().rstrip("/")
+        api_key_env = str(profile.get("api_key_env") or "").strip()
+        self.key = os.getenv(api_key_env, "").strip() if api_key_env else ""
+        self.text_model = str(profile.get("text_model") or "").strip()
+        self.image_model = str(profile.get("image_model") or "").strip() or self.text_model
+        allowed = profile.get("allowed_models")
+        self.allowed_models = {str(item).strip() for item in allowed or [] if str(item).strip()}
+        costs = profile.get("model_costs_cents")
+        self.model_costs = {}
+        if isinstance(costs, dict):
+            for model, cents in costs.items():
+                try:
+                    value = int(cents)
+                except (TypeError, ValueError):
+                    continue
+                if str(model).strip() and value >= 0:
+                    self.model_costs[str(model).strip()] = value
+        self.submit_path = str(profile.get("submit_path") or "/v1/videos").strip() or "/v1/videos"
+        self.status_path = str(profile.get("status_path") or "/v1/videos/{id}").strip() or "/v1/videos/{id}"
+        self.auth_header = str(profile.get("auth_header") or "Authorization").strip() or "Authorization"
+        self.auth_prefix = str(profile.get("auth_prefix") if profile.get("auth_prefix") is not None else "Bearer ")
+        self.poll_method = str(profile.get("poll_method") or "GET").strip().upper() or "GET"
+        self.model_in_body = bool(profile.get("model_in_body", True))
+        self.image_input_field = str(profile.get("image_input_field") or "image_url").strip() or "image_url"
+        self.duration_field = str(profile.get("duration_field") or "duration").strip() or "duration"
+        self.aspect_ratio_field = str(profile.get("aspect_ratio_field") or "aspect_ratio").strip() or "aspect_ratio"
+        self.audio_field = str(profile.get("audio_field") or "generate_audio").strip()
+        self.extra_body = profile.get("extra_body") if isinstance(profile.get("extra_body"), dict) else {}
+        self.supported_ratios = [str(item) for item in profile.get("supported_ratios", []) if str(item)]
+        self.supported_durations_seconds = []
+        for item in profile.get("supported_durations_seconds", []):
+            try:
+                value = int(item)
+            except (TypeError, ValueError):
+                continue
+            if value > 0:
+                self.supported_durations_seconds.append(value)
+        try:
+            self.max_reference_images = max(0, int(profile.get("max_reference_images", 1 if self.image_model else 0)))
+        except (TypeError, ValueError):
+            self.max_reference_images = 1 if self.image_model else 0
+        try:
+            self.default_cost_cents = max(0, int(profile.get("estimated_clip_cost_cents", 0)))
+        except (TypeError, ValueError):
+            self.default_cost_cents = 0
+        try:
+            latency = int(profile.get("estimated_latency_seconds", 0))
+        except (TypeError, ValueError):
+            latency = 0
+        self.estimated_latency_seconds = latency if latency > 0 else None
+        self.commercial_use_status = str(profile.get("commercial_use_status") or "review_required").strip().lower()
+        self.deployment = str(profile.get("deployment") or "hosted").strip().lower()
+        self.lip_sync = bool(profile.get("lip_sync", False))
+        self.audio_driven = bool(profile.get("audio_driven", False))
+        self.body_motion = bool(profile.get("body_motion", False))
+        try:
+            self.quality_rank = max(0, min(100, int(profile.get("quality_rank", 60))))
+        except (TypeError, ValueError):
+            self.quality_rank = 60
+        self.cost_class = str(profile.get("cost_class") or "standard").strip() or "standard"
+        self.commercial_use_approved = bool(profile.get("commercial_use_approved", False))
 
     def _load_model_costs(self) -> dict[str, int]:
         raw = os.getenv("GENERATION_GATEWAY_MODEL_COSTS_JSON", "").strip()
@@ -146,7 +227,7 @@ class UniversalVideoGatewayProvider:
             return self.model_costs[model]
         default_model = self.image_model if image_url else self.text_model
         if model == default_model:
-            return _int_env("GENERATION_GATEWAY_ESTIMATED_CLIP_COST_CENTS", 0)
+            return self.default_cost_cents
         return None
 
     def _headers(self) -> dict[str, str]:
@@ -195,25 +276,25 @@ class UniversalVideoGatewayProvider:
         }
 
     def capabilities(self) -> ProviderCapabilities:
-        commercial = os.getenv("GENERATION_GATEWAY_COMMERCIAL_USE_STATUS", "review_required").strip().lower()
+        commercial = self.commercial_use_status
         if commercial not in {"approved", "restricted", "review_required", "unknown"}:
             commercial = "unknown"
-        deployment = os.getenv("GENERATION_GATEWAY_DEPLOYMENT", "hosted").strip().lower()
+        deployment = self.deployment
         if deployment not in {"local", "hosted", "hybrid"}:
             deployment = "hosted"
         return ProviderCapabilities(
             provider=self.name,
             text_to_video=bool(self.text_model),
             image_to_video=bool(self.image_model),
-            max_reference_images=_int_env("GENERATION_GATEWAY_MAX_REFERENCE_IMAGES", 1 if self.image_model else 0),
-            lip_sync=_bool_env("GENERATION_GATEWAY_LIP_SYNC"),
-            audio_driven=_bool_env("GENERATION_GATEWAY_AUDIO_DRIVEN"),
-            body_motion=_bool_env("GENERATION_GATEWAY_BODY_MOTION"),
+            max_reference_images=self.max_reference_images,
+            lip_sync=self.lip_sync,
+            audio_driven=self.audio_driven,
+            body_motion=self.body_motion,
             deployment=deployment,
-            supported_ratios=_csv("GENERATION_GATEWAY_SUPPORTED_RATIOS"),
-            supported_durations_seconds=_int_csv("GENERATION_GATEWAY_SUPPORTED_DURATIONS_SECONDS"),
+            supported_ratios=self.supported_ratios,
+            supported_durations_seconds=self.supported_durations_seconds,
             estimated_cost_cents=self.estimate_clip_cost_cents() if self.text_model else None,
-            estimated_latency_seconds=_int_env("GENERATION_GATEWAY_ESTIMATED_LATENCY_SECONDS", 0) or None,
+            estimated_latency_seconds=self.estimated_latency_seconds,
             consent_requirements=["owned_or_licensed_assets", "explicit_person_or_voice_consent"],
             commercial_use_status=commercial,
             health="ready" if self.configured else "unavailable",

@@ -10,7 +10,7 @@ from uuid import UUID, uuid5, NAMESPACE_URL
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .media_contracts import ProviderCapabilities
-from .media_generation import get_media_provider
+from .media_generation import get_media_provider, media_providers
 from .usage_wallet import get_wallet
 
 
@@ -58,23 +58,27 @@ def _truthy(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _active_runtime_entry() -> ProviderRegistryEntry:
-    provider = get_media_provider()
+def _runtime_entry(provider: Any) -> ProviderRegistryEntry:
     caps = provider.capabilities()
-    prefix = "FAL" if caps.provider == "fal" else "GENERATION_GATEWAY"
-    if caps.commercial_use_status == "review_required" and _truthy(f"{prefix}_COMMERCIAL_USE_APPROVED"):
+    if caps.provider == "fal":
+        approved = _truthy("FAL_COMMERCIAL_USE_APPROVED")
+        try:
+            quality = max(0, min(100, int(os.getenv("FAL_QUALITY_RANK", "60"))))
+        except ValueError:
+            quality = 60
+        cost_class = os.getenv("FAL_COST_CLASS", "standard")
+    else:
+        approved = bool(getattr(provider, "commercial_use_approved", False))
+        quality = int(getattr(provider, "quality_rank", 60))
+        cost_class = str(getattr(provider, "cost_class", "standard"))
+    if caps.commercial_use_status == "review_required" and approved:
         caps = caps.model_copy(update={"commercial_use_status": "approved"})
-    try:
-        quality = max(0, min(100, int(os.getenv(f"{prefix}_QUALITY_RANK", "60"))))
-    except ValueError:
-        quality = 60
-    cost_class = os.getenv(f"{prefix}_COST_CLASS", "standard")
     if cost_class not in {"free_local", "low", "standard", "premium", "unknown"}:
         cost_class = "unknown"
     return ProviderRegistryEntry(
         capabilities=caps,
         enabled=provider.configured,
-        quality_rank=quality,
+        quality_rank=max(0, min(100, quality)),
         cost_class=cost_class,
         provenance=f"{caps.provider}_runtime_configuration",
     )
@@ -102,9 +106,14 @@ def _configured_entries() -> list[ProviderRegistryEntry]:
 
 
 def provider_registry() -> list[ProviderRegistryEntry]:
-    """Return enabled/disabled provider metadata with no secrets or model IDs."""
-    runtime_entry = _active_runtime_entry()
-    by_name: dict[str, ProviderRegistryEntry] = {runtime_entry.capabilities.provider: runtime_entry}
+    """Return every configured executable provider plus declarative route metadata."""
+    by_name: dict[str, ProviderRegistryEntry] = {}
+    for name, provider in media_providers().items():
+        entry = _runtime_entry(provider)
+        by_name[name] = entry
+    if not by_name:
+        fallback = _runtime_entry(get_media_provider())
+        by_name[fallback.capabilities.provider] = fallback
     for entry in _configured_entries():
         by_name[entry.capabilities.provider] = entry
     return list(by_name.values())

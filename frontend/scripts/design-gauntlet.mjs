@@ -38,20 +38,24 @@ if (!combinedPublic.includes("Buffer Blaster")) fail("public surfaces do not ide
 if (ok) pass("public identity is Buffer Blaster without internal codenames");
 
 const home = read("src/app/page.tsx");
-for (const signal of ["Private creative infrastructure", "Find the angle.", "Make the ad.", "Learn what works.", "We sell the outcome. Buffer Blaster is how we deliver it."]) {
-  if (!home.includes(signal)) fail(`homepage missing positioning signal ${signal}`);
+for (const signal of ["AI ad factory · one-time private install", "Own the system that turns products into ads.", "Watch real output", "Proof before promises.", "Get a private install", "No monthly Buffer Blaster subscription"]) {
+  if (!home.includes(signal)) fail(`homepage missing install-first positioning signal ${signal}`);
 }
-for (const stale of ["See the $249 pilot", "Founding Ad Batch", "$249"] ) if (home.includes(stale)) fail(`homepage exposes retired offer ${stale}`);
-if (ok) pass("homepage leads with the private creative-infrastructure outcome");
+for (const stale of ["Private beta", "Join the beta", "Private creative infrastructure", "Find the angle.<br />Make the ad.", "See the $249 pilot", "Founding Ad Batch", "$249"] ) {
+  if (home.includes(stale)) fail(`homepage exposes stale SaaS/beta signal ${stale}`);
+}
+if (!home.includes('id="proof"')) fail("homepage has no proof section");
+if (!home.includes("controls playsInline")) fail("homepage proof video is not directly watchable");
+if (ok) pass("homepage leads with outcome, proof, ownership, and one-time install");
 
 const access = read("src/app/pricing/page.tsx");
-for (const signal of ["The software is not the offer", "Creative Engine", "Private Install", "another login is not leverage", "Studio + REST + MCP + CLI access"]) {
-  if (!access.toLowerCase().includes(signal.toLowerCase())) fail(`access page missing private-infrastructure signal ${signal}`);
+for (const signal of ["One-time private install", "Buy the install once.", "No monthly Buffer Blaster subscription", "Multi-gateway video model routing", "Request the install"]) {
+  if (!access.toLowerCase().includes(signal.toLowerCase())) fail(`install page missing ownership signal ${signal}`);
 }
-for (const stale of ["7-Day Test Drive", "$19", "$49", "$99", "$199", "Ad Credits", "CheckoutButton"]) {
-  if (access.toLowerCase().includes(stale.toLowerCase())) fail(`access page exposes retired public subscription signal ${stale}`);
+for (const stale of ["7-Day Test Drive", "$19", "$39/mo", "$49", "$99", "$119/mo", "$199", "$299/mo", "Ad Credits", "CheckoutButton", "Creative Engine"]) {
+  if (access.toLowerCase().includes(stale.toLowerCase())) fail(`install page exposes retired public subscription signal ${stale}`);
 }
-if (ok) pass("access page sells managed outcomes and private installs rather than token plans");
+if (ok) pass("access page sells one-time private installation rather than subscriptions");
 
 const shell = read("src/components/studio-shell.tsx");
 for (const signal of ["bg-[#e9e9e7]", "bg-[#f7f7f5]", "rounded-[26px]", "#2357ff", "Agent mode"]) if (!shell.includes(signal)) fail(`studio shell missing design-bar signal ${signal}`);
