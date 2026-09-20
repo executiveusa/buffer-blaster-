@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "gauntlet": "node scripts/design-gauntlet.mjs",
+    "wiring:prod": "node scripts/wiring-audit.mjs",
     "test:frontmatter": "node --test scripts/frontmatter.test.mjs"
   },
   "dependencies": {
