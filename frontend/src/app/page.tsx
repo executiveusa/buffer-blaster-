@@ -29,8 +29,8 @@ export default function LandingPage() {
         <Link href="#install" className="rounded-full bg-black px-3.5 py-2.5 text-xs font-medium text-white sm:px-4 sm:text-sm">Request install</Link>
       </header>
 
-      <section className="mx-auto max-w-7xl px-5 pb-14 pt-10 sm:px-8 sm:pt-16 lg:pb-20">
-        <div className="grid gap-12 lg:grid-cols-[.92fr_1.08fr] lg:items-center lg:gap-16">
+      <section className="mx-auto max-w-7xl px-5 pb-12 pt-8 sm:px-8 sm:pb-14 sm:pt-16 lg:pb-20">
+        <div className="grid gap-10 lg:grid-cols-[.92fr_1.08fr] lg:items-center lg:gap-16">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-black/60">
               <Sparkles className="h-3.5 w-3.5 text-[#2357ff]" /> AI video ad factory · private install
@@ -55,18 +55,18 @@ export default function LandingPage() {
               <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#159653]" />UI, REST, MCP & CLI</span>
             </div>
           </div>
-          <ProofStage />
+          <div className="min-w-0"><ProofStage /></div>
         </div>
       </section>
 
-      <section id="proof" className="border-y border-black/8 bg-[#11120f] text-white">
+      <section id="proof" className="scroll-mt-6 border-y border-black/8 bg-[#11120f] text-white">
         <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:py-20">
           <div className="max-w-2xl">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Actual output</p>
             <h2 className="mt-4 text-4xl font-semibold leading-[.98] tracking-[-0.055em] sm:text-5xl">Watch what Buffer Blaster makes.</h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-white/58">Finished vertical product ads from the current creative pipeline. New work drops into the same proof wall as it is completed.</p>
           </div>
-          <div className="mt-9 grid gap-4 md:grid-cols-3">
+          <div className="-mx-5 mt-9 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0">
             <ProofVideo src="https://d2ol7oe51mr4n9.cloudfront.net/user_33irX78ICVwRYWpFZ5l6a5vZbf5/2e5d7ea7-6ba9-48cb-9a51-9193c8f1cf7f.mp4" title="Selva & Sea" body="15s product UGC · real-use demo" />
             <ProofVideo src="/media/ugc-streetwear.mp4" title="Streetwear" body="Creator product demo" />
             <ProofPlaceholder slot="UGC slot 03" />
@@ -74,7 +74,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="ownership" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-24">
+      <section id="ownership" className="mx-auto max-w-7xl scroll-mt-6 px-5 py-16 sm:px-8 sm:py-20 lg:py-24">
         <div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">One-time private install</p>
@@ -87,7 +87,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="how" className="border-y border-black/7 bg-[#e8e7e3]">
+      <section id="how" className="scroll-mt-6 border-y border-black/7 bg-[#e8e7e3]">
         <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
           <div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
             <div className="lg:sticky lg:top-12">
@@ -109,7 +109,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="models" className="bg-[#10110f] text-white">
+      <section id="models" className="scroll-mt-6 bg-[#10110f] text-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:py-24">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Choose your model</p>
@@ -126,7 +126,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="control" className="bg-[#dfff67] text-[#151613]">
+      <section id="control" className="scroll-mt-6 bg-[#dfff67] text-[#151613]">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:py-24">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">Cost control</p>
@@ -140,7 +140,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="agents" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
+      <section id="agents" className="mx-auto max-w-7xl scroll-mt-6 px-5 py-16 sm:px-8 sm:py-20 lg:py-28">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">Agent access</p>
@@ -156,7 +156,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="install" className="mx-auto max-w-6xl px-5 pb-24 sm:px-8">
+      <section id="install" className="mx-auto max-w-6xl scroll-mt-6 px-5 pb-20 sm:px-8 sm:pb-24">
         <div className="overflow-hidden rounded-[30px] bg-black px-6 py-12 text-white sm:px-10 lg:px-12 lg:py-14">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">One-time private install</p>
           <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_.9fr] lg:items-end">
@@ -181,7 +181,7 @@ export default function LandingPage() {
 
 function ProofStage() {
   return (
-    <div className="relative mx-auto w-full max-w-[700px]">
+    <div className="relative mx-auto w-full max-w-[700px] min-w-0">
       <div className="absolute -inset-4 rounded-[36px] bg-[#e7e5de]" />
       <div className="relative grid gap-4 rounded-[30px] border border-black/8 bg-white p-4 shadow-[0_30px_90px_rgba(0,0,0,.12)] sm:grid-cols-[1.22fr_.78fr] sm:p-5">
         <div className="grid place-items-center overflow-hidden rounded-[22px] bg-[#11120f] p-3 sm:p-4">
@@ -207,12 +207,12 @@ function ProofStage() {
 }
 
 function ProofVideo({ src, title, body }: { src: string; title: string; body: string }) {
-  return <article className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[.055]"><div className="grid place-items-center bg-black/35 p-3"><video className="aspect-[9/16] max-h-[620px] w-full max-w-[349px] rounded-[14px] bg-black object-cover" controls playsInline preload="metadata" aria-label={`${title} video example`}><source src={src} type="video/mp4" /></video></div><div className="p-4"><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs text-white/48">{body}</p></div></article>;
+  return <article className="w-[82vw] max-w-[360px] shrink-0 snap-center overflow-hidden rounded-[22px] border border-white/10 bg-white/[.055] md:w-auto md:max-w-none"><div className="grid place-items-center bg-black/35 p-3"><video className="aspect-[9/16] max-h-[620px] w-full max-w-[349px] rounded-[14px] bg-black object-cover" controls playsInline preload="metadata" aria-label={`${title} video example`}><source src={src} type="video/mp4" /></video></div><div className="p-4"><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs text-white/48">{body}</p></div></article>;
 }
 
 function ProofPlaceholder({ slot }: { slot: string }) {
   return (
-    <article className="overflow-hidden rounded-[22px] border border-dashed border-white/18 bg-white/[.025]">
+    <article className="w-[82vw] max-w-[360px] shrink-0 snap-center overflow-hidden rounded-[22px] border border-dashed border-white/18 bg-white/[.025] md:w-auto md:max-w-none">
       <div className="grid place-items-center p-3">
         <div className="grid aspect-[9/16] w-full max-w-[349px] place-items-center rounded-[14px] border border-white/8 bg-black/20 p-6 text-center">
           <div>
