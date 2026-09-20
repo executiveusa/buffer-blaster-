@@ -139,8 +139,12 @@ class FalVideoProvider:
         duration: str = "10",
         aspect_ratio: str = "9:16",
         generate_audio: bool = True,
+        model_name: str | None = None,
     ) -> dict[str, Any]:
-        model = self.image_model if image_url else self.text_model
+        configured_model = self.image_model if image_url else self.text_model
+        if model_name and model_name != configured_model:
+            return {"ok": False, "error": "fal_model_override_not_allowed", "model": model_name}
+        model = configured_model
         if not self.key:
             return {"ok": False, "error": "fal_not_configured", "missing": ["FAL_KEY"]}
         if not model:
