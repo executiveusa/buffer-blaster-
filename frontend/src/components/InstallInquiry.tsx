@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 
-export function InstallInquiry({ compact = false }: { compact?: boolean }) {
+export function InstallInquiry({ compact = false, inverse = false }: { compact?: boolean; inverse?: boolean }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "success" | "error">("idle");
 
@@ -62,13 +62,13 @@ export function InstallInquiry({ compact = false }: { compact?: boolean }) {
         <button
           type="submit"
           disabled={state === "sending"}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-black px-6 text-sm font-medium text-white transition hover:bg-black/85 disabled:cursor-wait disabled:opacity-60"
+          className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium transition disabled:cursor-wait disabled:opacity-60 ${inverse ? "bg-white text-black hover:bg-white/90" : "bg-black text-white hover:bg-black/85"}`}
         >
           {state === "sending" ? "Sending…" : "Request an install"}
           {state !== "sending" && <ArrowRight className="h-4 w-4" />}
         </button>
       </div>
-      <p aria-live="polite" className={`mt-2.5 text-[11px] ${state === "error" ? "text-red-700" : "text-black/45"}`}>
+      <p aria-live="polite" className={`mt-2.5 text-[11px] ${state === "error" ? (inverse ? "text-red-300" : "text-red-700") : (inverse ? "text-white/52" : "text-black/45")}`}>
         {state === "error" ? "Couldn’t save that request. Try again." : "One-time private install. Provider usage is paid directly through the accounts you connect."}
       </p>
     </form>
