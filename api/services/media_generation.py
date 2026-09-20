@@ -15,6 +15,7 @@ import httpx
 
 from .media_contracts import ProviderCapabilities
 from .provider_contracts import UGCProviderJob
+from .universal_media_gateway import UniversalVideoGatewayProvider
 
 
 def _csv(name: str) -> list[str]:
@@ -56,6 +57,15 @@ class FalVideoProvider:
     def configured(self) -> bool:
         return bool(self.key and (self.text_model or self.image_model))
 
+    def models(self) -> list[str]:
+        return sorted({model for model in (self.text_model, self.image_model) if model})
+
+    def estimate_clip_cost_cents(self, model_name: str | None = None, *, image_url: str | None = None) -> int | None:
+        configured_model = self.image_model if image_url else self.text_model
+        if model_name and model_name != configured_model:
+            return None
+        return _money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 80) if configured_model else None
+
     def status(self) -> dict[str, Any]:
         return {
             "provider": "fal",
@@ -78,7 +88,7 @@ class FalVideoProvider:
             deployment="hosted",
             supported_ratios=_csv("FAL_SUPPORTED_RATIOS"),
             supported_durations_seconds=_int_csv("FAL_SUPPORTED_DURATIONS_SECONDS"),
-            estimated_cost_cents=_money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 80),
+            estimated_cost_cents=self.estimate_clip_cost_cents() if self.text_model else None,
             consent_requirements=["owned_or_licensed_assets", "explicit_person_or_voice_consent"],
             commercial_use_status=commercial,
             health=health,
@@ -138,8 +148,12 @@ class FalVideoProvider:
         duration: str = "10",
         aspect_ratio: str = "9:16",
         generate_audio: bool = True,
+        model_name: str | None = None,
     ) -> dict[str, Any]:
-        model = self.image_model if image_url else self.text_model
+        configured_model = self.image_model if image_url else self.text_model
+        if model_name and model_name != configured_model:
+            return {"ok": False, "error": "fal_model_override_not_allowed", "model": model_name}
+        model = configured_model
         if not self.key:
             return {"ok": False, "error": "fal_not_configured", "missing": ["FAL_KEY"]}
         if not model:
@@ -229,5 +243,15 @@ class FalVideoProvider:
             return {"ok": True, "data": response.json()}
 
 
-def get_media_provider() -> FalVideoProvider:
+def get_media_provider() -> FalVideoProvider | UniversalVideoGatewayProvider:
+    """Return the active server-owned media adapter.
+
+    ACTIVE_MEDIA_PROVIDER=fal keeps the existing implementation.
+    ACTIVE_MEDIA_PROVIDER=gateway (or muapi/open_higgsfield) enables the
+    configurable async gateway adapter, which can target self-hosted gateways
+    or compatible hosted aggregators without changing Buffer Blaster business logic.
+    """
+    selected = (os.getenv("ACTIVE_MEDIA_PROVIDER", "fal") or "fal").strip().lower()
+    if selected in {"gateway", "universal", "muapi", "open_higgsfield", "open-higgsfield"}:
+        return UniversalVideoGatewayProvider()
     return FalVideoProvider()
