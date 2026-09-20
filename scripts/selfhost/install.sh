@@ -6,7 +6,7 @@ REF="main"
 # Keep the historical install directory as a compatibility path for existing VPS installs.
 INSTALL_DIR="/opt/stavarai"
 API_DOMAIN=""
-ALLOWED_ORIGIN="https://buffer-blaster.vercel.app"
+ALLOWED_ORIGIN="https://bufferblaster.netlify.app"
 REDIS_URL_ARG=""
 
 usage() {
