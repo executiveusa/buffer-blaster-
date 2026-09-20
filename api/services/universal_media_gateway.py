@@ -98,6 +98,9 @@ class UniversalVideoGatewayProvider:
         self.lip_sync = _bool_env("GENERATION_GATEWAY_LIP_SYNC")
         self.audio_driven = _bool_env("GENERATION_GATEWAY_AUDIO_DRIVEN")
         self.body_motion = _bool_env("GENERATION_GATEWAY_BODY_MOTION")
+        self.quality_rank = _int_env("GENERATION_GATEWAY_QUALITY_RANK", 60)
+        self.cost_class = os.getenv("GENERATION_GATEWAY_COST_CLASS", "standard").strip() or "standard"
+        self.commercial_use_approved = _bool_env("GENERATION_GATEWAY_COMMERCIAL_USE_APPROVED")
 
         if profile:
             self._apply_profile(profile)
@@ -160,6 +163,12 @@ class UniversalVideoGatewayProvider:
         self.lip_sync = bool(profile.get("lip_sync", False))
         self.audio_driven = bool(profile.get("audio_driven", False))
         self.body_motion = bool(profile.get("body_motion", False))
+        try:
+            self.quality_rank = max(0, min(100, int(profile.get("quality_rank", 60))))
+        except (TypeError, ValueError):
+            self.quality_rank = 60
+        self.cost_class = str(profile.get("cost_class") or "standard").strip() or "standard"
+        self.commercial_use_approved = bool(profile.get("commercial_use_approved", False))
 
     def _load_model_costs(self) -> dict[str, int]:
         raw = os.getenv("GENERATION_GATEWAY_MODEL_COSTS_JSON", "").strip()
