@@ -214,7 +214,7 @@ jobs:
             fi
           }
 
-          check_page / 'Your AI ad factory'
+          check_page / 'Create AI ads. Own the factory.'
           check_page /install 'Own the ad factory'
           check_page /studio 'Run social from one command'
           check_page /studio/create 'Build ad plan'
