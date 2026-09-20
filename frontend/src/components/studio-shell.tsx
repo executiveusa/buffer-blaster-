@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   CalendarDays,
@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { getToken, isDemoMode, isPublicConsole } from "@/lib/api";
 
 const nav = [
   ["/studio", "Overview", LayoutDashboard],
@@ -32,6 +33,22 @@ const nav = [
 
 export function StudioShell({ children, eyebrow }: { children: ReactNode; eyebrow?: string }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const livePrivate = !isDemoMode() && !isPublicConsole();
+  const [authReady, setAuthReady] = useState(!livePrivate);
+
+  useEffect(() => {
+    if (livePrivate && !getToken()) {
+      router.replace("/admin");
+      return;
+    }
+    setAuthReady(true);
+  }, [livePrivate, router]);
+
+  if (!authReady) {
+    return <main className="grid min-h-screen place-items-center bg-[#e9e9e7] text-sm text-black/45">Checking operator access…</main>;
+  }
+
   return (
     <div className="min-h-screen bg-[#e9e9e7] text-[#151613]">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[68px] flex-col items-center border-r border-black/5 bg-[#dedfdd] py-5 lg:flex">
