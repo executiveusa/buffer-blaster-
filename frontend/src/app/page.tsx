@@ -68,7 +68,7 @@ export default function LandingPage() {
               <p className="mt-5 max-w-lg text-base leading-7 text-white/58">Working vertical video outputs from the current Buffer Blaster creative pipeline. More proof clips can drop into this same gallery without changing the sales story.</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <ProofVideo src="/media/ugc-skincare.mp4" title="Skincare" body="Problem-led UGC demo" />
+              <ProofVideo src="https://d2ol7oe51mr4n9.cloudfront.net/user_33irX78ICVwRYWpFZ5l6a5vZbf5/2e5d7ea7-6ba9-48cb-9a51-9193c8f1cf7f.mp4" title="Selva & Sea" body="15s product UGC · real-use demo" />
               <ProofVideo src="/media/ugc-streetwear.mp4" title="Streetwear" body="Creator product demo" />
             </div>
           </div>
