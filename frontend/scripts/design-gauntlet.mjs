@@ -39,24 +39,24 @@ if (!combinedPublic.includes("Buffer Blaster")) fail("public surfaces do not ide
 if (ok) pass("public identity is Buffer Blaster without internal codenames");
 
 const home = read("src/app/page.tsx");
-for (const signal of ["AI ad factory · one-time private install", "Installed once. Yours to run.", "Watch real output", "Proof before promises.", "Request an install", "No Buffer Blaster subscription"]) {
+for (const signal of ["AI video ad factory · private install", "Create AI ads.", "Own the factory.", "Watch real output", "Watch what Buffer Blaster makes.", "Request a private install", "No Buffer Blaster subscription"]) {
   if (!home.includes(signal)) fail(`homepage missing proof-first positioning signal ${signal}`);
 }
-for (const stale of ["Private creative infrastructure", "Find the angle.<br />Make the ad.", "See the $249 pilot", "Founding Ad Batch", "$249"] ) {
-  if (home.includes(stale)) fail(`homepage exposes stale or infrastructure-first signal ${stale}`);
+for (const stale of ["Private creative infrastructure", "Installed once. Yours to run.", "Proof before promises.", "Stop renting the workflow.", "Keep the operating truth", "Provider-neutral generation", "One workflow. Different model doors.", "See the $249 pilot", "Founding Ad Batch", "$249"]) {
+  if (home.includes(stale)) fail(`homepage exposes stale or jargon-heavy signal ${stale}`);
 }
 if (!home.includes('id="proof"')) fail("homepage has no proof section");
 if (!home.includes('id="ownership"')) fail("homepage has no ownership section");
 if (!home.includes('id="install"')) fail("homepage has no install conversion section");
 if (!home.includes("controls playsInline")) fail("homepage proof video is not directly watchable");
-if (ok) pass("homepage leads with category, outcome, proof, and a concrete action");
+if (ok) pass("homepage leads with outcome, proof, ownership, and a concrete install action");
 
 const access = read("src/app/install/page.tsx");
-for (const signal of ["One-time private install", "Own the ad factory", "No recurring Buffer Blaster SaaS plan", "Studio + REST + MCP + CLI access", "Usage stays transparent"]) {
-  if (!access.toLowerCase().includes(signal.toLowerCase())) fail(`access page missing private-infrastructure signal ${signal}`);
+for (const signal of ["One-time private install", "Install the factory once.", "One install. Yours to run.", "No recurring Buffer Blaster SaaS plan", "Studio + REST + MCP + CLI access", "Usage stays transparent"]) {
+  if (!access.toLowerCase().includes(signal.toLowerCase())) fail(`install page missing ownership signal ${signal}`);
 }
 for (const stale of ["7-Day Test Drive", "$19", "$49", "$99", "$199", "Ad Credits", "CheckoutButton", "Join the beta", "Private beta"]) {
-  if (access.toLowerCase().includes(stale.toLowerCase())) fail(`access page exposes retired public subscription signal ${stale}`);
+  if (access.toLowerCase().includes(stale.toLowerCase())) fail(`install page exposes retired public subscription signal ${stale}`);
 }
 if (ok) pass("install page sells a one-time owned deployment rather than a recurring Buffer Blaster subscription");
 
