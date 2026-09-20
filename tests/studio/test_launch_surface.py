@@ -9,12 +9,16 @@ def _read(path: str) -> str:
 
 def test_homepage_leads_with_testable_creative_outcome_not_generic_content_cadence():
     page = _read("frontend/src/app/page.tsx")
-    for phrase in ["Find the angle.", "Make the ad.", "Learn what works."]:
+    for phrase in [
+        "Create AI ads.",
+        "Own the factory.",
+        "One product in. Testable ads out.",
+        "Watch what Buffer Blaster makes.",
+        "Know the cost before you render.",
+    ]:
         assert phrase in page
-    assert "Private creative infrastructure" in page
-    assert "research" in page.lower()
-    assert "evidence" in page.lower()
     assert "winning ads" not in page.lower()
+    assert "Private creative infrastructure" not in page
     assert "$19" not in page
     assert "$49" not in page
 
@@ -22,24 +26,26 @@ def test_homepage_leads_with_testable_creative_outcome_not_generic_content_caden
 def test_global_metadata_matches_buffer_blaster_positioning():
     layout = _read("frontend/src/app/layout.tsx")
     assert "Buffer Blaster" in layout
-    assert "Private creative infrastructure" in layout
+    assert "Create AI ads. Own the factory." in layout
+    assert "one-time private AI ad factory install" in layout
+    assert "https://bufferblaster.netlify.app" in layout
     assert "Social Studio" not in layout
+    assert "stavarai-platform" not in layout
 
 
-def test_access_page_sells_managed_outcome_and_private_install_not_token_plans():
+def test_access_page_sells_one_time_private_install_not_token_plans():
     page = _read("frontend/src/app/install/page.tsx")
     for phrase in [
-        "The software is not the offer",
-        "Managed",
-        "Creative Engine",
-        "Dedicated",
-        "Private Install",
+        "One-time private install",
+        "Install the factory once.",
+        "One install. Yours to run.",
         "Studio + REST + MCP + CLI access",
-        "approval and budget limits",
-        "another login is not leverage",
+        "Human approval before paid generation or publishing",
+        "No recurring Buffer Blaster SaaS plan",
+        "The workflow should outlast the model vendor.",
     ]:
         assert phrase.lower() in page.lower()
-    for retired_public_offer in ["7-Day Test Drive", "$19", "$49", "$99", "$199", "Ad Credits", "CheckoutButton"]:
+    for retired_public_offer in ["7-Day Test Drive", "$19", "$49", "$99", "$199", "Ad Credits", "CheckoutButton", "Private beta"]:
         assert retired_public_offer.lower() not in page.lower()
 
 
@@ -74,10 +80,11 @@ def test_public_launch_copy_uses_buffer_blaster_identity_without_internal_codena
 
 
 def test_public_copy_does_not_claim_unverified_provider_state():
-    public = "\n".join([_read("frontend/src/app/page.tsx"), _read("frontend/src/app/pricing/page.tsx")]).lower()
+    public = "\n".join([_read("frontend/src/app/page.tsx"), _read("frontend/src/app/install/page.tsx")]).lower()
     for unsafe_claim in ["meta connected", "tiktok connected", "shopify connected", "guaranteed roas", "guaranteed conversion"]:
         assert unsafe_claim not in public
-    assert "optional shopify and paid-media connections per account" in public
+    assert "exact access and pricing depend on the provider accounts you connect" in public
+    assert "optional publishing, commerce, or paid-media accounts you connect" in public
 
 
 def test_live_studio_does_not_hardcode_fake_operating_metrics():
