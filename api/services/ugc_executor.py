@@ -57,6 +57,9 @@ def _provider_state(payload: Any) -> str:
 
 
 async def _wait_for_video(provider: Any, receipt: dict[str, Any], *, poll_interval_seconds: float, timeout_seconds: float) -> dict[str, Any]:
+    direct_receipt_url = extract_video_url(receipt)
+    if direct_receipt_url:
+        return {"ok": True, "video_url": direct_receipt_url, "provider_response": receipt}
     deadline = time.monotonic() + timeout_seconds
     status_url = str(receipt.get("status_url") or "")
     response_url = str(receipt.get("response_url") or "")
