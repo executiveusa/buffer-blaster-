@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllPosts } from "@/lib/blog";
 
-const SITE = "https://stavarai-platform.vercel.app";
+const SITE = "https://bufferblaster.netlify.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = ["", "/install", "/blog"].map((path) => ({
