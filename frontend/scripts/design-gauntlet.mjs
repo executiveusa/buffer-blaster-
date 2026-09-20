@@ -52,11 +52,14 @@ if (!home.includes("controls playsInline")) fail("homepage proof video is not di
 if (!home.includes("aspect-[9/16]")) fail("homepage vertical proof is not framed at 9:16");
 if (home.includes("/media/ugc-skincare.mp4")) fail("homepage still exposes the superseded skincare proof");
 if (!home.includes("Selva & Sea")) fail("homepage is missing the locked Selva & Sea proof");
-if (ok) pass("homepage leads with outcome, uncropped proof, ownership, and a concrete install action");
+if (!home.includes("Placeholder only · not proof") || !home.includes("UGC slot 03")) fail("homepage is missing the explicit future UGC placeholder");
+if (!home.includes("md:grid-cols-3")) fail("proof wall is missing the responsive three-slot composition");
+if (ok) pass("homepage leads with outcome, uncropped proof, an honest future UGC slot, ownership, and a concrete install action");
 
 const inquiry = read("src/components/InstallInquiry.tsx");
 if (!inquiry.includes('role="status"') || !inquiry.includes('aria-live="polite"')) fail("install inquiry does not announce success/error state accessibly");
-else pass("install inquiry exposes accessible success/error announcements");
+if (!inquiry.includes("inverse = false") || !home.includes("<InstallInquiry compact inverse />")) fail("dark install surface does not use the high-contrast form treatment");
+else pass("install inquiry exposes accessible feedback and correct dark-surface contrast");
 
 const access = read("src/app/install/page.tsx");
 for (const signal of ["One-time private install", "Install the factory once.", "One install. Yours to run.", "No recurring Buffer Blaster SaaS plan", "Studio + REST + MCP + CLI access", "Usage stays transparent"]) {
