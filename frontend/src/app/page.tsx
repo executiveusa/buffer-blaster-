@@ -213,11 +213,13 @@ function ProofVideo({ src, title, body }: { src: string; title: string; body: st
 function ProofPlaceholder({ slot }: { slot: string }) {
   return (
     <article className="overflow-hidden rounded-[22px] border border-dashed border-white/18 bg-white/[.025]">
-      <div className="grid aspect-[9/16] max-h-[620px] place-items-center p-6 text-center">
-        <div>
+      <div className="grid place-items-center p-3">
+        <div className="grid aspect-[9/16] w-full max-w-[349px] place-items-center rounded-[14px] border border-white/8 bg-black/20 p-6 text-center">
+          <div>
           <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/35">{slot}</p>
           <p className="mt-3 text-xl font-semibold tracking-[-0.035em] text-white/75">Next UGC ad</p>
           <p className="mx-auto mt-2 max-w-[210px] text-xs leading-5 text-white/38">Reserved for the next finished Buffer Blaster example.</p>
+          </div>
         </div>
       </div>
       <div className="border-t border-white/8 p-4">
