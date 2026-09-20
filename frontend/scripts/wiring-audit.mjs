@@ -54,6 +54,7 @@ for (const signal of ['name="buffer-blaster-install"', 'data-netlify="true"', 'd
   if (!inquiry.includes(signal) || !forms.includes(signal)) fail(`install inquiry registration mismatch: ${signal}`);
 }
 if (!inquiry.includes('aria-live="polite"')) fail("install inquiry lacks accessible status feedback");
+if (!inquiry.includes('action="/forms.html"') || !inquiry.includes('fetch("/forms.html"')) fail("install inquiry does not POST to the registered static Netlify form endpoint");
 if (ok) pass("install inquiry matches registered Netlify form contract");
 
 const studioApi = read("src/lib/studio-api.ts");
