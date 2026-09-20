@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Check, CircleDollarSign, Loader2, Play, ReceiptText, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
+import { CircleDollarSign, Loader2, Play, ReceiptText, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
 import { PageHeader, StatusPill } from "@/components/studio-ui";
 import { StudioShell } from "@/components/studio-shell";
 import { createUGCFactoryPlan, type UGCFactoryPlan } from "@/lib/studio-api";
