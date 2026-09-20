@@ -219,7 +219,7 @@ async def execute_factory(request: UGCFactoryExecuteRequest, _=Depends(verify_op
     if not plan.get("ok"):
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
     provider_name = str(plan.get("brief", {}).get("provider_name") or "").strip() or None
-    provider = get_media_provider(provider_name)
+    provider = get_media_provider(provider_name) if provider_name else get_media_provider()
     if not provider.configured:
         return {"ok": False, "error": "media_provider_not_configured", "provider": provider_name, "state": "preflight_blocked"}
     provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
@@ -265,7 +265,8 @@ async def render_factory_clip_deprecated(_request: dict[str, Any], _=Depends(ver
 async def get_render_job(payload: dict[str, str], _=Depends(verify_operator)) -> dict[str, Any]:
     url = payload.get("status_url") or payload.get("response_url") or ""
     provider_name = (payload.get("provider_name") or "").strip() or None
-    return await get_media_provider(provider_name).fetch_url(url)
+    provider = get_media_provider(provider_name) if provider_name else get_media_provider()
+    return await provider.fetch_url(url)
 
 
 @router.get("/social/accounts")
