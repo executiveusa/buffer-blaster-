@@ -3,7 +3,7 @@ import { ArrowRight, Bot, Check, CirclePlay, FileSearch, Film, ReceiptText, Serv
 import { InstallInquiry } from "@/components/InstallInquiry";
 
 const steps = [
-  { title: "Bring the product", body: "Add the product, audience, offer, brand context, and a reference ad when you have one.", icon: FileSearch },
+  { title: "Bring the product", body: "Add the product, audience, offer, and brand context.", icon: FileSearch },
   { title: "Find the angle", body: "Turn customer pain and reference mechanics into hooks, scripts, and original directions worth testing.", icon: ShieldCheck },
   { title: "Make the ad", body: "See the route and estimated generation cost before approved paid rendering begins.", icon: Film },
   { title: "Keep the evidence", body: "Attach the output, approval, spend, and result to the next creative decision.", icon: ReceiptText },
