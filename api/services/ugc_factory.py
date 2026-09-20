@@ -40,6 +40,7 @@ class UGCFactoryBrief:
     actor_description: str = "a natural creator speaking like they are sharing something they actually use"
     delivery_tone: str = "calm, honest and direct"
     visual_lane: str = "lane_zero"
+    provider_model: str = ""
 
 
 def _require(label: str, value: str) -> str:
@@ -166,6 +167,7 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
         actor_description=_require("actor_description", brief.actor_description),
         delivery_tone=_require("delivery_tone", brief.delivery_tone),
         visual_lane=_require("visual_lane", brief.visual_lane),
+        provider_model=" ".join(brief.provider_model.split()).strip(),
     )
 
     scripts = _default_scripts(product=product, pain=pain, mechanism=mechanism)
@@ -203,6 +205,7 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
             "platform": normalized.platform,
             "delivery_tone": normalized.delivery_tone,
             "visual_lane": normalized.visual_lane,
+            "provider_model": normalized.provider_model,
         },
         "gate": gate,
         "clips": clips,

@@ -58,21 +58,25 @@ def _truthy(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _fal_entry() -> ProviderRegistryEntry:
+def _active_runtime_entry() -> ProviderRegistryEntry:
     provider = get_media_provider()
     caps = provider.capabilities()
-    if caps.commercial_use_status == "review_required" and _truthy("FAL_COMMERCIAL_USE_APPROVED"):
+    prefix = "FAL" if caps.provider == "fal" else "GENERATION_GATEWAY"
+    if caps.commercial_use_status == "review_required" and _truthy(f"{prefix}_COMMERCIAL_USE_APPROVED"):
         caps = caps.model_copy(update={"commercial_use_status": "approved"})
     try:
-        quality = max(0, min(100, int(os.getenv("FAL_QUALITY_RANK", "60"))))
+        quality = max(0, min(100, int(os.getenv(f"{prefix}_QUALITY_RANK", "60"))))
     except ValueError:
         quality = 60
+    cost_class = os.getenv(f"{prefix}_COST_CLASS", "standard")
+    if cost_class not in {"free_local", "low", "standard", "premium", "unknown"}:
+        cost_class = "unknown"
     return ProviderRegistryEntry(
         capabilities=caps,
         enabled=provider.configured,
         quality_rank=quality,
-        cost_class=os.getenv("FAL_COST_CLASS", "standard") if os.getenv("FAL_COST_CLASS", "standard") in {"free_local", "low", "standard", "premium", "unknown"} else "unknown",
-        provenance="fal_runtime_configuration",
+        cost_class=cost_class,
+        provenance=f"{caps.provider}_runtime_configuration",
     )
 
 
@@ -99,7 +103,8 @@ def _configured_entries() -> list[ProviderRegistryEntry]:
 
 def provider_registry() -> list[ProviderRegistryEntry]:
     """Return enabled/disabled provider metadata with no secrets or model IDs."""
-    by_name: dict[str, ProviderRegistryEntry] = {"fal": _fal_entry()}
+    runtime_entry = _active_runtime_entry()
+    by_name: dict[str, ProviderRegistryEntry] = {runtime_entry.capabilities.provider: runtime_entry}
     for entry in _configured_entries():
         by_name[entry.capabilities.provider] = entry
     return list(by_name.values())

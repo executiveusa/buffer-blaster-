@@ -7,6 +7,7 @@ provider spend from the server-owned wallet before invoking this coordinator.
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import shutil
 import time
@@ -20,6 +21,30 @@ from .pricing import authorize_generation
 from .studio_ledger import create_job, update_job
 from .ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 
+
+
+def estimate_factory_generation_cost(provider: Any, plan: dict[str, Any], provider_model: str | None = None) -> dict[str, Any]:
+    """Price and validate the selected provider/model before wallet reservation."""
+    if not getattr(provider, "configured", False):
+        return {"ok": False, "error": "media_provider_not_configured"}
+    if not hasattr(provider, "estimate_clip_cost_cents"):
+        return {"ok": False, "error": "provider_cost_unavailable"}
+    per_clip = provider.estimate_clip_cost_cents(provider_model)
+    if per_clip is None:
+        return {"ok": False, "error": "provider_model_not_allowed_or_cost_unverified", "model": provider_model}
+    commercial = plan.get("commercial", {})
+    expected_calls = max(1, int(commercial.get("expected_paid_clip_calls") or 1))
+    safety_bps = max(10000, int(commercial.get("cost_safety_bps") or 10000))
+    estimated_total = math.ceil(int(per_clip) * expected_calls * safety_bps / 10000)
+    return {
+        "ok": True,
+        "provider": provider.status().get("provider"),
+        "model": provider_model,
+        "estimated_clip_cost_cents": int(per_clip),
+        "expected_paid_clip_calls": expected_calls,
+        "cost_safety_bps": safety_bps,
+        "estimated_generation_cost_cents": estimated_total,
+    }
 
 def extract_video_url(payload: Any) -> str | None:
     if isinstance(payload, str):
@@ -57,6 +82,9 @@ def _provider_state(payload: Any) -> str:
 
 
 async def _wait_for_video(provider: Any, receipt: dict[str, Any], *, poll_interval_seconds: float, timeout_seconds: float) -> dict[str, Any]:
+    direct_receipt_url = extract_video_url(receipt)
+    if direct_receipt_url:
+        return {"ok": True, "video_url": direct_receipt_url, "provider_response": receipt}
     deadline = time.monotonic() + timeout_seconds
     status_url = str(receipt.get("status_url") or "")
     response_url = str(receipt.get("response_url") or "")
@@ -88,8 +116,8 @@ async def _wait_for_video(provider: Any, receipt: dict[str, Any], *, poll_interv
     return {"ok": False, "error": "provider_generation_timeout", "provider_response": last_payload}
 
 
-async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float) -> dict[str, Any]:
-    receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration="10", aspect_ratio="9:16", generate_audio=True)
+async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, model_name: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float) -> dict[str, Any]:
+    receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration="10", aspect_ratio="9:16", generate_audio=True, model_name=model_name)
     if not receipt.get("ok"):
         return {"ok": False, "error": "provider_submit_failed", "clip": clip_number, "receipt": receipt}
     completed = await _wait_for_video(provider, receipt, poll_interval_seconds=poll_interval_seconds, timeout_seconds=timeout_seconds)
@@ -131,7 +159,12 @@ async def execute_ugc_factory_ad(
     if not plan.get("ok"):
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
 
-    estimated_cost = int(plan.get("commercial", {}).get("estimated_generation_cost_cents") or 0)
+    provider = provider or get_media_provider()
+    provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
+    pricing = estimate_factory_generation_cost(provider, plan, provider_model)
+    if not pricing.get("ok"):
+        return {**pricing, "state": "preflight_blocked"}
+    estimated_cost = int(pricing["estimated_generation_cost_cents"])
     job = await create_job(
         kind="ugc_ad_factory",
         state="planned",
@@ -165,7 +198,6 @@ async def execute_ugc_factory_ad(
             await update_job(job_id, state="spend_blocked", output={"allowance": allowance})
             return {"ok": False, "error": allowance.get("error"), "state": "spend_blocked", "job_id": job_id, "allowance": allowance}
 
-    provider = provider or get_media_provider()
     storage = storage or get_asset_storage()
     media_ops = media_ops or get_media_ops()
     if hasattr(storage, "configured") and not storage.configured:
@@ -185,7 +217,7 @@ async def execute_ugc_factory_ad(
 
     try:
         await update_job(job_id, state="rendering_clip_1", output={"allowance": allowance})
-        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=None, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
+        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=None, model_name=provider_model, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
         if not clip1.get("ok"):
             await update_job(job_id, state="clip_1_failed", provider_receipt={"clip_1": clip1})
             return {**clip1, "state": "clip_1_failed", "job_id": job_id, "allowance": allowance}
@@ -208,7 +240,7 @@ async def execute_ugc_factory_ad(
 
         async def render_second(attempt: int) -> dict[str, Any]:
             await update_job(job_id, state=f"rendering_clip_2_attempt_{attempt}")
-            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
+            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], model_name=provider_model, clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
 
         clip2 = await render_second(1)
         if not clip2.get("ok"):
@@ -257,7 +289,7 @@ async def execute_ugc_factory_ad(
 
         state = "finished" if stitched.get("audio") else "visual_complete_needs_audio"
         qa = {"seam_diff": seam, "seam_threshold": seam_threshold, "seam_passed": seam < seam_threshold, "audio_present_in_both_clips": bool(stitched.get("audio")), "paid_generation_calls": len(clip_receipts)}
-        result = {"ok": state == "finished", "state": state, "job_id": job_id, "factory_version": plan.get("factory_version"), "allowance": allowance, "qa": qa, "final_asset": final_asset, "provider_receipts": clip_receipts, "approval_required_before_publish": True}
+        result = {"ok": state == "finished", "state": state, "job_id": job_id, "factory_version": plan.get("factory_version"), "allowance": allowance, "provider_pricing": pricing, "qa": qa, "final_asset": final_asset, "provider_receipts": clip_receipts, "approval_required_before_publish": True}
         await update_job(job_id, state=state, provider_receipt={"clips": clip_receipts}, output={"final_asset": final_asset, "qa": qa, "allowance": allowance})
         return result
     finally:
