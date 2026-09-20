@@ -61,6 +61,7 @@ class UGCFactoryPlanRequest(BaseModel):
     delivery_tone: str = "calm, honest and direct"
     visual_lane: str = "lane_zero"
     provider_model: str = Field(default="", max_length=255)
+    provider_name: str = Field(default="", max_length=128)
 
 
 class UGCFactoryExecuteRequest(UGCFactoryPlanRequest):
@@ -217,9 +218,10 @@ async def execute_factory(request: UGCFactoryExecuteRequest, _=Depends(verify_op
     plan = build_ugc_factory_plan(service_brief)
     if not plan.get("ok"):
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
-    provider = get_media_provider()
+    provider_name = str(plan.get("brief", {}).get("provider_name") or "").strip() or None
+    provider = get_media_provider(provider_name)
     if not provider.configured:
-        return {"ok": False, "error": "media_provider_not_configured", "state": "preflight_blocked"}
+        return {"ok": False, "error": "media_provider_not_configured", "provider": provider_name, "state": "preflight_blocked"}
     provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
     pricing = estimate_factory_generation_cost(provider, plan, provider_model)
     if not pricing.get("ok"):
