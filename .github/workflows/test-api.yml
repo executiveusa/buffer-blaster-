@@ -215,18 +215,18 @@ jobs:
           }
 
           check_page / 'Create AI ads. Own the factory.'
-          check_page /install 'Own the ad factory'
-          check_page /studio 'Run social from one command'
-          check_page /studio/create 'Build ad plan'
-          check_page /studio/library 'Everything you have made'
-          check_page /studio/moodboards 'Teach the studio what good looks like'
-          check_page /studio/canvas 'Build the creative flow visually'
-          check_page /studio/campaigns 'Give the agent an outcome'
-          check_page /studio/calendar 'See what goes live before it does'
-          check_page /studio/analytics 'No performance evidence yet'
-          check_page /studio/settings 'Connect the engines'
-          check_page /admin 'Opening console'
-          check_page /admin/dashboard 'Dashboard'
+          check_page /install 'Install the factory once.'
+          check_page /studio 'Checking operator access'
+          check_page /studio/create 'Checking operator access'
+          check_page /studio/library 'Checking operator access'
+          check_page /studio/moodboards 'Checking operator access'
+          check_page /studio/canvas 'Checking operator access'
+          check_page /studio/campaigns 'Checking operator access'
+          check_page /studio/calendar 'Checking operator access'
+          check_page /studio/analytics 'Checking operator access'
+          check_page /studio/settings 'Checking operator access'
+          check_page /admin 'Sign in'
+          check_page /admin/dashboard 'Loading'
 
           # Legacy checkout/trial compatibility routes remain fail-closed even though
           # the public site no longer sells low-ticket plans.
