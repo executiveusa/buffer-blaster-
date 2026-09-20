@@ -76,6 +76,7 @@ class UniversalVideoGatewayProvider:
         self.text_model = os.getenv("GENERATION_GATEWAY_TEXT_VIDEO_MODEL", "").strip()
         self.image_model = os.getenv("GENERATION_GATEWAY_IMAGE_VIDEO_MODEL", "").strip() or self.text_model
         self.allowed_models = set(_csv("GENERATION_GATEWAY_ALLOWED_MODELS"))
+        self.model_costs = self._load_model_costs()
         self.submit_path = os.getenv("GENERATION_GATEWAY_SUBMIT_PATH", "/v1/videos").strip() or "/v1/videos"
         self.status_path = os.getenv("GENERATION_GATEWAY_STATUS_PATH", "/v1/videos/{id}").strip() or "/v1/videos/{id}"
         self.auth_header = os.getenv("GENERATION_GATEWAY_AUTH_HEADER", "Authorization").strip() or "Authorization"
@@ -87,6 +88,26 @@ class UniversalVideoGatewayProvider:
         self.aspect_ratio_field = os.getenv("GENERATION_GATEWAY_ASPECT_RATIO_FIELD", "aspect_ratio").strip() or "aspect_ratio"
         self.audio_field = os.getenv("GENERATION_GATEWAY_AUDIO_FIELD", "generate_audio").strip()
         self.extra_body = self._load_extra_body()
+
+    def _load_model_costs(self) -> dict[str, int]:
+        raw = os.getenv("GENERATION_GATEWAY_MODEL_COSTS_JSON", "").strip()
+        if not raw:
+            return {}
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        if not isinstance(value, dict):
+            return {}
+        costs: dict[str, int] = {}
+        for model, cents in value.items():
+            try:
+                normalized = int(cents)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(model, str) and model.strip() and normalized >= 0:
+                costs[model.strip()] = normalized
+        return costs
 
     def _load_extra_body(self) -> dict[str, Any]:
         raw = os.getenv("GENERATION_GATEWAY_EXTRA_BODY_JSON", "").strip()
@@ -103,10 +124,30 @@ class UniversalVideoGatewayProvider:
         return bool(self.base_url and self.key and (self.text_model or self.image_model))
 
     def _model(self, *, image_url: str | None, model_name: str | None = None) -> str:
-        candidate = (model_name or (self.image_model if image_url else self.text_model)).strip()
-        if self.allowed_models and candidate not in self.allowed_models:
+        default_model = (self.image_model if image_url else self.text_model).strip()
+        requested = (model_name or "").strip()
+        if requested:
+            if requested == default_model and not self.allowed_models:
+                return requested
+            if requested not in self.allowed_models:
+                return ""
+            return requested
+        if not default_model:
             return ""
-        return candidate
+        if self.allowed_models and default_model not in self.allowed_models:
+            return ""
+        return default_model
+
+    def estimate_clip_cost_cents(self, model_name: str | None = None, *, image_url: str | None = None) -> int | None:
+        model = self._model(image_url=image_url, model_name=model_name)
+        if not model:
+            return None
+        if model in self.model_costs:
+            return self.model_costs[model]
+        default_model = self.image_model if image_url else self.text_model
+        if model == default_model:
+            return _int_env("GENERATION_GATEWAY_ESTIMATED_CLIP_COST_CENTS", 0)
+        return None
 
     def _headers(self) -> dict[str, str]:
         return {
@@ -126,11 +167,14 @@ class UniversalVideoGatewayProvider:
             base = urlparse(self.base_url)
         except ValueError:
             return False
+        if target.scheme not in {"http", "https"} or base.scheme not in {"http", "https"}:
+            return False
+        default_target_port = 443 if target.scheme == "https" else 80
+        default_base_port = 443 if base.scheme == "https" else 80
         return (
-            target.scheme == "https"
-            and base.scheme == "https"
+            target.scheme == base.scheme
             and target.hostname == base.hostname
-            and (target.port or 443) == (base.port or 443)
+            and (target.port or default_target_port) == (base.port or default_base_port)
         )
 
     def models(self) -> list[str]:
@@ -168,7 +212,7 @@ class UniversalVideoGatewayProvider:
             deployment=deployment,
             supported_ratios=_csv("GENERATION_GATEWAY_SUPPORTED_RATIOS"),
             supported_durations_seconds=_int_csv("GENERATION_GATEWAY_SUPPORTED_DURATIONS_SECONDS"),
-            estimated_cost_cents=_int_env("GENERATION_GATEWAY_ESTIMATED_CLIP_COST_CENTS", 0),
+            estimated_cost_cents=self.estimate_clip_cost_cents() if self.text_model else None,
             estimated_latency_seconds=_int_env("GENERATION_GATEWAY_ESTIMATED_LATENCY_SECONDS", 0) or None,
             consent_requirements=["owned_or_licensed_assets", "explicit_person_or_voice_consent"],
             commercial_use_status=commercial,
@@ -180,7 +224,7 @@ class UniversalVideoGatewayProvider:
         return job.model_copy(update={
             "provider": self.name,
             "model_name": model or None,
-            "estimated_cost_cents": _int_env("GENERATION_GATEWAY_ESTIMATED_CLIP_COST_CENTS", 0),
+            "estimated_cost_cents": self.estimate_clip_cost_cents(job.model_name, image_url=job.actor_reference_url) or 0,
             "state": "planned",
         })
 
