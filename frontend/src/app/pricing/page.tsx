@@ -1,74 +1,73 @@
 import Link from "next/link";
-import { ArrowRight, Bot, Check, ServerCog, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Bot, Check, Route, ServerCog, ShieldCheck } from "lucide-react";
+import { InstallInterestForm } from "@/components/InstallInterestForm";
 
-const accessModels = [
-  {
-    eyebrow: "Managed",
-    name: "Creative Engine",
-    badge: "Most common",
-    body: "We operate Buffer Blaster as part of the client engagement. Your team gets the output, approvals, visibility, and learning loop without managing another software stack.",
-    features: [
-      "Research, concepts, and UGC-style production",
-      "Human review before consequential actions",
-      "Client workspace and evidence trail",
-      "Usage and generation-cost controls",
-      "Optional Shopify and paid-media connections per account",
-    ],
-    icon: ShieldCheck,
-  },
-  {
-    eyebrow: "Dedicated",
-    name: "Private Install",
-    badge: "For internal teams",
-    body: "For teams that need their own infrastructure, Buffer Blaster can run as a dedicated deployment with the same governed workflow available to people and approved agents.",
-    features: [
-      "Dedicated deployment and database boundary",
-      "Studio + REST + MCP + CLI access",
-      "Workspace-level approval and budget limits",
-      "Operator-owned provider credentials",
-      "Handoff, documentation, and rollback path",
-    ],
-    icon: ServerCog,
-  },
-] as const;
+const included = [
+  "Dedicated deployment in infrastructure you control",
+  "Buffer Blaster Studio + REST + MCP + CLI",
+  "Multi-gateway video model routing",
+  "Operator-owned provider credentials",
+  "Approval and generation-cost controls",
+  "Private asset storage and evidence receipts",
+  "Install documentation and rollback path",
+  "Handoff for your team or agents",
+];
 
 export default function AccessPage() {
   return <main className="min-h-screen bg-[#f4f3ef] text-[#151613]">
     <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
       <Link href="/" className="text-lg font-semibold tracking-[-0.04em]">Buffer Blaster</Link>
-      <div className="flex items-center gap-2"><Link href="/" className="hidden px-4 py-2 text-sm text-black/60 sm:block">Overview</Link><Link href="/studio" className="rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white">Open Studio</Link></div>
+      <Link href="/" className="inline-flex items-center gap-2 text-sm text-black/60"><ArrowLeft className="h-4 w-4"/>Overview</Link>
     </header>
 
     <section className="mx-auto max-w-7xl px-5 pb-20 pt-14 sm:px-8 sm:pt-24">
       <div className="mx-auto max-w-4xl text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-black/50">Private client access</p>
-        <h1 className="mt-5 text-balance text-5xl font-semibold leading-[.95] tracking-[-0.07em] sm:text-7xl">The software is not the offer. <span className="text-black/45">The output is.</span></h1>
-        <p className="mx-auto mt-6 max-w-3xl text-base leading-7 text-black/62">Buffer Blaster is built to remove subscriptions, handoffs, and repetitive creative operations from client work. We either run it for the engagement or deploy a dedicated instance when ownership matters.</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-black/50">One-time private install</p>
+        <h1 className="mt-5 text-balance text-5xl font-semibold leading-[.95] tracking-[-0.07em] sm:text-7xl">Buy the install once. <span className="text-black/45">Keep the system.</span></h1>
+        <p className="mx-auto mt-6 max-w-3xl text-base leading-7 text-black/62">Buffer Blaster is sold as a dedicated installation, not a recurring software seat. Your model, API, and hosting accounts stay separate and under your control.</p>
       </div>
 
-      <div className="mx-auto mt-14 grid max-w-5xl gap-4 lg:grid-cols-2">
-        {accessModels.map(({eyebrow,name,badge,body,features,icon:Icon}, index) => <article key={name} className={`relative flex flex-col rounded-[24px] border p-7 sm:p-8 ${index === 0 ? "border-black bg-[#10110f] text-white shadow-[0_30px_90px_rgba(0,0,0,.12)]" : "border-black/8 bg-white"}`}>
-          <div className="flex items-start justify-between gap-3"><div><div className={`grid h-10 w-10 place-items-center rounded-xl ${index===0?"bg-white/10":"bg-[#ecece8]"}`}><Icon className="h-5 w-5"/></div><p className={`mt-6 text-[10px] uppercase tracking-[.14em] ${index===0?"text-white/52":"text-black/48"}`}>{eyebrow}</p><h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{name}</h2></div><span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${index===0?"bg-[#b9ff66] text-black":"bg-[#ecece8] text-black/65"}`}>{badge}</span></div>
-          <p className={`mt-5 text-sm leading-6 ${index===0?"text-white/62":"text-black/60"}`}>{body}</p>
-          <ul className="mt-7 space-y-3">{features.map(feature => <li key={feature} className={`flex items-start gap-2 text-sm leading-5 ${index===0?"text-white/74":"text-black/68"}`}><Check className={`mt-0.5 h-4 w-4 shrink-0 ${index===0?"text-[#b9ff66]":"text-[#159653]"}`}/>{feature}</li>)}</ul>
-        </article>)}
+      <div className="mx-auto mt-14 grid max-w-5xl gap-5 lg:grid-cols-[1.08fr_.92fr]">
+        <article className="rounded-[28px] bg-[#10110f] p-7 text-white shadow-[0_30px_90px_rgba(0,0,0,.12)] sm:p-9">
+          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/48"><ServerCog className="h-4 w-4 text-[#dfff67]"/>Private Install</div>
+          <h2 className="mt-5 text-4xl font-semibold tracking-[-0.05em]">Your ad factory, on your stack.</h2>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/62">One implementation scope. One dedicated deployment. No monthly Buffer Blaster subscription after handoff.</p>
+          <ul className="mt-7 grid gap-3 sm:grid-cols-2">{included.map(item => <li key={item} className="flex items-start gap-2 text-sm leading-5 text-white/76"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#dfff67]"/>{item}</li>)}</ul>
+        </article>
+
+        <aside className="rounded-[28px] border border-black/8 bg-white p-7 sm:p-9">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">What stays yours</p>
+          <div className="mt-6 space-y-5">
+            <ValueRow icon={Route} title="Provider choice" body="Connect the gateways and model accounts you approve." />
+            <ValueRow icon={ShieldCheck} title="Spend authority" body="Generation stays behind your budget and approval rules." />
+            <ValueRow icon={Bot} title="Agent access" body="Your approved agents can use the same backend through MCP, REST, or CLI." />
+          </div>
+          <div className="mt-8 border-t border-black/10 pt-6">
+            <p className="text-xs leading-5 text-black/52">Installation scope and final one-time price depend on deployment, integrations, and handoff requirements. Ongoing cloud and model-provider usage are not included.</p>
+          </div>
+        </aside>
       </div>
 
-      <div className="mx-auto mt-6 max-w-5xl border-t border-black/12 pt-8">
-        <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">Why no public $20 plan?</p><h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">Because another login is not leverage.</h2><p className="mt-4 max-w-3xl text-sm leading-6 text-black/62">The value is a working creative system connected to the way the client already operates: brand context, approvals, generation, agents, store data, and the evidence that informs the next round. Access and operating scope are set per engagement instead of forcing every client into the same token plan.</p></div><Link href="/studio" className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-medium text-white">View the Studio <ArrowRight className="h-4 w-4"/></Link></div>
+      <div className="mx-auto mt-8 max-w-5xl rounded-[28px] bg-[#dfff67] p-7 sm:p-9">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-black/48">Request the install</p>
+        <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">Tell us where you want Buffer Blaster to live.</h2>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-black/62">We’ll scope the deployment, provider connections, and agent surfaces before any installation work starts.</p>
+        <div className="mt-6"><InstallInterestForm compact /></div>
       </div>
 
       <div className="mx-auto mt-14 grid max-w-5xl gap-4 lg:grid-cols-3">
-        <TrustCard title="People stay in control" body="The system can prepare work automatically; spend, publishing, and other consequential transitions remain approval-gated." />
-        <TrustCard title="Agents use the same rules" body="Approved agents can enter through MCP, REST, or CLI instead of creating a shadow workflow outside the Studio." />
-        <TrustCard title="Connections are client-scoped" body="Shopify and paid-media adapters are enabled per client account. Credentials and provider activation are never assumed." />
+        <TrustCard title="No subscription lock-in" body="The public offer is the one-time install, not a monthly Buffer Blaster seat plan." />
+        <TrustCard title="Provider-neutral by design" body="The backend can route across configured model gateways instead of tying the workflow to one vendor." />
+        <TrustCard title="Built for handoff" body="Deployment, operating boundaries, documentation, and rollback are part of the install contract." />
       </div>
-
-      <div className="mx-auto mt-14 max-w-5xl rounded-[22px] bg-[#dfff67] p-7 sm:p-9"><div className="flex items-start gap-3"><Bot className="mt-1 h-5 w-5 shrink-0"/><div><p className="text-sm font-semibold">Built to become part of the operating system</p><p className="mt-2 max-w-3xl text-sm leading-6 text-black/62">Buffer Blaster is most valuable when it is not another destination a client has to remember. The goal is to let the client, operator, or agent call the creative system from wherever the work already starts.</p></div></div></div>
     </section>
 
-    <footer className="border-t border-black/7 px-5 py-8 text-xs text-black/50 sm:px-8"><div className="mx-auto flex max-w-7xl items-center justify-between"><span>Buffer Blaster · private access</span><Link href="/">Overview</Link></div></footer>
+    <footer className="border-t border-black/7 px-5 py-8 text-xs text-black/50 sm:px-8"><div className="mx-auto flex max-w-7xl items-center justify-between"><span>Buffer Blaster · one-time private install</span><Link href="/">Overview</Link></div></footer>
   </main>;
+}
+
+function ValueRow({ icon: Icon, title, body }: { icon: typeof Route; title: string; body: string }) {
+  return <div className="flex gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#ecece8]"><Icon className="h-4 w-4"/></div><div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs leading-5 text-black/55">{body}</p></div></div>;
 }
 
 function TrustCard({ title, body }: { title: string; body: string }) {
