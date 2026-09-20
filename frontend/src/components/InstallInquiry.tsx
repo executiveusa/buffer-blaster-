@@ -13,7 +13,7 @@ export function InstallInquiry({ compact = false, inverse = false }: { compact?:
     setState("sending");
     const body = new URLSearchParams({ "form-name": "buffer-blaster-install", email: email.trim() });
     try {
-      const response = await fetch("/", {
+      const response = await fetch("/forms.html", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),
@@ -39,6 +39,7 @@ export function InstallInquiry({ compact = false, inverse = false }: { compact?:
     <form
       name="buffer-blaster-install"
       method="POST"
+      action="/forms.html"
       data-netlify="true"
       data-netlify-honeypot="bot-field"
       onSubmit={submit}
