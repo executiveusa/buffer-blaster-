@@ -284,13 +284,12 @@ def get_media_provider(provider_name: str | None = None) -> FalVideoProvider | U
 
     selected = (os.getenv("ACTIVE_MEDIA_PROVIDER", "fal") or "fal").strip()
     aliases = {"gateway", "universal", "muapi", "open_higgsfield", "open-higgsfield"}
+    if selected.lower() == "fal":
+        return FalVideoProvider()
+    if selected.lower() in aliases:
+        return UniversalVideoGatewayProvider()
     if selected in providers:
         return providers[selected]
-    if selected.lower() in aliases:
-        gateway = UniversalVideoGatewayProvider()
-        return gateway
-    if "fal" in providers:
-        return providers["fal"]
     if providers:
         return next(iter(providers.values()))
     return FalVideoProvider()
