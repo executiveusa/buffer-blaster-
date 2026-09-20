@@ -160,6 +160,7 @@ async def execute_ugc_factory_ad(
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
 
     provider = provider or get_media_provider()
+    provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
     pricing = estimate_factory_generation_cost(provider, plan, provider_model)
     if not pricing.get("ok"):
         return {**pricing, "state": "preflight_blocked"}
@@ -212,7 +213,6 @@ async def execute_ugc_factory_ad(
     poll_interval = float(os.getenv("FAL_POLL_INTERVAL_SECONDS", "2")) if poll_interval_seconds is None else poll_interval_seconds
     timeout = float(os.getenv("FAL_RENDER_TIMEOUT_SECONDS", "600")) if timeout_seconds is None else timeout_seconds
     clip_receipts: list[dict[str, Any]] = []
-    provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
     seam_threshold = float(plan.get("continuity", {}).get("seam_threshold_mean_abs_diff") or (5 / 255))
 
     try:
