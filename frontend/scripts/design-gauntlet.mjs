@@ -54,12 +54,12 @@ if (!home.includes("controls playsInline")) fail("homepage proof video is not di
 if (!home.includes("aspect-[9/16]")) fail("homepage vertical proof is not framed at 9:16");
 if (home.includes("/media/ugc-skincare.mp4")) fail("homepage still exposes the superseded skincare proof");
 if (!home.includes("Selva & Sea")) fail("homepage is missing the locked Selva & Sea proof");
-if (!home.includes("Placeholder only · not proof") || !home.includes("UGC slot 03")) fail("homepage is missing the explicit future UGC placeholder");
+if (!home.includes("Mila") || !home.includes("10s AI UGC character · creator introduction")) fail("homepage is missing the Mila UGC character proof");
 if (!home.includes("md:grid-cols-3")) fail("proof wall is missing the desktop three-slot composition");
 if (!home.includes("snap-x snap-mandatory") || !home.includes("overflow-x-auto")) fail("mobile proof wall is not swipeable");
 if (!home.includes("w-[82vw]") || !home.includes("snap-center")) fail("mobile proof cards are not sized for one-card-at-a-time browsing");
 if (!home.includes("scroll-mt-6")) fail("anchored landing sections are missing scroll offset");
-if (ok) pass("homepage leads with outcome, uncropped proof, swipeable mobile proof, honest placeholders, ownership, and a concrete install action");
+if (ok) pass("homepage leads with outcome, uncropped proof, swipeable mobile proof, product and character UGC examples, ownership, and a concrete install action");
 
 const inquiry = read("src/components/InstallInquiry.tsx");
 if (!inquiry.includes('role="status"') || !inquiry.includes('aria-live="polite"')) fail("install inquiry does not announce success/error state accessibly");
