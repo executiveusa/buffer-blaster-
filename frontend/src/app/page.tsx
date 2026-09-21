@@ -64,12 +64,12 @@ export default function LandingPage() {
           <div className="max-w-2xl">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Actual output</p>
             <h2 className="mt-4 text-4xl font-semibold leading-[.98] tracking-[-0.055em] sm:text-5xl">Watch what Buffer Blaster makes.</h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-white/58">Finished vertical product ads from the current creative pipeline. New work drops into the same proof wall as it is completed.</p>
+            <p className="mt-5 max-w-xl text-base leading-7 text-white/58">Finished vertical product ads and character-led UGC examples from the current creative pipeline.</p>
           </div>
           <div className="-mx-5 mt-9 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0">
             <ProofVideo src="https://d2ol7oe51mr4n9.cloudfront.net/user_33irX78ICVwRYWpFZ5l6a5vZbf5/2e5d7ea7-6ba9-48cb-9a51-9193c8f1cf7f.mp4" title="Selva & Sea" body="15s product UGC · real-use demo" />
             <ProofVideo src="/media/ugc-streetwear.mp4" title="Streetwear" body="Creator product demo" />
-            <ProofPlaceholder slot="UGC slot 03" />
+            <ProofVideo src="https://d2ol7oe51mr4n9.cloudfront.net/user_33irX78ICVwRYWpFZ5l6a5vZbf5/e8c9e683-092e-416c-9e44-269cb6ad2f09.mp4" title="Mila" body="10s AI UGC character · creator introduction" />
           </div>
         </div>
       </section>
@@ -208,26 +208,6 @@ function ProofStage() {
 
 function ProofVideo({ src, title, body }: { src: string; title: string; body: string }) {
   return <article className="w-[82vw] max-w-[360px] shrink-0 snap-center overflow-hidden rounded-[22px] border border-white/10 bg-white/[.055] md:w-auto md:max-w-none"><div className="grid place-items-center bg-black/35 p-3"><video className="aspect-[9/16] max-h-[620px] w-full max-w-[349px] rounded-[14px] bg-black object-cover" controls playsInline preload="metadata" aria-label={`${title} video example`}><source src={src} type="video/mp4" /></video></div><div className="p-4"><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs text-white/48">{body}</p></div></article>;
-}
-
-function ProofPlaceholder({ slot }: { slot: string }) {
-  return (
-    <article className="w-[82vw] max-w-[360px] shrink-0 snap-center overflow-hidden rounded-[22px] border border-dashed border-white/18 bg-white/[.025] md:w-auto md:max-w-none">
-      <div className="grid place-items-center p-3">
-        <div className="grid aspect-[9/16] w-full max-w-[349px] place-items-center rounded-[14px] border border-white/8 bg-black/20 p-6 text-center">
-          <div>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/35">{slot}</p>
-          <p className="mt-3 text-xl font-semibold tracking-[-0.035em] text-white/75">Next UGC ad</p>
-          <p className="mx-auto mt-2 max-w-[210px] text-xs leading-5 text-white/38">Reserved for the next finished Buffer Blaster example.</p>
-          </div>
-        </div>
-      </div>
-      <div className="border-t border-white/8 p-4">
-        <p className="text-sm font-medium text-white/60">Coming later</p>
-        <p className="mt-1 text-xs text-white/34">Placeholder only · not proof</p>
-      </div>
-    </article>
-  );
 }
 
 function ReceiptRow({ label, value }: { label: string; value: string }) {
