@@ -206,13 +206,46 @@ That conflicts with the current one-time private-install product contract.
 
 The backend already has a server-owned wallet/allowance and optional internal-wallet provisioning. This should be reconciled end-to-end rather than cosmetically hiding the trial UI.
 
-### BB-PW-013 — OPEN P1 — dependency audit
+### BB-PW-013 — OPEN P2 DEV-TOOLING — dependency audit
 
-The npm dependency audit previously reported high-severity transitive advisories in the browser tooling/dependency tree. No critical advisory was reported in that pass.
+Exact branch recheck:
+- `npm audit --omit=dev`: **0 vulnerabilities**
+- full `npm audit`: **1 high**, **0 critical**
+- affected transitive package: `browserslist <=4.28.6`, pulled through the development lint/Babel toolchain
+- production runtime dependency audit is clean in this pass
 
-Before final release, rerun `npm audit` against the exact merged SHA and either:
-- apply a non-breaking fix; or
-- explicitly document accepted residual risk.
+Advisories:
+- GHSA-c83g-rgw3-j3cx
+- GHSA-73wf-gq98-2v4g
+
+This is development tooling rather than a shipped production dependency, but it should still be updated or explicitly accepted before the audit branch is considered fully clean.
+
+### BB-PW-014 — SOURCE FIXED — obsolete public product surfaces
+
+The expanded production route walk found two still-reachable historical surfaces:
+
+- `/founding` advertised a **$29 Founding Creator** offer that conflicts with the current one-time private-install commercial contract.
+- `/create` exposed the older local-first Creator Studio and browser-local library outside the governed private Studio.
+
+Repair on this branch:
+- `/founding` redirects to `/install`;
+- `/create` redirects to `/studio/create`, which then applies normal operator authentication.
+
+Local production-mode Playwright verification:
+- `/founding` lands on `/install` and no $29 offer remains;
+- `/create` lands on `/admin?next=%2Fstudio%2Fcreate` for an anonymous user.
+
+### BB-PW-015 — SOURCE FIXED — RSS used placeholder host
+
+Production `/blog/rss.xml` emitted `https://example.com` for channel and post URLs.
+
+Repair on this branch:
+- RSS now uses the shared canonical `SITE_URL`;
+- the default `SITE_URL` fallback is `https://bufferblaster.netlify.app`, not the retired Stavarai/Vercel hostname.
+
+Verification:
+- all seven current blog post routes return 200 in the branch production build;
+- RSS contains the canonical Buffer Blaster host and no `example.com` / retired Stavarai host.
 
 ## Backend runtime truth
 
@@ -281,5 +314,6 @@ Remaining before a full **production-ready private Studio** claim:
 4. click every safe private Studio control against the real backend;
 5. verify zero unexplained browser console/network failures;
 6. reconcile installed-operator allowance UX vs legacy trial/pass UI;
-7. rerun and resolve/accept dependency audit findings;
-8. keep paid generation and publishing behind explicit human approval.
+7. update or explicitly accept the remaining dev-only Browserslist advisory;
+8. deploy the retired-route/RSS/mobile/client-control repairs with the browser-audit branch;
+9. keep paid generation and publishing behind explicit human approval.
