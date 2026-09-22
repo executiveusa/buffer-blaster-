@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const PUBLIC_ROUTES = ["/", "/install", "/pricing", "/robots.txt", "/sitemap.xml"];
+const PUBLIC_ROUTES = ["/", "/install", "/pricing", "/blog", "/blog/rss.xml", "/robots.txt", "/sitemap.xml"];
 const APP_ROUTES = [
   "/studio",
   "/studio/create",
@@ -48,6 +48,34 @@ test.describe("production public journey", () => {
       expect(failures, failures.join("\n")).toEqual([]);
     });
   }
+
+  test("retired public product routes cannot expose stale offers or ungoverned creator UI", async ({ page }) => {
+    await page.goto("/founding", { waitUntil: "networkidle" });
+    await expect(page).toHaveURL(/\/install\/?$/);
+    await expect(page.getByText("$29", { exact: false })).toHaveCount(0);
+
+    await page.goto("/create", { waitUntil: "networkidle" });
+    await expect(page).toHaveURL(/\/admin\?next=%2Fstudio%2Fcreate/);
+    await expect(page.getByText("Operator access", { exact: false })).toBeVisible();
+  });
+
+  test("blog cards and RSS stay on the canonical Buffer Blaster host", async ({ page, request }) => {
+    await page.goto("/blog", { waitUntil: "networkidle" });
+    const postLinks = page.locator('a[href^="/blog/"]');
+    const hrefs = await postLinks.evaluateAll((links) => [...new Set(links.map((link) => link.getAttribute("href")).filter(Boolean))] as string[]);
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const href of hrefs) {
+      const response = await request.get(href);
+      expect(response.status(), href).toBe(200);
+    }
+
+    const rss = await request.get("/blog/rss.xml");
+    expect(rss.status()).toBe(200);
+    const xml = await rss.text();
+    expect(xml).toContain("https://bufferblaster.netlify.app/blog");
+    expect(xml).not.toContain("https://example.com");
+    expect(xml).not.toContain("stavarai-platform.vercel.app");
+  });
 
   test("homepage public controls resolve and media loads", async ({ page }) => {
     const failures = collectRuntimeFailures(page);
