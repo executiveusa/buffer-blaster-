@@ -28,7 +28,7 @@ For public-site, Studio, auth, form, navigation, component, or release work:
 The checked-in configuration runs:
 
 ```text
-npx -y @playwright/mcp@0.0.82 --headless --isolated --browser=chromium
+npx -y @playwright/mcp@latest --headless --isolated --browser=chromium
 ```
 
 Node 20+ is recommended.
