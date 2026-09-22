@@ -64,7 +64,15 @@ PLAYWRIGHT_OPERATOR_PASSWORD='<runtime secret>' bash scripts/run-production-play
 
 Never commit that password or any session token.
 
-Optional real Netlify form proof:
+Optional safe draft-write pass (campaign planning, ad planning, agent command, account resolution):
+
+```bash
+PLAYWRIGHT_ALLOW_DRAFT_WRITES=true bash scripts/run-production-playwright.sh
+```
+
+This may create canonical draft records in live mode. It does not authorize paid generation or publishing.
+
+Optional real install-form proof:
 
 ```bash
 PLAYWRIGHT_ALLOW_FORM_SUBMIT=true \
