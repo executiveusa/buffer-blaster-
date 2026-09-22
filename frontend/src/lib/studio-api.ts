@@ -1,4 +1,4 @@
-import { getToken, isDemoMode, isPublicConsole } from "./api";
+import { clearToken, getToken, isDemoMode, isPublicConsole } from "./api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const seeded = () => isDemoMode() || isPublicConsole();
@@ -9,6 +9,14 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${API_URL}${path}`, { ...init, headers });
   const body = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    clearToken();
+    if (typeof window !== "undefined") {
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.assign(`/admin?next=${next}`);
+    }
+    throw new Error("Operator session expired.");
+  }
   if (!response.ok) throw new Error(body.detail || body.error || response.statusText);
   return body as T;
 }
@@ -191,6 +199,17 @@ export async function renderUGCFactoryClip(payload: UGCFactoryBrief & { clip_num
 export async function getStudioStatus() {
   if (seeded()) return { ok: true, simulated: true, media: { provider: "fal", configured: false }, publishing: { provider: null, configured: false, enabled: false, required_for_core: false }, approval_gate: true };
   return call<Record<string, unknown>>("/api/studio/status");
+}
+
+export async function listProviderModels(): Promise<{ ok: boolean; provider: string | null; models: string[]; paid_generation: boolean }> {
+  if (seeded()) return { ok: true, provider: "demo", models: [], paid_generation: false };
+  const response = await call<{ ok: boolean; provider?: string | null; models?: string[]; paid_generation?: boolean }>("/api/studio/providers/models");
+  return {
+    ok: response.ok,
+    provider: response.provider || null,
+    models: Array.isArray(response.models) ? response.models : [],
+    paid_generation: response.paid_generation === true,
+  };
 }
 
 export async function listSocialAccounts(): Promise<{ ok: boolean; provider: string | null; accounts: SocialAccount[]; simulated?: boolean }> {
