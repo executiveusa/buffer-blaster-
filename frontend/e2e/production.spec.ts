@@ -15,7 +15,9 @@ const APP_ROUTES = [
   "/admin/settings",
 ];
 
-const HIGH_RISK = /(approve|publish|launch|generate|render|build final|activate|pause|delete|remove|checkout|pay|purchase|upgrade)/i;
+const HIGH_RISK = /(approve .*build final|publish|go live|launch ad|render|activate ad|pause ad|delete|remove|checkout|pay now|purchase|upgrade|schedule approved content)/i;
+const DRAFT_WRITE = /(generate canonical campaign|build ad plan|run command|resolve connected accounts)/i;
+const allowDraftWrites = process.env.PLAYWRIGHT_ALLOW_DRAFT_WRITES === "true";
 
 function collectRuntimeFailures(page: Page) {
   const failures: string[] = [];
@@ -121,6 +123,25 @@ test.describe("anonymous application boundary", () => {
   }
 });
 
+test.describe("mobile navigation contract", () => {
+  test("public homepage has no page-level horizontal overflow", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/", { waitUntil: "networkidle" });
+    const dimensions = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.scrollWidth).toBe(dimensions.clientWidth);
+  });
+
+  test("anonymous mobile Studio still lands at operator access", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/studio", { waitUntil: "networkidle" });
+    await expect(page).toHaveURL(/\/admin\?next=/);
+    await expect(page.getByText("Operator access", { exact: false })).toBeVisible();
+  });
+});
+
 test.describe("authenticated operator journey", () => {
   test.skip(!process.env.PLAYWRIGHT_OPERATOR_PASSWORD, "Set PLAYWRIGHT_OPERATOR_PASSWORD to exercise private Studio controls.");
 
@@ -148,6 +169,7 @@ test.describe("authenticated operator journey", () => {
         if (!(await button.isVisible()) || !(await button.isEnabled())) continue;
         const name = ((await button.getAttribute("aria-label")) || (await button.innerText()) || "").trim();
         if (!name || HIGH_RISK.test(name)) continue;
+        if (DRAFT_WRITE.test(name) && !allowDraftWrites) continue;
 
         await button.click();
         await page.waitForTimeout(250);
