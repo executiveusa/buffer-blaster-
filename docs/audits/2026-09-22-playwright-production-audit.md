@@ -42,6 +42,8 @@ Current proof:
 
 ### BB-PW-002 — OPEN P1 — canonical frontend blocked by deployed backend CORS
 
+Tracking: GitHub Issue #93.
+
 Real production Playwright sign-in probe:
 - browser attempted `POST https://stavarai.31.220.58.212.sslip.io/api/auth/verify`;
 - Chromium blocked the request because the preflight response did not include `Access-Control-Allow-Origin: https://bufferblaster.netlify.app`;
@@ -283,6 +285,8 @@ Deterministic suite:
 - `frontend/e2e/production.spec.ts`
 - `frontend/scripts/run-production-playwright.sh`
 - `.github/workflows/playwright-production-audit.yml`
+
+The Playwright spec currently enumerates **60 tests across desktop and mobile** and compiles successfully with the Playwright runner.
 
 The suite preserves failure reports/traces/screenshots/video and separates:
 - read-only/safe control testing;
