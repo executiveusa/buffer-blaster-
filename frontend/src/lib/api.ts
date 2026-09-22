@@ -83,6 +83,27 @@ export async function getClients(): Promise<Client[]> {
   return response.clients;
 }
 
+export async function createClient(input: { name: string; niche: Client["niche"]; slug: string }): Promise<Client> {
+  if (seededConsoleEnabled()) {
+    return {
+      id: `demo-${input.slug}`,
+      slug: input.slug,
+      name: input.name,
+      niche: input.niche,
+      shopify_url: "",
+      schema: `schema_${input.slug.replace(/-/g, "_")}`,
+      created_at: new Date().toISOString(),
+      status: "onboarding",
+      posts_scheduled: 0,
+      avg_score: 0,
+    };
+  }
+  return apiFetch<Client>("/api/admin/clients", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export async function getContent(clientSlug: string): Promise<ContentUnit[]> {
   if (seededConsoleEnabled()) return DEMO_CONTENT.filter((unit) => unit.client_slug === clientSlug);
   const response = await apiFetch<{ units: ContentUnit[] }>(`/api/admin/content/${clientSlug}`);
