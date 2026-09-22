@@ -12,11 +12,17 @@ const APP_ROUTES = [
   "/studio/analytics",
   "/studio/settings",
   "/admin",
+  "/admin/dashboard",
+  "/admin/clients",
+  "/admin/content",
+  "/admin/blog",
+  "/admin/analytics",
   "/admin/settings",
 ];
 
 const HIGH_RISK = /(approve .*build final|publish|go live|launch ad|render|activate ad|pause ad|delete|remove|checkout|pay now|purchase|upgrade|schedule approved content)/i;
 const DRAFT_WRITE = /(generate canonical campaign|build ad plan|run command|resolve connected accounts)/i;
+const SAFE_FORM_OPEN = /(add client)/i;
 const allowDraftWrites = process.env.PLAYWRIGHT_ALLOW_DRAFT_WRITES === "true";
 
 function collectRuntimeFailures(page: Page) {
@@ -186,23 +192,44 @@ test.describe("authenticated operator journey", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL(/\/studio|\/admin/);
 
-    const studioRoutes = APP_ROUTES.filter((route) => route.startsWith("/studio"));
-    for (const route of studioRoutes) {
+    const privateRoutes = APP_ROUTES.filter((route) => route !== "/admin");
+    for (const route of privateRoutes) {
       await page.goto(route, { waitUntil: "networkidle" });
 
-      const buttons = page.getByRole("button");
-      const count = await buttons.count();
-      for (let i = 0; i < count; i += 1) {
-        const button = buttons.nth(i);
+      const inventory = await page.getByRole("button").evaluateAll((buttons) =>
+        buttons.map((button, index) => ({
+          index,
+          name: (button.getAttribute("aria-label") || button.textContent || "").trim().replace(/\s+/g, " "),
+          disabled: (button as HTMLButtonElement).disabled,
+        })),
+      );
+
+      for (const item of inventory) {
+        if (!item.name || item.disabled || HIGH_RISK.test(item.name)) continue;
+        if (DRAFT_WRITE.test(item.name) && !allowDraftWrites) continue;
+
+        await page.goto(route, { waitUntil: "networkidle" });
+        const exact = page.getByRole("button", { name: item.name, exact: true }).first();
+        const button = (await exact.count()) ? exact : page.getByRole("button").nth(item.index);
         if (!(await button.isVisible()) || !(await button.isEnabled())) continue;
-        const name = ((await button.getAttribute("aria-label")) || (await button.innerText()) || "").trim();
-        if (!name || HIGH_RISK.test(name)) continue;
-        if (DRAFT_WRITE.test(name) && !allowDraftWrites) continue;
 
         await button.click();
         await page.waitForTimeout(250);
+
+        if (SAFE_FORM_OPEN.test(item.name)) {
+          await expect(page.getByRole("heading", { name: /new client/i })).toBeVisible();
+          const cancel = page.getByRole("button", { name: /cancel/i });
+          if (await cancel.count()) await cancel.click();
+        }
       }
     }
+
+    await page.goto("/studio/create", { waitUntil: "networkidle" });
+    const modelSelect = page.getByLabel("Model");
+    await expect(modelSelect).toBeVisible();
+    const options = await modelSelect.locator("option").allTextContents();
+    expect(options[0]).toBe("Auto");
+    expect(options.length, "Authenticated production should expose at least one server model in addition to Auto").toBeGreaterThan(1);
 
     expect(failures, failures.join("\n")).toEqual([]);
   });
