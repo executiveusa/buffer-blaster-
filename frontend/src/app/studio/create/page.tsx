@@ -24,13 +24,15 @@ export default function CreateUGCPage() {
   const [mechanism, setMechanism] = useState("one measured concentrate-to-water ratio makes the result repeatable in seconds");
   const [offer, setOffer] = useState("15% off the first bottle");
   const [platform, setPlatform] = useState("instagram");
+  const [model, setModel] = useState("");
+  const [models, setModels] = useState<string[]>([]);
   const [plan, setPlan] = useState<UGCFactoryPlan | null>(null);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [trial, setTrial] = useState<TrialStatus>({ ok: false, active: false });
   const [working, setWorking] = useState<"activate" | "plan" | "render" | null>(null);
   const [error, setError] = useState("");
 
-  const brief = { product, audience, pain, mechanism, offer, platform };
+  const brief = { product, audience, pain, mechanism, offer, platform, provider_model: model };
   const canPlan = useMemo(() => [product, audience, pain, mechanism].every((value) => value.trim().length >= 4), [product, audience, pain, mechanism]);
   const estimatedCost = plan?.commercial.estimated_generation_cost_cents || 0;
   const estimatedCredits = plan ? Math.max(1, Math.ceil(estimatedCost / 100)) : 0;
@@ -57,6 +59,13 @@ export default function CreateUGCPage() {
         if (alive) setTrial(status);
       } catch {
         if (alive) setTrial({ ok: false, active: false });
+      }
+      try {
+        const response = await fetch("/api/models", { cache: "no-store" });
+        const body = (await response.json().catch(() => ({}))) as { models?: string[] };
+        if (alive && Array.isArray(body.models)) setModels(body.models);
+      } catch {
+        if (alive) setModels([]);
       }
     }
     void boot();
@@ -117,6 +126,7 @@ export default function CreateUGCPage() {
         <Area label="Product mechanism" value={mechanism} onChange={setMechanism} rows={3} />
         <Field label="Offer" value={offer} onChange={setOffer} />
         <label className="block text-xs text-black/45">Platform<select value={platform} onChange={(event)=>setPlatform(event.target.value)} className="mt-2 w-full rounded-xl border border-black/10 bg-[#fafaf8] px-3 py-3 text-sm text-black"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube Shorts</option></select></label>
+        <label className="mt-3 block text-xs text-black/45">Model<select value={model} onChange={(event)=>setModel(event.target.value)} className="mt-2 w-full rounded-xl border border-black/10 bg-[#fafaf8] px-3 py-3 text-sm text-black"><option value="">Auto</option>{models.map((item)=><option key={item} value={item}>{item}</option>)}</select></label>
         <button onClick={buildPlan} disabled={!canPlan || working !== null} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-45">{working === "plan" ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4"/>}Build ad plan</button>
         <p className="text-[11px] leading-5 text-black/38">Planning does not consume an Ad Credit and does not call a paid media model.</p>
         {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">{error}</p>}
