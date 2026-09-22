@@ -29,6 +29,7 @@ export type UGCFactoryBrief = {
   actor_description?: string;
   delivery_tone?: string;
   visual_lane?: string;
+  provider_model?: string;
 };
 
 export type UGCFactoryClip = {
