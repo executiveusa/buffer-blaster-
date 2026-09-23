@@ -14,7 +14,7 @@
 | API / auth / integrations | `api/CONTEXT.md` |
 | CLI / remote agent use | `cli/CONTEXT.md` |
 | Database / RLS / migrations | `supabase/CONTEXT.md` |
-| Deploy / production proof | `docs/PRODUCTION.md` + `GATES.production.md` |
+| Deploy / production proof | `docs/PRODUCTION.md` + `GATES.production.md` + `docs/PLAYWRIGHT_MCP.md` |
 | Product boundaries | `docs/APP_BOUNDARIES.md` |
 | Agent interfaces | `docs/AGENT_INTERFACES.md` |
 | Current positioning | `docs/POSITIONING.md` |
@@ -40,3 +40,4 @@ Agents may research, draft, prepare, test, and verify. Paid generation, publishi
 - Do not merge another application's identity, data, secrets, or runtime into Buffer Blaster.
 - Upstream UGC repositories are reference inputs, not implicit dependencies. Trace any adopted pattern/code/model to `docs/UGC_REFERENCE_MANIFEST.md` and its exact pinned revision/path before implementation.
 - Use the smallest change that produces verified value.
+- For public-site, Studio, auth, form, navigation, component, or release work, use the project Playwright MCP in `.mcp.json` and perform a real browser pass before completion. Click every safe user control, verify guarded high-risk controls without bypassing them, and capture runtime/network/console failures.

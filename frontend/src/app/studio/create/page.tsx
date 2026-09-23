@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CircleDollarSign, Loader2, Play, ReceiptText, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
 import { PageHeader, StatusPill } from "@/components/studio-ui";
 import { StudioShell } from "@/components/studio-shell";
-import { createUGCFactoryPlan, type UGCFactoryPlan } from "@/lib/studio-api";
+import { createUGCFactoryPlan, listProviderModels, type UGCFactoryPlan } from "@/lib/studio-api";
 import { activateTrial, createTrialFactoryPlan, executeTrialFactoryAd, getTrialStatus, type TrialStatus } from "@/lib/trial-api";
 
 const STAGE_LABELS: Record<string, string> = {
@@ -61,9 +61,8 @@ export default function CreateUGCPage() {
         if (alive) setTrial({ ok: false, active: false });
       }
       try {
-        const response = await fetch("/api/models", { cache: "no-store" });
-        const body = (await response.json().catch(() => ({}))) as { models?: string[] };
-        if (alive && Array.isArray(body.models)) setModels(body.models);
+        const response = await listProviderModels();
+        if (alive) setModels(response.models);
       } catch {
         if (alive) setModels([]);
       }

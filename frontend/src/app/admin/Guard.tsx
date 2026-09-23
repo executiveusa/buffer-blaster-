@@ -84,6 +84,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <span className="text-sm font-semibold">Console</span>
           {openConsole ? <Link href="/" className="text-text-dim" aria-label="Return to Creator Studio"><ArrowLeft className="h-4 w-4" /></Link> : <button onClick={handleLogout} className="text-text-dim" aria-label="Sign out"><LogOut className="h-4 w-4" /></button>}
         </header>
+        <nav aria-label="Admin sections" className="flex gap-2 overflow-x-auto border-b border-border bg-bg-elevated px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden">
+          {NAV.map((item) => {
+            const active = pathname?.startsWith(item.href);
+            return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={cn("shrink-0 rounded-full px-3 py-2 text-xs font-medium", active ? "bg-text text-bg" : "bg-bg-card text-text-muted")}>{item.label}</Link>;
+          })}
+        </nav>
         <div className="flex-1">{children}</div>
       </div>
     </div>
