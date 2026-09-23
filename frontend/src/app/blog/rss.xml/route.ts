@@ -1,8 +1,9 @@
 import { getAllPosts } from "@/lib/blog";
+import { SITE_URL } from "@/lib/site-url";
 
 export const dynamic = "force-static";
 
-const SITE = "https://example.com";
+const SITE = SITE_URL;
 
 export async function GET() {
   const posts = getAllPosts();

@@ -70,10 +70,16 @@ export function StudioShell({ children, eyebrow }: { children: ReactNode; eyebro
       </aside>
 
       <div className="lg:pl-[328px]">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-black/6 bg-[#f7f7f5]/90 px-5 backdrop-blur-xl lg:hidden">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-black/6 bg-[#f7f7f5]/95 px-5 backdrop-blur-xl lg:hidden">
           <Link href="/studio" className="font-semibold tracking-tight">Buffer Blaster</Link>
           <Link href="/studio/create" className="rounded-full bg-black px-4 py-2 text-xs font-medium text-white">Create</Link>
         </header>
+        <nav aria-label="Studio sections" className="sticky top-16 z-20 flex gap-2 overflow-x-auto border-b border-black/6 bg-[#f7f7f5]/95 px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:hidden">
+          {nav.map(([href, label]) => {
+            const active = href === "/studio" ? pathname === href : pathname.startsWith(href);
+            return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium ${active ? "bg-black text-white" : "bg-white text-black/62"}`}>{label}</Link>;
+          })}
+        </nav>
         <main className="min-h-screen p-3 sm:p-5 lg:p-3">
           <div className="min-h-[calc(100vh-24px)] rounded-[26px] border border-black/5 bg-[#fbfbfa] shadow-[0_1px_0_rgba(255,255,255,.8)_inset]">
             {eyebrow && <div className="border-b border-black/6 px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-black/35">{eyebrow}</div>}
