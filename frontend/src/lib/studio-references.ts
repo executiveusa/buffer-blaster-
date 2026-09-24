@@ -2,7 +2,7 @@
 
 import { getToken, isDemoMode, isPublicConsole } from "./api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = "/api/backend";
 
 function authHeaders(): Record<string, string> {
   const token = getToken();

@@ -14,7 +14,7 @@ import {
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 const PUBLIC_CONSOLE = process.env.NEXT_PUBLIC_PUBLIC_CONSOLE === "true";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = "/api/backend";
 const TOKEN_KEY = "operator_session_token";
 
 export function isDemoMode(): boolean { return DEMO_MODE; }
