@@ -2,7 +2,7 @@
 
 import { getToken, isDemoMode, isPublicConsole } from "./api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = "/api/backend";
 
 async function liveCall<T>(path: string): Promise<T> {
   if (isDemoMode() || isPublicConsole()) throw new Error("canonical_live_state_disabled");

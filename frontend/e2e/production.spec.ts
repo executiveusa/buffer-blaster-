@@ -138,6 +138,31 @@ test.describe("production public journey", () => {
   });
 });
 
+test.describe("same-origin backend bridge", () => {
+  test("health reaches the sovereign API without browser CORS", async ({ request }) => {
+    const response = await request.get("/api/backend/api/health");
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.status).toBe("ok");
+    expect(body.platform).toBe("buffer blaster");
+    expect(body.approval_gate).toBe(true);
+  });
+
+  test("invalid operator password reaches the backend and fails as 401", async ({ request }) => {
+    const response = await request.post("/api/backend/api/auth/verify", {
+      data: { password: "playwright-deliberately-invalid-password" },
+    });
+    expect(response.status()).toBe(401);
+    const body = await response.json();
+    expect(String(body.detail || body.error || "")).toMatch(/invalid password/i);
+  });
+
+  test("private model catalog remains auth-gated", async ({ request }) => {
+    const response = await request.get("/api/backend/api/studio/providers/models");
+    expect(response.status()).toBe(401);
+  });
+});
+
 test.describe("anonymous application boundary", () => {
   for (const route of APP_ROUTES) {
     test(`${route} has a truthful anonymous state`, async ({ page }) => {
