@@ -1,6 +1,6 @@
 import { clearToken, getToken, isDemoMode, isPublicConsole } from "./api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = "/api/backend";
 const seeded = () => isDemoMode() || isPublicConsole();
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
