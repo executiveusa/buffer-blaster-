@@ -3,8 +3,8 @@
 # FastAPI 0.123+ supports starlette 1.x. Starlette is pinned explicitly so a
 # future transitive bump can't silently break the test suite again.
 fastapi==0.141.1
-starlette>=1.6.0,<2.0
-uvicorn[standard]==0.53.0
+starlette>=1.7.0,<2.0
+uvicorn[standard]==0.54.0
 pydantic==2.13.5
 supabase==2.31.0
 httpx==0.28.1
