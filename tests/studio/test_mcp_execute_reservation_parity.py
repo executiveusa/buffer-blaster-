@@ -8,11 +8,12 @@ from api.services.ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 class FakeProvider:
     configured = True
 
-    def __init__(self, clip_cost=137):
+    def __init__(self, clip_cost=137, image_clip_cost=None):
         self.clip_cost = clip_cost
+        self.image_clip_cost = clip_cost if image_clip_cost is None else image_clip_cost
 
     def estimate_clip_cost_cents(self, model_name=None, *, image_url=None):
-        return self.clip_cost
+        return self.image_clip_cost if image_url else self.clip_cost
 
     def status(self):
         return {"provider": "fake-gateway"}
@@ -120,3 +121,45 @@ async def test_mcp_blocks_before_reservation_when_provider_cost_is_unverified(mo
     assert result["error"] == "provider_model_not_allowed_or_cost_unverified"
     assert result["state"] == "preflight_blocked"
     assert reserve_called is False
+
+
+def test_factory_estimate_prices_text_and_image_calls_separately():
+    provider = FakeProvider(clip_cost=80, image_clip_cost=140)
+    brief = UGCFactoryBrief(
+        product="Cella Coffee",
+        audience="home baristas",
+        pain="coffee tastes inconsistent every morning",
+        mechanism="repeatable roast and pour variables",
+        offer="POUR15",
+        platform="instagram",
+    )
+    plan = build_ugc_factory_plan(brief)
+
+    result = estimate_factory_generation_cost(provider, plan, None)
+
+    assert result["ok"] is True
+    assert result["expected_text_calls"] == 1
+    assert result["expected_image_calls"] == 2
+    assert result["raw_generation_estimate_cents"] == 360
+    assert result["estimated_generation_cost_cents"] == 450
+    assert result["estimated_text_clip_cost_cents"] == 80
+    assert result["estimated_image_clip_cost_cents"] == 140
+
+
+def test_factory_estimate_blocks_when_image_cost_is_unverified():
+    provider = FakeProvider(clip_cost=80, image_clip_cost=None)
+    provider.image_clip_cost = None
+    brief = UGCFactoryBrief(
+        product="Cella Coffee",
+        audience="home baristas",
+        pain="coffee tastes inconsistent every morning",
+        mechanism="repeatable roast and pour variables",
+    )
+    plan = build_ugc_factory_plan(brief)
+
+    result = estimate_factory_generation_cost(provider, plan, None)
+
+    assert result["ok"] is False
+    assert result["error"] == "provider_model_not_allowed_or_cost_unverified"
+    assert result["text_cost_verified"] is True
+    assert result["image_cost_verified"] is False
