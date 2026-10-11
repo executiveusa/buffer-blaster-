@@ -6,9 +6,9 @@ from api.routers import mcp
 class FakeProvider:
     configured = True
 
-    def estimate_clip_cost_cents(self, model_name=None):
+    def estimate_clip_cost_cents(self, model_name=None, *, image_url=None):
         assert model_name == "model-x"
-        return 100
+        return 160 if image_url else 100
 
     def status(self):
         return {"provider": "fake"}
@@ -84,6 +84,7 @@ async def test_mcp_execute_reservation_matches_executor_pricing(monkeypatch):
     )
 
     assert result == {"ok": True}
-    assert reserved["estimated_provider_cost_cents"] == 375
+    # One text call (100) + two seeded image calls (2 * 160), then 25% safety.
+    assert reserved["estimated_provider_cost_cents"] == 525
     assert executed["provider"] is provider
-    assert executed["allowance"]["estimated_provider_cost_cents"] == 375
+    assert executed["allowance"]["estimated_provider_cost_cents"] == 525
