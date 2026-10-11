@@ -25,10 +25,13 @@ PLATFORM_NAME=Buffer Blaster
 MASTER_ENCRYPTION_KEY=
 DEMO_PASSWORD=
 BLASTER_API_KEY=
+BLASTER_PROXY_SHARED_SECRET=
 TRIAL_SESSION_SECRET=
 REDIS_PASSWORD=
 REDIS_URL=
 ```
+
+`BLASTER_PROXY_SHARED_SECRET` authenticates the server-side frontend proxy when it forwards Netlify's client connection IP for rate limiting. It is backend/server-only and must never use a `NEXT_PUBLIC_*` name.
 
 `DEMO_PASSWORD` is a historical variable name for the live operator password.
 There is no committed default or fallback value. `scripts/selfhost/install.sh`
