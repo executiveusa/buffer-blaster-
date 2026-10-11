@@ -316,7 +316,7 @@ version = "1.0.0"
 dependencies = [
  "aes-gcm",
  "base64",
- "rand",
+ "getrandom",
  "serde",
  "serde_json",
  "sha2",
