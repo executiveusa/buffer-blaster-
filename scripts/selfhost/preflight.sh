@@ -26,7 +26,7 @@ require_integration() {
   [[ -n "${!key:-}" ]] || missing_integrations+=("$key")
 }
 
-for key in API_DOMAIN MASTER_ENCRYPTION_KEY DEMO_PASSWORD BLASTER_API_KEY REDIS_URL FORWARDED_ALLOW_IPS; do
+for key in API_DOMAIN MASTER_ENCRYPTION_KEY DEMO_PASSWORD BLASTER_API_KEY REDIS_URL FORWARDED_ALLOW_IPS CADDY_PROXY_IP PROXY_NETWORK_SUBNET; do
   require_core "$key"
 done
 
@@ -34,6 +34,14 @@ if [[ "${FORWARDED_ALLOW_IPS:-}" == "*" ]]; then
   echo "CORE NOT READY — FORWARDED_ALLOW_IPS must identify the real reverse-proxy peer/network; wildcard trust is forbidden." >&2
   exit 1
 fi
+
+case ",${FORWARDED_ALLOW_IPS}," in
+  *",${CADDY_PROXY_IP},"*) ;;
+  *)
+    echo "CORE NOT READY — FORWARDED_ALLOW_IPS must include the configured CADDY_PROXY_IP." >&2
+    exit 1
+    ;;
+esac
 
 for key in BUFFER_BLASTER_WORKSPACE_ID SUPABASE_DOCKER_NETWORK SUPABASE_URL SUPABASE_SERVICE_KEY OPENAI_API_KEY FAL_KEY FAL_TEXT_VIDEO_MODEL FAL_IMAGE_VIDEO_MODEL; do
   require_integration "$key"
