@@ -17,9 +17,6 @@ from .services.operator_sessions import (
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    if fwd:
-        return fwd.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
 
