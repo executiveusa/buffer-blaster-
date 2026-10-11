@@ -59,3 +59,14 @@ def test_dockerfile_does_not_trust_all_forwarded_peers():
 
     assert "--forwarded-allow-ips='*'" not in dockerfile
     assert "FORWARDED_ALLOW_IPS=127.0.0.1" in dockerfile
+
+
+def test_canonical_compose_pins_the_only_trusted_http_proxy():
+    compose = Path("docker-compose.prod.yml").read_text(encoding="utf-8")
+    env_example = Path(".env.production.example").read_text(encoding="utf-8")
+
+    assert "FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-172.30.240.10}" in compose
+    assert "ipv4_address: ${CADDY_PROXY_IP:-172.30.240.10}" in compose
+    assert "subnet: ${BUFFER_BLASTER_DOCKER_SUBNET:-172.30.240.0/24}" in compose
+    assert "CADDY_PROXY_IP=172.30.240.10" in env_example
+    assert "FORWARDED_ALLOW_IPS=172.30.240.10" in env_example
