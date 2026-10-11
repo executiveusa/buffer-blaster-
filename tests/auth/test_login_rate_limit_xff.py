@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from starlette.requests import Request
 
 from api.deps import _client_ip
@@ -29,3 +31,9 @@ def test_login_rate_limit_ignores_spoofed_x_forwarded_for():
 def test_login_rate_limit_uses_direct_client_host():
     request = _request("203.0.113.11")
     assert _client_ip(request) == "203.0.113.11"
+
+
+def test_production_uvicorn_does_not_trust_forwarded_headers_from_arbitrary_peers():
+    dockerfile = (Path(__file__).resolve().parents[2] / "Dockerfile").read_text(encoding="utf-8")
+    assert "--proxy-headers" not in dockerfile
+    assert "--forwarded-allow-ips" not in dockerfile
