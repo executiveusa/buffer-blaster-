@@ -32,3 +32,13 @@ The first Step 1 CI pass proved:
 A narrow prerequisite PR upgraded only Next / eslint-config-next and the sharp / source-map-js overrides. Its lock-refresh job reported `npm audit --omit=dev --audit-level=high` with 0 production vulnerabilities, Frontend Verify passed, Test API and Frontend passed, and Codex review completed without a finding comment.
 
 Step 1 was then rebased on that security prerequisite and must re-pass CI before merge.
+
+
+## Final Step 1 hardening evidence
+
+- Codex identified a mixed text/image pricing gap; the estimator now prices one text-video call plus the expected image-video calls before wallet reservation.
+- Codex identified wildcard Uvicorn proxy trust; the Docker runtime now requires explicit `FORWARDED_ALLOW_IPS`, defaults to loopback only, and preflight rejects `*`.
+- Auth tests now exercise Uvicorn `ProxyHeadersMiddleware` for trusted and untrusted peers.
+- Cargo.lock was regenerated from scratch by CI after replacing direct rand usage with getrandom.
+- Regenerated lockfile contains no `rand` or `chacha20` package entries and the temporary lock-refresh workflow removed itself.
+- The lock-refresh workflow executed `cargo test --locked` before committing the new lockfile.
