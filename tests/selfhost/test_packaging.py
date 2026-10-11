@@ -21,6 +21,14 @@ def test_production_uvicorn_does_not_trust_forwarded_headers_from_every_sender()
     assert '--forwarded-allow-ips="*"' not in dockerfile
 
 
+def test_server_side_frontend_proxy_signs_netlify_client_ip():
+    proxy = read("frontend/src/app/api/backend/[...path]/route.ts")
+    assert 'request.headers.get("x-nf-client-connection-ip")' in proxy
+    assert 'process.env.BLASTER_PROXY_SHARED_SECRET' in proxy
+    assert 'headers.set("x-buffer-blaster-proxy-secret", proxySecret)' in proxy
+    assert 'headers.set("x-buffer-blaster-client-ip", clientIp)' in proxy
+
+
 def test_compose_binds_public_ports_only_on_caddy():
     compose = read("docker-compose.prod.yml")
     assert '"80:80"' in compose
@@ -36,7 +44,7 @@ def test_caddy_proxies_to_api():
 
 def test_env_contract_keeps_core_and_integration_secrets_private():
     env = read(".env.production.example")
-    for key in ["MASTER_ENCRYPTION_KEY", "BLASTER_API_KEY", "REDIS_URL", "SUPABASE_SERVICE_KEY", "FAL_KEY"]:
+    for key in ["MASTER_ENCRYPTION_KEY", "BLASTER_API_KEY", "BLASTER_PROXY_SHARED_SECRET", "REDIS_URL", "SUPABASE_SERVICE_KEY", "FAL_KEY"]:
         assert key in env
     assert "NEXT_PUBLIC_FAL" not in env
     assert "NEXT_PUBLIC_SUPABASE_SERVICE" not in env
@@ -47,6 +55,7 @@ def test_one_click_installer_generates_app_owned_secrets_and_runs_preflight():
     assert "openssl rand" in script
     assert "set_env MASTER_ENCRYPTION_KEY" in script
     assert "set_env BLASTER_API_KEY" in script
+    assert "set_env BLASTER_PROXY_SHARED_SECRET" in script
     assert "set_env DEMO_PASSWORD" in script
     assert "scripts/selfhost/preflight.sh" in script
     assert "docker compose -f docker-compose.prod.yml up -d --build" in script
