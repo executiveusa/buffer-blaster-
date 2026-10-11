@@ -101,3 +101,21 @@ def test_legacy_deploy_entrypoints_cannot_reintroduce_insecure_production_wiring
         assert "NEXT_PUBLIC_DEMO_MODE=true" not in script
         assert 'env add NEXT_PUBLIC_DEMO_MODE production' not in script
         assert "scripts/selfhost/" in script
+
+
+def test_caddy_has_stable_proxy_address_and_only_that_peer_is_trusted():
+    compose = read("docker-compose.prod.yml")
+    env = read(".env.production.example")
+    dockerfile = read("Dockerfile")
+    preflight = read("scripts/selfhost/preflight.sh")
+    installer = read("scripts/selfhost/install.sh")
+
+    assert "PROXY_NETWORK_SUBNET=" in env
+    assert "CADDY_PROXY_IP=" in env
+    assert "FORWARDED_ALLOW_IPS=172.31.255.2" in env
+    assert "ipv4_address: ${CADDY_PROXY_IP:-172.31.255.2}" in compose
+    assert "subnet: ${PROXY_NETWORK_SUBNET:-172.31.255.0/29}" in compose
+    assert "--forwarded-allow-ips=${FORWARDED_ALLOW_IPS:-127.0.0.1,::1}" in dockerfile
+    assert "FORWARDED_ALLOW_IPS must include the configured CADDY_PROXY_IP" in preflight
+    assert 'set_env FORWARDED_ALLOW_IPS "$(get_env CADDY_PROXY_IP)"' in installer
+    assert "--forwarded-allow-ips='*'" not in dockerfile
