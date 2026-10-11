@@ -5,7 +5,7 @@
 //! twice yields two different ciphertexts (verified by test).
 
 use aes_gcm::{
-    aead::{Aead, KeyInit, OsRng, rand_core::RngCore},
+    aead::{Aead, KeyInit},
     Aes256Gcm, Key, Nonce,
 };
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
@@ -17,7 +17,7 @@ pub fn encrypt(plaintext: &str, key: &Key32) -> Result<String, String> {
     let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
 
     let mut nonce_bytes = [0u8; 12];
-    OsRng.fill_bytes(&mut nonce_bytes);
+    getrandom::fill(&mut nonce_bytes).map_err(|e| format!("encrypt: random source failed ({e})"))?;
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     let ciphertext = cipher
