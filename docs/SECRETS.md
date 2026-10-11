@@ -34,7 +34,7 @@ REDIS_PASSWORD=
 REDIS_URL=
 ```
 
-`BLASTER_PROXY_SHARED_SECRET` authenticates the server-side frontend proxy when it forwards Netlify's client connection IP for rate limiting. It is backend/server-only and must never use a `NEXT_PUBLIC_*` name.
+`BLASTER_PROXY_SHARED_SECRET` authenticates the server-side frontend proxy when it forwards the hosting platform's trusted client connection IP (Vercel canonical, Netlify compatibility) for rate limiting. It is backend/server-only and must never use a `NEXT_PUBLIC_*` name.
 
 `DEMO_PASSWORD` is a historical variable name for the live operator password.
 There is no committed default or fallback value. `scripts/selfhost/install.sh`
