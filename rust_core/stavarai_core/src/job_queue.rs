@@ -6,7 +6,6 @@
 //! restore on boot — left as an exercise for the VPS deployment.
 
 use base64::Engine;
-use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Mutex;
@@ -21,7 +20,7 @@ fn now_secs() -> u64 {
 
 fn fresh_id() -> String {
     let mut bytes = [0u8; 16];
-    OsRng.fill_bytes(&mut bytes);
+    getrandom::fill(&mut bytes).expect("system RNG unavailable");
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&bytes)
 }
 
