@@ -102,3 +102,16 @@ Rust currently emits deprecation warnings for aes-gcm hybrid-array `from_slice`;
 ## Not executed
 
 No provider generation, publishing, ad activation, wallet spend, or other consequential external action was run during this baseline/Step 1 slice.
+
+
+## Independent review hardening
+
+Codex review identified that changing `_client_ip` alone was insufficient while Uvicorn still launched with wildcard forwarded-header trust.
+
+The branch now:
+- removes wildcard proxy trust from the Docker command;
+- defaults `FORWARDED_ALLOW_IPS` to `127.0.0.1`;
+- adds a regression through Uvicorn's `ProxyHeadersMiddleware` proving a spoofed forwarded address from an untrusted peer does not replace the ASGI client address;
+- adds a deployment-config regression preventing wildcard trust from returning.
+
+This is intentionally fail-closed. Until the later verified-proxy/client-IP slice is installed, production reverse-proxy traffic may share a coarse rate-limit bucket rather than accepting untrusted client-IP claims.
