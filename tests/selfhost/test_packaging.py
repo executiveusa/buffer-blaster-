@@ -14,6 +14,13 @@ def test_production_container_runs_as_non_root_and_has_healthcheck():
     assert "ffmpeg" in dockerfile
 
 
+def test_production_uvicorn_does_not_trust_forwarded_headers_from_every_sender():
+    dockerfile = read("Dockerfile")
+    assert "--no-proxy-headers" in dockerfile
+    assert "--forwarded-allow-ips='*'" not in dockerfile
+    assert '--forwarded-allow-ips="*"' not in dockerfile
+
+
 def test_compose_binds_public_ports_only_on_caddy():
     compose = read("docker-compose.prod.yml")
     assert '"80:80"' in compose
