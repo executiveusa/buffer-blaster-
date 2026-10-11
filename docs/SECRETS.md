@@ -14,6 +14,9 @@ in source, docs, frontend variables, logs, issue comments, or CI output.
   or an external secret manager mounted into the runtime.
 - Vercel: only variables actually required by Vercel-hosted code. Provider and
   backend credentials stay server-side and must never use a `NEXT_PUBLIC_*` name.
+  `scripts/selfhost/configure-vercel.sh` copies the same
+  `BLASTER_PROXY_SHARED_SECRET` from the VPS `.env.production` into Vercel as
+  a server-only variable so signed client-IP forwarding works after a fresh install.
 - Runtime-editable UI settings are **not a secret store**. The current Redis
   runtime store accepts only non-secret operator settings such as
   `ACTIVE_LLM_PROVIDER` and `AGENT_MAX_CHILDREN`.
