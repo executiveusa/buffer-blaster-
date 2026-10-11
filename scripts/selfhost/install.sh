@@ -111,6 +111,9 @@ fi
 if [[ -z "$(get_env BLASTER_API_KEY)" ]]; then
   set_env BLASTER_API_KEY "$(openssl rand -hex 32)"
 fi
+if [[ -z "$(get_env BLASTER_PROXY_SHARED_SECRET)" ]]; then
+  set_env BLASTER_PROXY_SHARED_SECRET "$(openssl rand -hex 32)"
+fi
 if [[ -z "$(get_env DEMO_PASSWORD)" ]]; then
   set_env DEMO_PASSWORD "$(openssl rand -hex 16)"
 fi
