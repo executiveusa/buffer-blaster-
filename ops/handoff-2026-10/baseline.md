@@ -89,7 +89,7 @@ Verification:
 
 ```text
 targeted regressions: 2 passed
-backend full suite:   246 passed, 1 warning
+backend full suite:   249 passed, 1 warning
 frontend tsc:         PASS
 frontend lint:        PASS with the pre-existing 1 warning
 frontend build:       PASS
@@ -115,3 +115,23 @@ The branch now:
 - adds a deployment-config regression preventing wildcard trust from returning.
 
 This is intentionally fail-closed. Until the later verified-proxy/client-IP slice is installed, production reverse-proxy traffic may share a coarse rate-limit bucket rather than accepting untrusted client-IP claims.
+
+
+## Caddy proxy-hop correction
+
+A later independent review found that fail-closing Uvicorn to `127.0.0.1` would also ignore the legitimate Caddy hop in the canonical Compose topology and collapse public login attempts into Caddy's shared address.
+
+The canonical self-host topology now pins the Caddy container to an app-owned private address and trusts only that exact address:
+
+```text
+BUFFER_BLASTER_DOCKER_SUBNET=172.30.240.0/24
+CADDY_PROXY_IP=172.30.240.10
+FORWARDED_ALLOW_IPS=172.30.240.10
+```
+
+All three values remain overrideable for hosts with an overlapping Docker subnet. `install.sh` adds them to existing installs when absent.
+
+Verification:
+- Compose YAML parses with the expected API environment, Caddy static IP, and private subnet.
+- targeted pricing/auth suite: 5 passed
+- backend full suite: 249 passed, 1 warning
