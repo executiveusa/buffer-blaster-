@@ -23,6 +23,7 @@ def test_production_uvicorn_does_not_trust_forwarded_headers_from_every_sender()
 
 def test_server_side_frontend_proxy_signs_netlify_client_ip():
     proxy = read("frontend/src/app/api/backend/[...path]/route.ts")
+    assert 'request.headers.get("x-vercel-forwarded-for")' in proxy
     assert 'request.headers.get("x-nf-client-connection-ip")' in proxy
     assert 'process.env.BLASTER_PROXY_SHARED_SECRET' in proxy
     assert 'headers.set("x-buffer-blaster-proxy-secret", proxySecret)' in proxy
