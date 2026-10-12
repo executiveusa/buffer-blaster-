@@ -12,10 +12,23 @@ import sys
 from typing import Any, TextIO
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 MAX_MESSAGE_CHARS = 4_000_000
 MAX_RESPONSE_BYTES = 4_000_000
+
+
+class _RejectRedirects(HTTPRedirectHandler):
+    """Never forward an operator bearer token to a redirect destination."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _secure_open(request: Request, *, timeout: int):
+    # The standard urlopen redirect handler can forward Authorization to a
+    # different origin. Redirects must fail closed for operator credentials.
+    return build_opener(_RejectRedirects()).open(request, timeout=timeout)
 
 
 def _error(request_id: Any, code: int, message: str) -> dict[str, Any]:
@@ -24,13 +37,21 @@ def _error(request_id: Any, code: int, message: str) -> dict[str, Any]:
 
 def _endpoint(base: str) -> str | None:
     base = base.rstrip("/")
-    parts = urlsplit(base)
-    if parts.scheme not in {"http", "https"} or not parts.netloc or parts.username or parts.password or parts.query or parts.fragment:
+    try:
+        parts = urlsplit(base)
+        hostname = parts.hostname
+        _ = parts.port  # Validate malformed ports before constructing a request.
+    except ValueError:
+        return None
+    if parts.scheme not in {"http", "https"} or not parts.netloc or not hostname or parts.username or parts.password or parts.query or parts.fragment:
+        return None
+    # Bearer credentials must never traverse plaintext network connections.
+    if parts.scheme == "http" and hostname.lower() not in {"localhost", "127.0.0.1", "::1"}:
         return None
     return base if parts.path.endswith("/api/mcp") else f"{base}/api/mcp"
 
 
-def forward(message: Any, *, base_url: str, token: str, opener=urlopen) -> dict[str, Any] | None:
+def forward(message: Any, *, base_url: str, token: str, opener=_secure_open) -> dict[str, Any] | None:
     """Forward one JSON-RPC message without granting new authority."""
     if not isinstance(message, dict) or message.get("jsonrpc") != "2.0" or not isinstance(message.get("method"), str):
         return _error(message.get("id") if isinstance(message, dict) else None, -32600, "Invalid Request")
@@ -73,7 +94,7 @@ def forward(message: Any, *, base_url: str, token: str, opener=urlopen) -> dict[
         return None if notification else _error(request_id, -32003, "Invalid response from Buffer Blaster API")
 
 
-def serve(*, stdin: TextIO, stdout: TextIO, base_url: str, token: str, opener=urlopen) -> None:
+def serve(*, stdin: TextIO, stdout: TextIO, base_url: str, token: str, opener=_secure_open) -> None:
     """MCP stdio: one JSON-RPC object per line, no diagnostics on stdout."""
     for raw in stdin:
         if not raw.strip():
