@@ -25,7 +25,7 @@ schemas. All interfaces share the same backend and approval gates.
 
 ## No-spend default workflow
 
-1. `studio_status` — inspect ledger, provider, storage, and approval readiness.
+1. `studio_status` and `get_pricing` — inspect ledger, provider, storage, pricing, and approval readiness.
 2. `list_provider_capabilities` and `plan_provider_route` — inspect available
    routes and estimated cost; do not assume a named provider is active.
 3. `create_campaign_plan`, `create_ugc_prompt`, `create_ugc_plan`, or
@@ -47,7 +47,7 @@ schemas. All interfaces share the same backend and approval gates.
 
 ## Non-negotiable rules
 
-- No raw or single-clip paid generation bypass. Paid production stays behind
+- Never call a raw or single-clip paid generation route. Paid production stays behind
   the governed factory and server-owned wallet.
 - Never put API keys, service-role credentials, provider secrets, or client
   data in prompts, skill files, commits, screenshots, or ordinary logs.
