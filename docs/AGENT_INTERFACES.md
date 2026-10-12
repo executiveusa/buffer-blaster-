@@ -38,6 +38,15 @@ Useful tools include:
 
 `execute_ugc_ad_factory` requires `approved=true` plus a server-owned active wallet. The server reserves generation allowance before calling the media provider.
 
+## Claude Code / Codex (stdio MCP)
+
+The supported agent adapter is `python -m cli.mcp_stdio`. It forwards MCP
+JSON-RPC to the same authenticated `/api/mcp` backend, with no local provider
+execution or independent approval authority. Configure `BLASTER_API_URL` and
+`BLASTER_API_KEY` in the agent process environment. See
+[`docs/AGENT_MCP_SETUP.md`](AGENT_MCP_SETUP.md) for installation, verification,
+and rollback. Do not embed secrets in committed MCP configuration.
+
 ## CLI
 ```bash
 export BLASTER_API_URL=https://<api-host>
