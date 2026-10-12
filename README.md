@@ -117,6 +117,22 @@ python -m cli.blaster mcp-info
 python -m cli.blaster ugc-plan brief.json
 ```
 
+### Claude Code and Codex (internal agents)
+
+Run both clients against the existing backend through the governed local MCP
+stdio adapter. From the repository root, with `BLASTER_API_URL` and
+`BLASTER_API_KEY` securely available in the agent process environment:
+
+```bash
+claude mcp add --transport stdio buffer-blaster -- python -m cli.mcp_stdio
+codex mcp add buffer-blaster -- python -m cli.mcp_stdio
+```
+
+The bridge does not hold credentials in configuration files, bypass approval,
+or call a media provider itself. It requires a running, authenticated API.
+See [`docs/AGENT_MCP_SETUP.md`](docs/AGENT_MCP_SETUP.md) for the full
+installation, skill, no-spend smoke test, and rollback instructions.
+
 See [`docs/AGENT_INTERFACES.md`](docs/AGENT_INTERFACES.md) for the complete interface and walk-test contract.
 
 ## Budget and approval safety
