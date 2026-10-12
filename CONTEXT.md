@@ -4,7 +4,7 @@
 Buffer Blaster is private creative infrastructure for client work. It turns product and customer context into creative concepts and UGC-style assets, keeps approvals and cost controls with the work, and records evidence for the next iteration.
 
 ## Commercial model
-The software is infrastructure, not the primary offer. It is used in managed client engagements or deployed as a dedicated private instance. Do not reintroduce low-ticket public subscription positioning without an explicit product decision.
+The software is **in-house infrastructure for Claude Code, Codex, and our authorized agents**. Revenue comes from client creative outcomes, not software access or low-ticket subscriptions. A dedicated client installation is an optional future engagement, not the current build target. Prioritize agent workflow reliability, verified deliverables, cost controls, and repeatability. Do not expand the public product or subscription funnel without an explicit owner decision.
 
 ## System map
 - `frontend/` — public site, Studio, admin/operator UI.

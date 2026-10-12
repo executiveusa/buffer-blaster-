@@ -4,7 +4,7 @@
 
 Buffer Blaster turns product truth, customer signals, and brand context into testable creative work. It keeps planning, UGC-style production, approvals, cost controls, and evidence in one governed system so operators can deliver more without making clients manage a pile of separate tools.
 
-Buffer Blaster is not positioned as a low-cost public subscription. We use it inside managed client engagements or deploy a dedicated private instance when a team needs its own creative infrastructure.
+**Primary use: our own agents operate Buffer Blaster as an in-house creative engine.** We sell completed creative work and measurable client outcomes, not access to a public SaaS. A dedicated client install is possible later but is not the current delivery target.
 
 ## What it does
 
@@ -43,13 +43,13 @@ Core capabilities include:
 
 ## Access models
 
-### Managed Creative Engine
+### In-house agent infrastructure (current)
 
-We run Buffer Blaster as part of a client engagement. The client gets the creative output, review surface, visibility, and learning loop without becoming the administrator of another SaaS product.
+Our Claude Code, Codex, and other authorized agents use the MCP/CLI interfaces to research, plan, produce, and verify creative for managed client engagements. Clients buy deliverables and outcomes, not Buffer Blaster seats. The human operator retains approval of paid generation, publishing, and external commitments.
 
-### Private Install
+### Dedicated private install (optional, not current priority)
 
-A team can run a dedicated Buffer Blaster deployment with its own database boundary, provider credentials, Studio, API, MCP, and CLI access. Consequential actions remain governed by server-side approval and budget controls.
+A team could run a dedicated deployment with its own database boundary and credentials. This remains an optional future engagement rather than a customer-facing subscription or an active frontend expansion target.
 
 ## Quick start
 
@@ -116,6 +116,22 @@ python -m cli.blaster jobs
 python -m cli.blaster mcp-info
 python -m cli.blaster ugc-plan brief.json
 ```
+
+### Claude Code and Codex (internal agents)
+
+Run both clients against the existing backend through the governed local MCP
+stdio adapter. From the repository root, with `BLASTER_API_URL` and
+`BLASTER_API_KEY` securely available in the agent process environment:
+
+```bash
+claude mcp add --transport stdio buffer-blaster -- python -m cli.mcp_stdio
+codex mcp add buffer-blaster -- python -m cli.mcp_stdio
+```
+
+The bridge does not hold credentials in configuration files, bypass approval,
+or call a media provider itself. It requires a running, authenticated API.
+See [`docs/AGENT_MCP_SETUP.md`](docs/AGENT_MCP_SETUP.md) for the full
+installation, skill, no-spend smoke test, and rollback instructions.
 
 See [`docs/AGENT_INTERFACES.md`](docs/AGENT_INTERFACES.md) for the complete interface and walk-test contract.
 

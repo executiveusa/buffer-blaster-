@@ -1,17 +1,15 @@
 # Buffer Blaster Positioning
 
 ## Category
-Privately installed AI ad factory for client teams and approved AI agents.
+In-house, agent-operated AI ad factory for our creative production team. Claude Code, Codex, and approved agents are the primary operators.
 
 ## Primary job
 Turn product truth, customer signals, and brand context into testable ad creative while keeping model choice, approvals, cost controls, and learning evidence in one owned system.
 
 ## Commercial model
-Buffer Blaster is sold as a **one-time private install**, not as a public recurring SaaS subscription.
+Buffer Blaster is **not currently a customer-facing software product**. It is our in-house production infrastructure. The commercial offer is the creative work our agents and operators deliver to clients; there is no low-ticket SaaS subscription, seat pricing, or public self-serve checkout target.
 
-The install provides the Buffer Blaster application and deployment/handoff work. Ongoing infrastructure and third-party model/provider usage remain separate costs paid through the accounts the operator chooses.
-
-Optional future support, customization, or managed-service work is separate from the installed product and must never be implied as required recurring software rent.
+A one-time private install can be considered later for a specific client if the owner explicitly approves it. That is an optional service, not the roadmap driver. Third-party provider usage and infrastructure remain real operating costs subject to server-owned budgets and human approval.
 
 ## PROVEN → BETTER → NEW application
 The existing PROVEN_BETTER_NEW_V1 research establishes that the category already pays for:
@@ -37,22 +35,19 @@ Buffer Blaster's **new commercial wedge** is ownership:
 
 Do not turn ownership into vague anti-SaaS rhetoric. Prove it through install scope, BYOK/provider choice, exportability, rollback, and runtime controls.
 
-## Public message order
-1. Category: AI ad factory.
-2. Outcome: turns a product brief into testable video ads.
-3. Proof: show real outputs immediately.
-4. Ownership: one-time private install.
-5. Mechanism: angle → script → model route → cost → approval → output → evidence.
-6. Model flexibility: approved gateways/models can change without rebuilding the campaign system.
-7. Agent access: UI/REST/MCP/CLI are alternate controls over the same product.
-8. Install inquiry.
+## Internal operating priority
+1. Claude Code and Codex can connect to the same authenticated MCP backend.
+2. Agents can plan from product truth without provider spend.
+3. Humans review the plan, route, budget, and intended deliverable.
+4. Paid execution requires explicit approval and server-owned wallet reservation.
+5. Finished assets must have durable QA, cost, and provider receipts.
+6. Publishing and paid-media activation remain separate optional human-gated actions.
+7. Verify repeatable client delivery before expanding any public frontend or install funnel.
 
-## Public language
-Prefer: AI ad factory, one-time private install, own the stack, product brief, angle, UGC-style ad, model route, estimated cost, review, approval, evidence, provider account, install.
+## Language and scope
+Prefer: internal creative engine, agent tool, product brief, angle, UGC-style ad, model route, estimated cost, review, approval, final asset, QA receipt, cost evidence.
 
-Avoid on public pages unless explaining developer access: canonical ledger, configured media boundary, service role, deterministic receipt, RLS, PostgREST.
-
-Avoid subscription-style language: plans, seats, monthly credits, trial tiers, upgrade, beta waitlist.
+Avoid subscription-style language: seats, monthly credits, trial tiers, upgrade, beta waitlist. Do not make the public frontend, install inquiry, or a one-time-install sales page the primary release blocker. Existing public pages are legacy/optional surfaces pending a separate owner decision.
 
 ## Claim discipline
 Do not claim:
