@@ -2,6 +2,10 @@
 import io
 import json
 from urllib.error import HTTPError, URLError
+from urllib.request import HTTPSHandler, build_opener
+from urllib.response import addinfourl
+
+from cli.mcp_stdio import _RejectRedirects, _secure_open
 
 from cli.mcp_stdio import forward, serve
 
@@ -100,3 +104,50 @@ def test_invalid_json_and_invalid_endpoint_fail_without_network():
 
     result = forward({"jsonrpc": "2.0", "id": 5, "method": "tools/list"}, base_url="file:///etc/passwd", token="test")
     assert result["error"]["code"] == -32002
+
+
+def test_redirect_is_blocked_before_authorization_can_reach_another_origin():
+    """Regression for the P1 cross-origin credential redirect finding."""
+    seen = []
+
+    class RedirectingHTTPSHandler(HTTPSHandler):
+        def https_open(self, request):
+            seen.append((request.full_url, request.get_header("Authorization")))
+            return addinfourl(
+                io.BytesIO(b""), {"Location": "https://attacker.example/steal"},
+                request.full_url, code=302,
+            )
+
+    opener = build_opener(_RejectRedirects(), RedirectingHTTPSHandler()).open
+    result = forward(
+        {"jsonrpc": "2.0", "id": 12, "method": "tools/list"},
+        base_url="https://blaster.example", token="secret-token", opener=opener,
+    )
+    assert result["error"]["code"] == -32004
+    assert seen == [("https://blaster.example/api/mcp", "Bearer secret-token")]
+    assert "secret-token" not in json.dumps(result)
+
+
+def test_default_transport_rejects_redirects():
+    import inspect
+
+    assert inspect.signature(forward).parameters["opener"].default is _secure_open
+    assert inspect.signature(serve).parameters["opener"].default is _secure_open
+
+
+def test_remote_plaintext_and_malformed_port_are_rejected_before_network():
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("must not send token over an unsafe endpoint")
+
+    for base in ("http://remote.example:8000", "http://10.0.0.20:8000", "https://blaster.example:invalid"):
+        result = forward(
+            {"jsonrpc": "2.0", "id": 13, "method": "tools/list"},
+            base_url=base, token="secret-token", opener=forbidden,
+        )
+        assert result["error"]["code"] == -32002
+
+    assert forward(
+        {"jsonrpc": "2.0", "id": 14, "method": "ping"},
+        base_url="http://127.0.0.1:8000", token="test",
+        opener=lambda *_args, **_kwargs: Response(b'{"jsonrpc":"2.0","id":14,"result":{}}'),
+    )["result"] == {}
