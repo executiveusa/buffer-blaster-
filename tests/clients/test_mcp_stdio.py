@@ -113,10 +113,12 @@ def test_redirect_is_blocked_before_authorization_can_reach_another_origin():
     class RedirectingHTTPSHandler(HTTPSHandler):
         def https_open(self, request):
             seen.append((request.full_url, request.get_header("Authorization")))
-            return addinfourl(
+            response = addinfourl(
                 io.BytesIO(b""), {"Location": "https://attacker.example/steal"},
                 request.full_url, code=302,
             )
+            response.msg = "Found"
+            return response
 
     opener = build_opener(_RejectRedirects(), RedirectingHTTPSHandler()).open
     result = forward(
