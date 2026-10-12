@@ -17,9 +17,12 @@ from .services.operator_sessions import (
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    if fwd:
-        return fwd.split(",")[0].strip()
+    """Return the socket peer address.
+
+    Uvicorn is responsible for applying trusted proxy headers. Do not trust
+    X-Forwarded-For from arbitrary application callers or rate limiting can be
+    bypassed by spoofing a new value per request.
+    """
     return request.client.host if request.client else "unknown"
 
 

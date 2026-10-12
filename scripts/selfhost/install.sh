@@ -99,6 +99,19 @@ get_env() {
 
 set_env API_DOMAIN "$API_DOMAIN"
 set_env ALLOWED_ORIGINS "$ALLOWED_ORIGIN"
+
+# Give the reverse proxy a stable address so Uvicorn can trust only Caddy's
+# forwarded client IPs instead of trusting arbitrary X-Forwarded-For callers.
+if [[ -z "$(get_env PROXY_NETWORK_SUBNET)" ]]; then
+  set_env PROXY_NETWORK_SUBNET "172.31.255.0/29"
+fi
+if [[ -z "$(get_env CADDY_PROXY_IP)" ]]; then
+  set_env CADDY_PROXY_IP "172.31.255.2"
+fi
+if [[ -z "$(get_env FORWARDED_ALLOW_IPS)" || "$(get_env FORWARDED_ALLOW_IPS)" == "127.0.0.1,::1" ]]; then
+  set_env FORWARDED_ALLOW_IPS "$(get_env CADDY_PROXY_IP)"
+fi
+
 # A project ref is account-specific. Never silently bind a fresh install to a
 # committed project identifier; preserve the current file unless explicitly supplied.
 if [[ -n "${SUPABASE_PROJECT_REF:-}" ]]; then

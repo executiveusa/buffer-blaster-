@@ -24,23 +24,52 @@ from .ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 
 
 def estimate_factory_generation_cost(provider: Any, plan: dict[str, Any], provider_model: str | None = None) -> dict[str, Any]:
-    """Price and validate the selected provider/model before wallet reservation."""
+    """Price the factory's text-to-video plus image-to-video topology before reservation."""
     if not getattr(provider, "configured", False):
         return {"ok": False, "error": "media_provider_not_configured"}
     if not hasattr(provider, "estimate_clip_cost_cents"):
         return {"ok": False, "error": "provider_cost_unavailable"}
-    per_clip = provider.estimate_clip_cost_cents(provider_model)
-    if per_clip is None:
-        return {"ok": False, "error": "provider_model_not_allowed_or_cost_unverified", "model": provider_model}
+
     commercial = plan.get("commercial", {})
     expected_calls = max(1, int(commercial.get("expected_paid_clip_calls") or 1))
+    expected_text_calls = 1
+    expected_image_calls = max(0, expected_calls - expected_text_calls)
+
+    text_cost = provider.estimate_clip_cost_cents(provider_model, image_url=None)
+    if text_cost is None:
+        return {
+            "ok": False,
+            "error": "provider_model_not_allowed_or_cost_unverified",
+            "model": provider_model,
+            "call_kind": "text_to_video",
+        }
+
+    image_cost = 0
+    if expected_image_calls:
+        # Pricing only: a truthy sentinel selects the image-to-video capability
+        # without creating, uploading, or submitting any media.
+        image_cost = provider.estimate_clip_cost_cents(provider_model, image_url="planned://seed")
+        if image_cost is None:
+            return {
+                "ok": False,
+                "error": "provider_model_not_allowed_or_cost_unverified",
+                "model": provider_model,
+                "call_kind": "image_to_video",
+            }
+
     safety_bps = max(10000, int(commercial.get("cost_safety_bps") or 10000))
-    estimated_total = math.ceil(int(per_clip) * expected_calls * safety_bps / 10000)
+    estimated_before_safety = int(text_cost) * expected_text_calls + int(image_cost) * expected_image_calls
+    estimated_total = math.ceil(estimated_before_safety * safety_bps / 10000)
     return {
         "ok": True,
         "provider": provider.status().get("provider"),
         "model": provider_model,
-        "estimated_clip_cost_cents": int(per_clip),
+        # Compatibility field: this remains the first/text call price.
+        "estimated_clip_cost_cents": int(text_cost),
+        "estimated_text_clip_cost_cents": int(text_cost),
+        "estimated_image_clip_cost_cents": int(image_cost),
+        "expected_text_video_calls": expected_text_calls,
+        "expected_image_video_calls": expected_image_calls,
         "expected_paid_clip_calls": expected_calls,
         "cost_safety_bps": safety_bps,
         "estimated_generation_cost_cents": estimated_total,
