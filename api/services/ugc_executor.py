@@ -24,23 +24,57 @@ from .ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 
 
 def estimate_factory_generation_cost(provider: Any, plan: dict[str, Any], provider_model: str | None = None) -> dict[str, Any]:
-    """Price and validate the selected provider/model before wallet reservation."""
+    """Price the factory's real text/image call mix before wallet reservation.
+
+    Clip 1 is text-to-video. Clip 2 is seeded from clip 1's final frame, and
+    any seam retry is also image-to-video. A single per-clip estimate can
+    under-reserve when the configured image model costs more than the text
+    model, so both capability paths are validated independently.
+    """
     if not getattr(provider, "configured", False):
         return {"ok": False, "error": "media_provider_not_configured"}
     if not hasattr(provider, "estimate_clip_cost_cents"):
         return {"ok": False, "error": "provider_cost_unavailable"}
-    per_clip = provider.estimate_clip_cost_cents(provider_model)
-    if per_clip is None:
-        return {"ok": False, "error": "provider_model_not_allowed_or_cost_unverified", "model": provider_model}
+
     commercial = plan.get("commercial", {})
     expected_calls = max(1, int(commercial.get("expected_paid_clip_calls") or 1))
     safety_bps = max(10000, int(commercial.get("cost_safety_bps") or 10000))
-    estimated_total = math.ceil(int(per_clip) * expected_calls * safety_bps / 10000)
+
+    text_calls = 1
+    image_calls = max(0, expected_calls - text_calls)
+    text_cost = provider.estimate_clip_cost_cents(provider_model, image_url=None)
+    if text_cost is None:
+        return {
+            "ok": False,
+            "error": "provider_model_not_allowed_or_cost_unverified",
+            "model": provider_model,
+            "capability": "text_to_video",
+        }
+
+    image_cost = 0
+    if image_calls:
+        # Only truthiness matters to provider routing here; no request is sent.
+        image_cost_value = provider.estimate_clip_cost_cents(provider_model, image_url="pricing://seed-frame")
+        if image_cost_value is None:
+            return {
+                "ok": False,
+                "error": "provider_model_not_allowed_or_cost_unverified",
+                "model": provider_model,
+                "capability": "image_to_video",
+            }
+        image_cost = int(image_cost_value)
+
+    raw_estimate = int(text_cost) * text_calls + image_cost * image_calls
+    estimated_total = math.ceil(raw_estimate * safety_bps / 10000)
     return {
         "ok": True,
         "provider": provider.status().get("provider"),
         "model": provider_model,
-        "estimated_clip_cost_cents": int(per_clip),
+        "estimated_clip_cost_cents": max(int(text_cost), image_cost),
+        "text_video_cost_cents": int(text_cost),
+        "image_video_cost_cents": image_cost if image_calls else None,
+        "text_video_calls": text_calls,
+        "image_video_calls": image_calls,
         "expected_paid_clip_calls": expected_calls,
         "cost_safety_bps": safety_bps,
         "estimated_generation_cost_cents": estimated_total,

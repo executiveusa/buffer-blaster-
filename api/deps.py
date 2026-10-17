@@ -17,9 +17,9 @@ from .services.operator_sessions import (
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    if fwd:
-        return fwd.split(",")[0].strip()
+    # Trust the ASGI server's resolved peer address. Uvicorn's proxy-header
+    # handling is the only layer allowed to rewrite request.client; accepting
+    # X-Forwarded-For here would let a direct caller choose its rate-limit key.
     return request.client.host if request.client else "unknown"
 
 

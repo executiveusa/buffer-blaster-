@@ -26,7 +26,7 @@ from ..services.repurpose import RepurposePlanRequest, create_repurpose_plan, ge
 from ..services.shopify_context import ShopifyProductContextRequest, create_shopify_context, get_shopify_context
 from ..services.social_drop import SocialDrop, platform_payload
 from ..services.studio_ledger import create_campaign, get_job, list_jobs, summary
-from ..services.ugc_executor import execute_ugc_factory_ad
+from ..services.ugc_executor import execute_ugc_factory_ad, estimate_factory_generation_cost
 from ..services.ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 from ..services.usage_wallet import get_wallet, reserve_generation
 from ..services.video_prompt import VideoPromptInput, compile_video_prompt
@@ -110,9 +110,14 @@ async def _execute_factory(args: dict[str, Any]) -> dict[str, Any]:
     plan = build_ugc_factory_plan(brief)
     if not plan.get("ok"):
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
-    estimated_cost = int(plan.get("commercial", {}).get("estimated_generation_cost_cents") or 0)
-    if not get_media_provider().configured:
+    provider = get_media_provider()
+    if not provider.configured:
         return {"ok": False, "error": "media_provider_not_configured", "state": "preflight_blocked"}
+    provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
+    pricing = estimate_factory_generation_cost(provider, plan, provider_model)
+    if not pricing.get("ok"):
+        return {**pricing, "state": "preflight_blocked"}
+    estimated_cost = int(pricing["estimated_generation_cost_cents"])
     if not get_asset_storage().configured:
         return {"ok": False, "error": "asset_storage_not_configured", "state": "preflight_blocked"}
     if not get_media_ops().available():
@@ -122,7 +127,13 @@ async def _execute_factory(args: dict[str, Any]) -> dict[str, Any]:
     if not reservation.get("ok"):
         return {**reservation, "state": "spend_blocked"}
     reservation["offer_id"] = wallet["offer_id"]
-    return await execute_ugc_factory_ad(brief, approved=True, offer_id=str(wallet["offer_id"]), reserved_allowance=reservation)
+    return await execute_ugc_factory_ad(
+        brief,
+        approved=True,
+        offer_id=str(wallet["offer_id"]),
+        reserved_allowance=reservation,
+        provider=provider,
+    )
 
 
 @router.post("/api/mcp")

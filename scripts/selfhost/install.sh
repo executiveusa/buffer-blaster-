@@ -99,6 +99,17 @@ get_env() {
 
 set_env API_DOMAIN "$API_DOMAIN"
 set_env ALLOWED_ORIGINS "$ALLOWED_ORIGIN"
+# Pin the canonical Caddy hop on an app-owned Docker subnet so Uvicorn can
+# trust forwarded client addresses from Caddy without trusting arbitrary peers.
+if [[ -z "$(get_env BUFFER_BLASTER_DOCKER_SUBNET)" ]]; then
+  set_env BUFFER_BLASTER_DOCKER_SUBNET "172.30.240.0/24"
+fi
+if [[ -z "$(get_env CADDY_PROXY_IP)" ]]; then
+  set_env CADDY_PROXY_IP "172.30.240.10"
+fi
+if [[ -z "$(get_env FORWARDED_ALLOW_IPS)" ]]; then
+  set_env FORWARDED_ALLOW_IPS "$(get_env CADDY_PROXY_IP)"
+fi
 # A project ref is account-specific. Never silently bind a fresh install to a
 # committed project identifier; preserve the current file unless explicitly supplied.
 if [[ -n "${SUPABASE_PROJECT_REF:-}" ]]; then

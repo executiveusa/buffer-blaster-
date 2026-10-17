@@ -6,7 +6,6 @@
 //! Session store is in-memory; for multi-process deploys, swap for Redis.
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use rand::{rngs::OsRng, RngCore};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -25,7 +24,7 @@ fn now_secs() -> u64 {
 /// Generate a fresh 256-bit session token (base64url, ≥ 43 chars).
 pub fn generate_session_token() -> String {
     let mut bytes = [0u8; 32];
-    OsRng.fill_bytes(&mut bytes);
+    getrandom::fill(&mut bytes).expect("OS randomness unavailable");
     URL_SAFE_NO_PAD.encode(&bytes)
 }
 

@@ -29,6 +29,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env.production
+    environment:
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-172.30.240.10}
     restart: unless-stopped
     init: true
     depends_on:
@@ -91,6 +93,9 @@ services:
       - ./ops/selfhost/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      default:
+        ipv4_address: ${CADDY_PROXY_IP:-172.30.240.10}
     logging:
       driver: json-file
       options:
@@ -98,6 +103,10 @@ services:
         max-file: "5"
 
 networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${BUFFER_BLASTER_DOCKER_SUBNET:-172.30.240.0/24}
   selfhost_supabase:
     external: true
     name: ${SUPABASE_DOCKER_NETWORK:-supabase_default}
