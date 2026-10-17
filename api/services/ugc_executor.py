@@ -24,24 +24,46 @@ from .ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 
 
 def estimate_factory_generation_cost(provider: Any, plan: dict[str, Any], provider_model: str | None = None) -> dict[str, Any]:
-    """Price and validate the selected provider/model before wallet reservation."""
+    """Price the actual factory call mix before any wallet reservation.
+
+    The factory performs one text-to-video call, then one image-to-video call
+    seeded from clip 1, with any bounded retry also using image-to-video.
+    Providers may route those call types to different models with different
+    costs, so multiplying one text quote across every call can under-reserve.
+    """
     if not getattr(provider, "configured", False):
         return {"ok": False, "error": "media_provider_not_configured"}
     if not hasattr(provider, "estimate_clip_cost_cents"):
         return {"ok": False, "error": "provider_cost_unavailable"}
-    per_clip = provider.estimate_clip_cost_cents(provider_model)
-    if per_clip is None:
-        return {"ok": False, "error": "provider_model_not_allowed_or_cost_unverified", "model": provider_model}
+
+    text_cost = provider.estimate_clip_cost_cents(provider_model, image_url=None)
+    image_cost = provider.estimate_clip_cost_cents(provider_model, image_url="cost-estimate://seed")
+    if text_cost is None or image_cost is None:
+        return {
+            "ok": False,
+            "error": "provider_model_not_allowed_or_cost_unverified",
+            "model": provider_model,
+            "text_cost_verified": text_cost is not None,
+            "image_cost_verified": image_cost is not None,
+        }
+
     commercial = plan.get("commercial", {})
-    expected_calls = max(1, int(commercial.get("expected_paid_clip_calls") or 1))
+    expected_calls = max(2, int(commercial.get("expected_paid_clip_calls") or 2))
+    expected_text_calls = 1
+    expected_image_calls = expected_calls - expected_text_calls
     safety_bps = max(10000, int(commercial.get("cost_safety_bps") or 10000))
-    estimated_total = math.ceil(int(per_clip) * expected_calls * safety_bps / 10000)
+    raw_estimate = (int(text_cost) * expected_text_calls) + (int(image_cost) * expected_image_calls)
+    estimated_total = math.ceil(raw_estimate * safety_bps / 10000)
     return {
         "ok": True,
         "provider": provider.status().get("provider"),
         "model": provider_model,
-        "estimated_clip_cost_cents": int(per_clip),
+        "estimated_text_clip_cost_cents": int(text_cost),
+        "estimated_image_clip_cost_cents": int(image_cost),
+        "expected_text_calls": expected_text_calls,
+        "expected_image_calls": expected_image_calls,
         "expected_paid_clip_calls": expected_calls,
+        "raw_generation_estimate_cents": raw_estimate,
         "cost_safety_bps": safety_bps,
         "estimated_generation_cost_cents": estimated_total,
     }

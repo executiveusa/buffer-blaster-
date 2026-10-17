@@ -30,6 +30,18 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     if (value) headers.set(key, value);
   }
 
+  const proxySecret = (process.env.BLASTER_PROXY_SHARED_SECRET || "").trim();
+  const platformClientIp = (
+    request.headers.get("x-vercel-forwarded-for") ||
+    request.headers.get("x-nf-client-connection-ip") ||
+    ""
+  );
+  const clientIp = platformClientIp.split(",")[0].trim();
+  if (proxySecret && clientIp) {
+    headers.set("x-buffer-blaster-proxy-secret", proxySecret);
+    headers.set("x-buffer-blaster-client-ip", clientIp);
+  }
+
   const init: RequestInit = {
     method: request.method,
     headers,

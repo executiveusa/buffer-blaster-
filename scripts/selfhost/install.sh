@@ -111,6 +111,9 @@ fi
 if [[ -z "$(get_env BLASTER_API_KEY)" ]]; then
   set_env BLASTER_API_KEY "$(openssl rand -hex 32)"
 fi
+if [[ -z "$(get_env BLASTER_PROXY_SHARED_SECRET)" ]]; then
+  set_env BLASTER_PROXY_SHARED_SECRET "$(openssl rand -hex 32)"
+fi
 if [[ -z "$(get_env DEMO_PASSWORD)" ]]; then
   set_env DEMO_PASSWORD "$(openssl rand -hex 16)"
 fi
@@ -146,7 +149,9 @@ Next:
   1. Add provider secrets to .env.production (Supabase, OpenAI, Fal).
   2. Run: cd $INSTALL_DIR && docker compose -f docker-compose.prod.yml up -d
   3. Run: cd $INSTALL_DIR && bash scripts/selfhost/preflight.sh
-  4. Point the Vercel frontend at https://$API_DOMAIN using scripts/selfhost/configure-vercel.sh.
+  4. Configure the frontend with scripts/selfhost/configure-vercel.sh --domain "$API_DOMAIN".
+     Supply VERCEL_TOKEN in the runtime environment. The helper copies the same
+     BLASTER_PROXY_SHARED_SECRET into the frontend as a server-only variable.
 
 No secret values were printed by this installer.
 EOFFIN

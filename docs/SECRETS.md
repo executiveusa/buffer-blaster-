@@ -14,6 +14,9 @@ in source, docs, frontend variables, logs, issue comments, or CI output.
   or an external secret manager mounted into the runtime.
 - Vercel: only variables actually required by Vercel-hosted code. Provider and
   backend credentials stay server-side and must never use a `NEXT_PUBLIC_*` name.
+  `scripts/selfhost/configure-vercel.sh` copies the same
+  `BLASTER_PROXY_SHARED_SECRET` from the VPS `.env.production` into Vercel as
+  a server-only variable so signed client-IP forwarding works after a fresh install.
 - Runtime-editable UI settings are **not a secret store**. The current Redis
   runtime store accepts only non-secret operator settings such as
   `ACTIVE_LLM_PROVIDER` and `AGENT_MAX_CHILDREN`.
@@ -25,10 +28,13 @@ PLATFORM_NAME=Buffer Blaster
 MASTER_ENCRYPTION_KEY=
 DEMO_PASSWORD=
 BLASTER_API_KEY=
+BLASTER_PROXY_SHARED_SECRET=
 TRIAL_SESSION_SECRET=
 REDIS_PASSWORD=
 REDIS_URL=
 ```
+
+`BLASTER_PROXY_SHARED_SECRET` authenticates the server-side frontend proxy when it forwards the hosting platform's trusted client connection IP (Vercel canonical, Netlify compatibility) for rate limiting. It is backend/server-only and must never use a `NEXT_PUBLIC_*` name.
 
 `DEMO_PASSWORD` is a historical variable name for the live operator password.
 There is no committed default or fallback value. `scripts/selfhost/install.sh`

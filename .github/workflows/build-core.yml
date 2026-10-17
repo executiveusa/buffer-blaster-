@@ -29,9 +29,9 @@ jobs:
         with:
           workspaces: rust_core/stavarai_core
       - name: Build
-        run: cargo build --release
+        run: cargo build --release --locked
       - name: Test
-        run: cargo test
+        run: cargo test --locked
       - name: Collect Linux shared library
         if: runner.os == 'Linux'
         shell: bash

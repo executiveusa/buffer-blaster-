@@ -6,6 +6,10 @@ without Redis retains the existing in-process core contract.
 """
 from __future__ import annotations
 
+import hmac
+import ipaddress
+import os
+
 from fastapi import HTTPException, Request
 
 from .services.operator_sessions import (
@@ -17,10 +21,24 @@ from .services.operator_sessions import (
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    """Return a trustworthy rate-limit key.
+
+    Canonical browser traffic reaches the API through Buffer Blaster's
+    server-side Next.js proxy. That proxy may forward Netlify's trusted client
+    connection IP, but only alongside a shared server-side secret. Raw
+    X-Forwarded-For is never trusted here.
+    """
+    peer = request.client.host if request.client else "unknown"
+    expected = os.getenv("BLASTER_PROXY_SHARED_SECRET", "").strip()
+    supplied = request.headers.get("x-buffer-blaster-proxy-secret", "").strip()
+    forwarded = request.headers.get("x-buffer-blaster-client-ip", "").strip()
+
+    if expected and supplied and hmac.compare_digest(supplied, expected) and forwarded:
+        try:
+            return str(ipaddress.ip_address(forwarded))
+        except ValueError:
+            pass
+    return peer
 
 
 def issue_session() -> str:
