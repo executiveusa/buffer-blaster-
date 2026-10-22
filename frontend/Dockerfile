@@ -9,6 +9,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_CONSOLE_OPEN=false
+ENV NEXT_PUBLIC_CONSOLE_OPEN=$NEXT_PUBLIC_CONSOLE_OPEN
 RUN npm run build
 
 FROM node:20-bookworm-slim AS runner

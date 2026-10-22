@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Lock } from "lucide-react";
-import { isDemoMode, isPublicConsole, verifyPassword } from "@/lib/api";
+import { isConsoleOpen, isDemoMode, isPublicConsole, verifyPassword } from "@/lib/api";
 
 export default function AdminEntry() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const openConsole = isDemoMode() || isPublicConsole();
+  const openConsole = isDemoMode() || isPublicConsole() || isConsoleOpen();
 
   useEffect(() => {
     if (openConsole) router.replace("/admin/dashboard");

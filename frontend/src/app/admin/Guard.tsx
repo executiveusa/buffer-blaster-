@@ -13,7 +13,7 @@ import {
   ArrowLeft,
   LogOut,
 } from "lucide-react";
-import { clearToken, getToken, isDemoMode, isPublicConsole } from "@/lib/api";
+import { clearToken, getToken, isConsoleOpen, isDemoMode, isPublicConsole } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -34,7 +34,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const pathname = usePathname();
   const token = useSyncExternalStore(subscribeToToken, getToken, () => null);
-  const openConsole = isDemoMode() || isPublicConsole();
+  const openConsole = isDemoMode() || isPublicConsole() || isConsoleOpen();
 
   useEffect(() => {
     if (!openConsole && pathname !== "/admin" && !token) router.replace("/admin");
@@ -57,7 +57,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <div className="px-5 py-6">
           <Link href="/admin/dashboard" className="text-sm font-semibold tracking-tight">Console</Link>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-text-dim">
-            {openConsole ? "public demo" : "operator console"}
+            {isConsoleOpen() ? "open console" : openConsole ? "public demo" : "operator console"}
           </p>
         </div>
         <nav className="flex-1 space-y-1 px-3">

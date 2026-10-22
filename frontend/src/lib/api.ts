@@ -14,11 +14,13 @@ import {
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 const PUBLIC_CONSOLE = process.env.NEXT_PUBLIC_PUBLIC_CONSOLE === "true";
+const CONSOLE_OPEN = process.env.NEXT_PUBLIC_CONSOLE_OPEN === "true";
 const API_URL = "/api/backend";
 const TOKEN_KEY = "operator_session_token";
 
 export function isDemoMode(): boolean { return DEMO_MODE; }
 export function isPublicConsole(): boolean { return PUBLIC_CONSOLE; }
+export function isConsoleOpen(): boolean { return CONSOLE_OPEN; }
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -52,7 +54,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function verifyPassword(password: string): Promise<{ ok: boolean }> {
-  if (DEMO_MODE || PUBLIC_CONSOLE) return { ok: true };
+  if (DEMO_MODE || PUBLIC_CONSOLE || CONSOLE_OPEN) return { ok: true };
   const response = await apiFetch<{ session_token: string }>("/api/auth/verify", {
     method: "POST",
     body: JSON.stringify({ password }),

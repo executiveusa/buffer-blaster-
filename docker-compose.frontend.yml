@@ -8,9 +8,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_CONSOLE_OPEN: "${NEXT_PUBLIC_CONSOLE_OPEN:-false}"
     environment:
       BLASTER_API_URL: "http://api:8000"
       NEXT_TELEMETRY_DISABLED: "1"
+      CONSOLE_OPEN: "${CONSOLE_OPEN:-false}"
+      BLASTER_OPERATOR_PASSWORD: "${BLASTER_OPERATOR_PASSWORD:-}"
     restart: unless-stopped
     init: true
     depends_on:

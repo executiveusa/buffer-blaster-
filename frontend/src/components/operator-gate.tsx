@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { clearToken, getToken } from "@/lib/api";
+import { clearToken, getToken, isConsoleOpen } from "@/lib/api";
 
 const API_URL = "/api/backend";
 
@@ -14,7 +14,10 @@ export function OperatorGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = getToken();
     const login = `/admin?next=${encodeURIComponent(pathname || "/studio")}`;
-    if (!token) { router.replace(login); return; }
+    if (!token) {
+      if (isConsoleOpen()) { setReady(true); return; }
+      router.replace(login); return;
+    }
     fetch(`${API_URL}/api/auth/session`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
       .then((response) => { if (!response.ok) throw new Error("invalid_session"); setReady(true); })
       .catch(() => { clearToken(); router.replace(login); });

@@ -20,6 +20,7 @@ class AssetStorage:
         self.service_key = os.getenv("SUPABASE_SERVICE_KEY", "")
         self.bucket = os.getenv("BUFFER_BLASTER_ASSET_BUCKET", "buffer-blaster-assets").strip() or "buffer-blaster-assets"
         self.max_download_bytes = int(os.getenv("ASSET_DOWNLOAD_MAX_BYTES", str(250 * 1024 * 1024)))
+        self.public_base_url = os.getenv("ASSET_PUBLIC_BASE_URL", "").rstrip("/")
 
     @property
     def configured(self) -> bool:
@@ -60,7 +61,8 @@ class AssetStorage:
         if str(signed).startswith("http"):
             url = str(signed)
         else:
-            url = f"{self.base_url}{signed if str(signed).startswith('/') else '/' + str(signed)}"
+            base = self.public_base_url or self.base_url
+            url = f"{base}{signed if str(signed).startswith('/') else '/' + str(signed)}"
         return {"ok": True, "path": object_name, "signed_url": url, "expires_in": expires_in}
 
     async def upload_file(
