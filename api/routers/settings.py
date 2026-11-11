@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from ..deps import verify_session
+from ..services.integration_auth import require_execute_role, require_role
 from ..services import integrations, runtime_settings
 
 router = APIRouter(prefix="/api/admin/settings", tags=["settings"])
@@ -71,7 +72,12 @@ class SettingUpdate(BaseModel):
 
 
 @router.put("")
-async def update_setting(payload: SettingUpdate, _=Depends(verify_session)) -> dict:
+async def update_setting(payload: SettingUpdate, request: Request, _=Depends(verify_session)) -> dict:
+    require_execute_role(request)
+    if payload.env.startswith("USAGE_CAP_"):
+        # Spend caps are an owner decision; operators cannot relax them
+        # without an explicit owner grant.
+        require_role(request, "owner")
     result = await runtime_settings.set_value(payload.env, payload.value)
     if result.get("ok"):
         return result
@@ -79,7 +85,7 @@ async def update_setting(payload: SettingUpdate, _=Depends(verify_session)) -> d
     if error == "setting_not_runtime_editable":
         raise HTTPException(
             status_code=409,
-            detail="Secrets and deployment configuration are environment-managed. Only ACTIVE_LLM_PROVIDER and AGENT_MAX_CHILDREN are editable here.",
+            detail="Secrets and deployment configuration are environment-managed. Editable here: " + ", ".join(sorted(runtime_settings._ALLOWED)) + ".",
         )
     if error in {"runtime_store_unavailable", "runtime_store_write_failed"}:
         raise HTTPException(status_code=503, detail=result.get("message") or error)
@@ -87,5 +93,6 @@ async def update_setting(payload: SettingUpdate, _=Depends(verify_session)) -> d
 
 
 @router.post("/test/{service}")
-async def test_service(service: str, _=Depends(verify_session)) -> dict:
+async def test_service(service: str, request: Request, _=Depends(verify_session)) -> dict:
+    require_execute_role(request)
     return await integrations.test(service)

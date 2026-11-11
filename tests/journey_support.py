@@ -63,6 +63,10 @@ class FakeRedis:
         return FakePipeline(self)
 
     async def eval(self, script: str, numkeys: int, *args: Any) -> list:
+        if "-- op:release" in script:
+            return await self._release(*args)
+        if "-- op:consume_approval" in script:
+            return await self._consume_approval(*args)
         key, reservation_key = str(args[0]), str(args[1])
         now_epoch, cost, credits_needed = int(args[2]), int(args[3]), int(args[4])
         if not await self.exists(key):
@@ -102,6 +106,41 @@ class FakeRedis:
                 "created_at_epoch": str(now_epoch),
             })
         return ["OK", str(new_budget), str(new_credits)]
+
+    async def _release(self, key: Any, reservation_key: Any, now_epoch: Any, reason: Any, incurred: Any) -> list:
+        """Mirror of usage_wallet._RELEASE_LUA."""
+        key, reservation_key = str(key), str(reservation_key)
+        if not await self.exists(key):
+            return ["ERR", "wallet_not_found"]
+        if not await self.exists(reservation_key):
+            return ["ERR", "reservation_not_found"]
+        cost = int(await self.hget(reservation_key, "estimated_provider_cost_cents") or "0")
+        credits = int(await self.hget(reservation_key, "ad_credits_required") or "0")
+        if await self.hget(reservation_key, "released") == "1":
+            return ["REPLAY", str(cost), str(credits), await self.hget(key, "remaining_provider_budget_cents") or "0", await self.hget(key, "remaining_ad_credits") or "0"]
+        new_budget = await self.hincrby(key, "remaining_provider_budget_cents", cost)
+        new_credits = await self.hincrby(key, "remaining_ad_credits", credits)
+        await self.hset(key, "updated_at_epoch", str(now_epoch))
+        await self.hset(reservation_key, mapping={"released": "1", "released_at_epoch": str(now_epoch), "release_reason": str(reason), "provider_cost_incurred_cents": str(incurred)})
+        return ["OK", str(cost), str(credits), str(new_budget), str(new_credits)]
+
+    async def _consume_approval(self, key: Any, payload_hash: Any, now_epoch: Any, consumer: Any) -> list:
+        """Mirror of agent_access._CONSUME_LUA."""
+        key = str(key)
+        if not await self.exists(key):
+            return ["ERR", "approval_not_found"]
+        status = await self.hget(key, "status") or ""
+        if status == "consumed":
+            return ["ERR", "approval_already_used"]
+        if status != "approved":
+            return ["ERR", "approval_not_granted"]
+        expires = int(await self.hget(key, "expires_at_epoch") or "0")
+        if 0 < expires <= int(now_epoch):
+            return ["ERR", "approval_expired"]
+        if await self.hget(key, "payload_sha256") != str(payload_hash):
+            return ["ERR", "approval_payload_mismatch"]
+        await self.hset(key, mapping={"status": "consumed", "consumed_at_epoch": str(now_epoch), "consumed_by": str(consumer)})
+        return ["OK", await self.hget(key, "max_cost_cents") or "0"]
 
     async def aclose(self) -> None:
         return None
@@ -168,6 +207,7 @@ class JourneyFakeProvider:
 class JourneyFakeStorage:
     def __init__(self) -> None:
         self.configured = True
+        self.uploads: list[dict[str, Any]] = []
 
     def status(self) -> dict[str, Any]:
         return {"configured": True, "backend": "journey-fake"}
@@ -176,7 +216,8 @@ class JourneyFakeStorage:
         destination.write_bytes(b"fake-video-bytes")
         return {"ok": True, "path": str(destination), "source_url": url}
 
-    async def upload_file(self, source: Path, *, object_name: str, content_type: str) -> dict[str, Any]:
+    async def upload_file(self, source: Path, *, object_name: str, content_type: str, upsert: bool = True) -> dict[str, Any]:
+        self.uploads.append({"object_name": object_name, "upsert": upsert, "bytes": source.read_bytes()})
         return {"ok": True, "path": object_name, "signed_url": f"https://storage.example/{object_name}", "backend": "journey-fake"}
 
 
@@ -224,10 +265,36 @@ class InMemoryLedger:
         self.transitions.append((job_id, str(changes.get("state") or "update")))
         return record
 
+    async def update_job_if(
+        self,
+        job_id: str,
+        *,
+        expected_state: str,
+        expected_output: dict[str, Any] | None = None,
+        **changes: Any,
+    ) -> dict[str, Any] | None:
+        # Same CAS semantics as studio_ledger.update_job_if: no awaits between
+        # the comparisons and the mutation, so the check-and-set is atomic for
+        # asyncio callers. The losing writer mutates nothing.
+        record = self.jobs.get(job_id)
+        if record is None:
+            return None
+        if str(record.get("state") or "") != expected_state:
+            return None
+        if expected_output is not None and record.get("output") != expected_output:
+            return None
+        record.update(changes)
+        self.transitions.append((job_id, str(changes.get("state") or "update")))
+        return record
+
+    async def get_job(self, job_id: str) -> dict[str, Any] | None:
+        return self.jobs.get(job_id)
+
 
 def patch_journey_boundary(*, target_modules: list[str] | None = None) -> dict[str, Any]:
     """Patch the paid/external boundary in-process. Returns the doubles."""
     import api.routers.studio as studio_router
+    import api.services.factory_runner as runner
     import api.services.ugc_executor as executor
     import api.services.usage_wallet as wallet
 
@@ -240,11 +307,20 @@ def patch_journey_boundary(*, target_modules: list[str] | None = None) -> dict[s
     studio_router.get_media_provider = lambda: provider  # type: ignore[assignment]
     studio_router.get_asset_storage = lambda: storage  # type: ignore[assignment]
     studio_router.get_media_ops = lambda: media_ops  # type: ignore[assignment]
+    runner.get_media_provider = lambda: provider  # type: ignore[assignment]
+    runner.get_asset_storage = lambda: storage  # type: ignore[assignment]
+    runner.get_media_ops = lambda: media_ops  # type: ignore[assignment]
     executor.get_media_provider = lambda: provider  # type: ignore[assignment]
     executor.get_asset_storage = lambda: storage  # type: ignore[assignment]
     executor.get_media_ops = lambda: media_ops  # type: ignore[assignment]
+    # The in-memory ledger double IS the durable canonical ledger for the
+    # journey, so the runner's pre-durability preflight is answered by the
+    # same boundary (the real env-based preflight is unit-tested separately).
+    runner.canonical_write_preflight = lambda: {"ok": True, "backend": {"backend": "in-memory-ledger-double", "persistent": True, "canonical": True}}  # type: ignore[assignment]
     executor.create_job = ledger.create_job  # type: ignore[assignment]
     executor.update_job = ledger.update_job  # type: ignore[assignment]
+    executor.update_job_if = ledger.update_job_if  # type: ignore[assignment]
+    executor.get_job = ledger.get_job  # type: ignore[assignment]
     wallet._client = lambda: redis  # type: ignore[assignment]
 
     return {"provider": provider, "storage": storage, "media_ops": media_ops, "ledger": ledger, "redis": redis}

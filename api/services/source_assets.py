@@ -76,6 +76,28 @@ async def _persist(record: dict[str, Any]) -> dict[str, Any]:
         await client.aclose()
 
 
+async def get_asset(asset_id: str) -> dict[str, Any] | None:
+    """One asset record by id, or None."""
+    if _supabase():
+        base = os.getenv("SUPABASE_URL", "").rstrip("/")
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(f"{base}/rest/v1/source_assets", params={"id": f"eq.{asset_id}", "select": "*", "limit": "1"}, headers=_headers())
+        if response.is_success and isinstance(response.json(), list) and response.json():
+            return response.json()[0]
+        return None
+    url = os.getenv("REDIS_URL", "").strip()
+    if not url:
+        return None
+    client = redis.from_url(url, decode_responses=True)
+    try:
+        raw = await client.get(f"buffer_blaster:studio:source_asset:{asset_id}")
+        return json.loads(raw) if raw else None
+    except redis.RedisError:
+        return None
+    finally:
+        await client.aclose()
+
+
 async def list_references(limit: int = 100) -> list[dict[str, Any]]:
     limit = max(1, min(int(limit), 200))
     if _supabase():

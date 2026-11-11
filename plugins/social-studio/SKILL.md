@@ -14,7 +14,7 @@ outcomes, provider status, or revenue.
 ## Connection
 
 - MCP transport for Claude Code/Codex: `python -m cli.mcp_stdio`
-- Runtime environment: `BLASTER_API_URL` and `BLASTER_API_KEY`
+- Runtime environment: `BLASTER_API_URL` and `BLASTER_AGENT_TOKEN` (a scoped `bba_` token a human issued; never the operator key)
 - Canonical backend MCP: `$BLASTER_API_URL/api/mcp`
 - REST: `$BLASTER_API_URL/api/studio`
 - CLI: `python -m cli.blaster`
@@ -37,13 +37,23 @@ schemas. All interfaces share the same backend and approval gates.
 
 ## Human-approved execution only
 
-- `get_usage_wallet` — inspect a server-owned active wallet, never a guessed ID.
-- `execute_ugc_ad_factory` — use only after explicit human approval of the
-  exact job, with `approved=true`, a server-issued wallet ID, and an
-  idempotency key. Server-side budget reservation is mandatory.
-- `list_social_accounts` and `schedule_social_drop` — optional downstream
-  publishing, only with actual account IDs and explicit human approval.
-- Never turn a prior approval into blanket permission for future paid jobs.
+Agents cannot approve their own spend or publishing. `approved=true` from an
+agent token is ignored. The flow is:
+
+1. `whoami` — confirm your scopes (`read`, `plan`, `render`, `publish`).
+2. `estimate_ugc_ad_factory` — exact server price, no spend.
+3. `request_render_approval` with the brief and a server-issued `wallet_id` (inspect it with `get_usage_wallet`; never guess one).
+   The server sets the cost ceiling. Tell the human the `approval_id`.
+4. Poll `get_approval` until `approved` (or `rejected`). Do not loop faster
+   than every 30 seconds and do not nag.
+5. `execute_ugc_ad_factory` with the **identical** brief, the same `wallet_id`,
+   a fresh `idempotency_key`, and `approval_id`. A changed brief is rejected.
+   One approval = one render.
+6. If the render fails before a final ad is stored, the wallet is refunded in
+   full automatically (`refunded: true`, `release` in the response).
+
+Publishing follows the same pattern (`list_social_accounts` for real account IDs): `request_publish_approval` then
+`schedule_social_drop` with `approval_id`.
 
 ## Non-negotiable rules
 

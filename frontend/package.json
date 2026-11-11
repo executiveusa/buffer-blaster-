@@ -11,10 +11,11 @@
     "test:frontmatter": "node --test scripts/frontmatter.test.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.45.0",
     "motion": "^13.4.0",
-    "next": "16.4.0",
+    "next": "16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "reading-time": "^1.5.0",
@@ -28,7 +29,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.1",
     "tailwindcss": "^4",
     "typescript": "^6.0.3"
   },

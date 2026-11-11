@@ -123,4 +123,7 @@ def test_consequential_mcp_and_rest_surfaces_are_authenticated():
     money = (ROOT / "api/routers/money_loop.py").read_text(encoding="utf-8")
     assert "verify_operator(request)" in mcp
     assert "Depends(verify_operator)" in studio
-    assert "Depends(verify_operator)" in money
+    # money_loop wraps verify_operator with the human execute-role gate (no viewers, no agents)
+    assert "Depends(_verify_money_operator)" in money
+    assert "verify_operator(request)" in money
+    assert "require_execute_role(request)" in money

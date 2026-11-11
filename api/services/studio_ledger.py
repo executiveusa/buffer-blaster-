@@ -7,6 +7,7 @@ one is configured, including service-role and Redis fallback access.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
@@ -31,10 +32,19 @@ def _workspace_id() -> str | None:
 
 
 def _in_workspace(record: dict[str, Any]) -> bool:
+    # Fail closed: with no configured workspace, no record is provably in the
+    # server-owned workspace, and every ledger write is refused by the guards
+    # below. A single-workspace deployment proves itself by setting
+    # BUFFER_BLASTER_WORKSPACE_ID to its one workspace.
     workspace_id = _workspace_id()
     if not workspace_id:
-        return True
+        return False
     return str(record.get("workspace_id") or "") == workspace_id
+
+
+def _workspace_required() -> str | None:
+    """Error marker for writes attempted without a configured workspace."""
+    return None if _workspace_id() else "canonical_workspace_not_configured"
 
 
 def _supabase_configured() -> bool:
@@ -47,6 +57,24 @@ def backend_status() -> dict[str, Any]:
     if os.getenv("REDIS_URL"):
         return {"backend": "redis", "persistent": True, "canonical": True, "degraded_from": "supabase"}
     return {"backend": "unavailable", "persistent": False, "canonical": False}
+
+
+def canonical_write_preflight() -> dict[str, Any]:
+    """Fail-closed proof that a canonical write path exists, checked BEFORE spend.
+
+    The public factory runner calls this before consuming a human approval or
+    reserving wallet funds: with no configured workspace or no canonical
+    backend, a job record can never persist, so no paid work may start. This
+    proves configuration only; the executor still verifies the actual write
+    with a persistence readback before any provider call.
+    """
+    workspace_error = _workspace_required()
+    if workspace_error:
+        return {"ok": False, "error": workspace_error, "state": "ledger_blocked"}
+    status = backend_status()
+    if not status.get("canonical"):
+        return {"ok": False, "error": "canonical_ledger_unavailable", "state": "ledger_blocked", "backend": status}
+    return {"ok": True, "backend": status}
 
 
 def _headers(*, prefer: str | None = None) -> dict[str, str]:
@@ -107,6 +135,9 @@ async def create_job(
         "created_at": _now(),
         "updated_at": _now(),
     }
+    workspace_error = _workspace_required()
+    if workspace_error:
+        return {**record, "ledger_error": workspace_error}
     if _supabase_configured():
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(_table_url("creative_jobs"), headers=_headers(prefer="return=representation"), json=record)
@@ -129,6 +160,8 @@ async def create_job(
 
 
 async def update_job(job_id: str, **changes: Any) -> dict[str, Any] | None:
+    if _workspace_required():
+        return None
     changes = {**changes, "updated_at": _now()}
     if _supabase_configured():
         async with httpx.AsyncClient(timeout=10) as client:
@@ -156,6 +189,88 @@ async def update_job(job_id: str, **changes: Any) -> dict[str, Any] | None:
         record.update(changes)
         await client.set(f"buffer_blaster:studio:job:{job_id}", json.dumps(record))
         return record
+    except (redis.RedisError, json.JSONDecodeError):
+        return None
+    finally:
+        await client.aclose()
+
+
+def job_output_fingerprint(output: dict[str, Any] | None) -> str:
+    """Stable digest of a job's output payload, used for CAS preconditions."""
+    canonical = json.dumps(output or {}, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+async def update_job_if(
+    job_id: str,
+    *,
+    expected_state: str,
+    expected_output: dict[str, Any] | None = None,
+    **changes: Any,
+) -> dict[str, Any] | None:
+    """Atomic compare-and-swap job update.
+
+    Applies ``changes`` only when the stored job still has ``expected_state``
+    and, when ``expected_output`` is given, an output payload equal to it (this
+    binds the update to the exact asset digest/version the caller reviewed).
+    Returns the updated record on success. Returns ``None`` when the job is
+    missing, out of workspace, or the precondition no longer holds because a
+    concurrent writer (a second review, an asset replacement, a state
+    transition) landed first; the losing writer mutates nothing.
+    """
+    if _workspace_required():
+        return None
+    changes = {**changes, "updated_at": _now()}
+    if _supabase_configured():
+        params = _scoped_params({"id": f"eq.{job_id}", "state": f"eq.{expected_state}"})
+        if expected_output is not None:
+            # jsonb equality is key-order/whitespace insensitive in Postgres,
+            # so this matches the exact reviewed payload regardless of
+            # round-trip serialization.
+            params["output"] = f"eq.{json.dumps(expected_output, separators=(',', ':'), default=str)}"
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.patch(
+                _table_url("creative_jobs"),
+                params=params,
+                headers=_headers(prefer="return=representation"),
+                json=changes,
+            )
+        if response.is_success:
+            data = response.json()
+            return data[0] if isinstance(data, list) and data else None
+        return None
+
+    client = await _redis_client()
+    if client is None:
+        return None
+    key = f"buffer_blaster:studio:job:{job_id}"
+    try:
+        async with client.pipeline(transaction=True) as pipe:
+            try:
+                await pipe.watch(key)
+                raw = await pipe.get(key)
+                if not raw:
+                    await pipe.unwatch()
+                    return None
+                record = json.loads(raw)
+                if not _in_workspace(record):
+                    await pipe.unwatch()
+                    return None
+                if str(record.get("state") or "") != expected_state:
+                    await pipe.unwatch()
+                    return None
+                if expected_output is not None and record.get("output") != expected_output:
+                    await pipe.unwatch()
+                    return None
+                record.update(changes)
+                pipe.multi()
+                pipe.set(key, json.dumps(record))
+                await pipe.execute()
+                return record
+            except redis.WatchError:
+                # A concurrent writer touched the job between WATCH and EXEC:
+                # this update loses and mutates nothing.
+                return None
     except (redis.RedisError, json.JSONDecodeError):
         return None
     finally:
@@ -229,6 +344,9 @@ async def list_jobs(limit: int = 50) -> list[dict[str, Any]]:
 
 
 async def create_campaign(plan: dict[str, Any]) -> dict[str, Any]:
+    workspace_error = _workspace_required()
+    if workspace_error:
+        return {"id": plan.get("id"), "ledger_error": workspace_error}
     record = {
         "id": plan.get("id") or str(uuid.uuid4()),
         "workspace_id": _workspace_id(),

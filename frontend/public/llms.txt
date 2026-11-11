@@ -1,0 +1,17 @@
+# Buffer Blaster
+
+> Governed UGC video-ad studio for teams and AI agents. Agents plan and price ads freely; rendering and publishing require a human-issued approval.
+
+## Agent interfaces
+- [MCP endpoint](/api/backend/api/mcp): JSON-RPC 2.0, `tools/list` is the authority for tool names and schemas. Auth: `Authorization: Bearer <bba_ agent token>`.
+- REST schema for agents: plugins/chatgpt/openapi.agent.json in the repository (public /openapi.json is intentionally disabled).
+- Agent REST: `/api/agent/whoami`, `/api/agent/approvals`, `/api/studio/ugc/factory/{plan,estimate,execute}`.
+
+## Rules for agents
+- Start with `whoami`. Use only returned scopes (read, plan, render, publish).
+- Never send `approved: true`; request an approval and wait for a human decision, then pass `approval_id`.
+- One approval = one render of the identical brief. Failed renders are refunded automatically.
+
+## Docs
+- Agent access, approvals and refunds: docs/AGENT_ACCESS.md in the repository.
+- Claude Code plugin: plugins/claude/. ChatGPT Action: plugins/chatgpt/.

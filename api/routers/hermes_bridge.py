@@ -3,11 +3,12 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from ..services.hermes_bridge import experiment_id_for, get_experiment, list_receipts, record_receipt
 from ..services.integration_auth import verify_operator
+from ..services.integration_auth import require_human_write
 from ..services.money_loop import create_experiment
 
 router = APIRouter(prefix="/api/studio/hermes", tags=["hermes"])
@@ -50,7 +51,8 @@ class HermesReceipt(BaseModel):
 
 
 @router.post("/handoff")
-async def handoff(payload: HermesHandoff, _=Depends(verify_operator)) -> dict[str, Any]:
+async def handoff(payload: HermesHandoff, http: Request, identity: str = Depends(verify_operator)) -> dict[str, Any]:
+    require_human_write(http, identity)
     experiment_id = experiment_id_for(payload.correlation_id)
     experiment = await get_experiment(experiment_id)
     idempotent = experiment is not None
@@ -97,7 +99,8 @@ async def handoff(payload: HermesHandoff, _=Depends(verify_operator)) -> dict[st
 
 
 @router.post("/receipts")
-async def receipt(payload: HermesReceipt, _=Depends(verify_operator)) -> dict[str, Any]:
+async def receipt(payload: HermesReceipt, http: Request, identity: str = Depends(verify_operator)) -> dict[str, Any]:
+    require_human_write(http, identity)
     return await record_receipt(
         experiment_id=payload.experiment_id,
         correlation_id=payload.correlation_id,

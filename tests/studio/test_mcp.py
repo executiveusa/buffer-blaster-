@@ -33,8 +33,12 @@ def test_mcp_preserves_existing_ugc_motion_schema():
 def test_factory_execute_tool_requires_wallet_and_explicit_approval():
     schema = _tool("execute_ugc_ad_factory")["inputSchema"]
     assert "wallet_id" in schema["required"]
-    assert "approved" in schema["required"]
-    assert schema["properties"]["approved"] == {"type": "boolean"}
+    assert "idempotency_key" in schema["required"]
+    # Humans approve with approved=true; agent tokens must carry a human-issued
+    # approval_id. Neither is "required" on its own because exactly one applies
+    # per identity; run_factory refuses when the applicable one is missing.
+    assert schema["properties"]["approved"]["type"] == "boolean"
+    assert schema["properties"]["approval_id"]["type"] == "string"
 
 
 def test_authenticated_agent_can_call_ugc_factory(monkeypatch):

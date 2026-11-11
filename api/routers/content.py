@@ -6,9 +6,10 @@ brand B's queue.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ..deps import verify_session
+from ..services.integration_auth import require_execute_role
 from ..db.repositories import content as content_repository
 
 router = APIRouter(prefix="/api/admin/content", tags=["content"])
@@ -24,7 +25,8 @@ async def content_queue(client_slug: str, _=Depends(verify_session)) -> dict:
 
 
 @router.post("/{unit_id}/approve")
-async def approve(unit_id: str, _=Depends(verify_session)) -> dict:
+async def approve(unit_id: str, request: Request, _=Depends(verify_session)) -> dict:
+    require_execute_role(request)
     ok = content_repository.set_status(unit_id, "approved")
     if not ok:
         raise HTTPException(status_code=404, detail="content unit not found")
@@ -32,7 +34,8 @@ async def approve(unit_id: str, _=Depends(verify_session)) -> dict:
 
 
 @router.post("/{unit_id}/reject")
-async def reject(unit_id: str, _=Depends(verify_session)) -> dict:
+async def reject(unit_id: str, request: Request, _=Depends(verify_session)) -> dict:
+    require_execute_role(request)
     ok = content_repository.set_status(unit_id, "rejected")
     if not ok:
         raise HTTPException(status_code=404, detail="content unit not found")

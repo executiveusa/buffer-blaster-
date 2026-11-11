@@ -1,0 +1,3 @@
+-r api/requirements.txt
+fakeredis[lua]==2.40.0
+lupa==2.8

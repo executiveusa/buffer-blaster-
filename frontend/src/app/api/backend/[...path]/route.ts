@@ -29,6 +29,11 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     const value = request.headers.get(key);
     if (value) headers.set(key, value);
   }
+  // Pass the edge-appended client chain through. The API trusts it only when
+  // this server's address is listed in TRUSTED_PROXY_IPS, and then uses the
+  // right-most hop, which a browser cannot forge by prepending values.
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) headers.set("x-forwarded-for", forwardedFor);
 
   const init: RequestInit = {
     method: request.method,

@@ -9,11 +9,20 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 
+# Pinned BEFORE router/service imports: the captions transcriber's int8 CPU
+# decode is only reproducible with single-threaded math libraries, and OpenMP
+# latches its thread count at first use. See api/services/captions.py.
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import (
+    agent_access,
+    consistency,
     assets,
     auth,
     blog,
@@ -35,6 +44,10 @@ from .routers import (
     shopify_webhooks,
     studio,
     voice,
+    usage as usage_router,
+    footage as footage_router,
+    captions as captions_router,
+    vision as vision_router,
 )
 from .services.asset_storage import get_asset_storage
 from .services.media_generation import get_media_provider
@@ -99,6 +112,12 @@ app.include_router(shopify_context.router)
 app.include_router(shopify_webhooks.router)
 app.include_router(assets.router)
 app.include_router(mcp.router)
+app.include_router(agent_access.router)
+app.include_router(consistency.router)
+app.include_router(usage_router.router)
+app.include_router(footage_router.router)
+app.include_router(captions_router.router)
+app.include_router(vision_router.router)
 
 
 @app.get("/api/health")

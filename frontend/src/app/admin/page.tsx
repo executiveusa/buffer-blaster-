@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Lock } from "lucide-react";
-import { isDemoMode, isPublicConsole, verifyPassword } from "@/lib/api";
+import { isDemoMode, isPublicConsole, signIn, usesSupabaseAuth } from "@/lib/api";
 
 export default function AdminEntry() {
   const router = useRouter();
+  const supabase = usesSupabaseAuth();
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,7 +27,7 @@ export default function AdminEntry() {
     setError(null);
     setLoading(true);
     try {
-      await verifyPassword(password);
+      await signIn(identifier, password);
       const requested = new URLSearchParams(window.location.search).get("next") || "/admin/dashboard";
       router.push(requested.startsWith("/studio") ? requested : "/admin/dashboard");
     } catch (reason) {
@@ -43,11 +45,14 @@ export default function AdminEntry() {
           <span className="font-mono text-xs uppercase tracking-[0.2em]">Operator access</span>
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-        <p className="mt-2 text-sm text-text-muted">Required only when the private live console is enabled.</p>
+        <p className="mt-2 text-sm text-text-muted">{supabase ? "Use your invited Supabase account." : "Required only when the private live console is enabled."}</p>
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-          <input type="password" autoFocus autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" className="w-full rounded-lg border border-border bg-bg-card px-4 py-3 text-sm text-text placeholder:text-text-dim focus:border-accent focus:outline-none" />
+          {supabase && (
+            <input type="email" autoFocus autoComplete="email" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="Email" className="w-full rounded-lg border border-border bg-bg-card px-4 py-3 text-sm text-text placeholder:text-text-dim focus:border-accent focus:outline-none" />
+          )}
+          <input type="password" autoFocus={!supabase} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" className="w-full rounded-lg border border-border bg-bg-card px-4 py-3 text-sm text-text placeholder:text-text-dim focus:border-accent focus:outline-none" />
           {error && <p className="text-sm text-danger" role="alert">{error}</p>}
-          <button type="submit" disabled={loading || !password} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-white transition hover:bg-accent-dim disabled:opacity-50">
+          <button type="submit" disabled={loading || !password || (supabase && !identifier)} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-white transition hover:bg-accent-dim disabled:opacity-50">
             {loading ? "Checking…" : "Sign in"}{!loading && <ArrowRight className="h-4 w-4" />}
           </button>
         </form>

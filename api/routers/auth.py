@@ -24,6 +24,9 @@ class PasswordPayload(BaseModel):
 
 @router.post("/verify")
 async def verify(payload: PasswordPayload, request: Request, _=Depends(rate_limit_auth)):
+    enabled = os.getenv("DEMO_PASSWORD_LOGIN_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+    if not enabled:
+        raise HTTPException(status_code=403, detail="Shared-password login is disabled. Sign in with your Supabase account.")
     configured_password = os.getenv("DEMO_PASSWORD", "").strip()
     if not configured_password:
         raise HTTPException(status_code=503, detail="Operator authentication is not configured")
@@ -45,5 +48,5 @@ async def logout(request: Request):
 
 
 @router.get("/session")
-async def session(_=Depends(verify_session)):
-    return {"ok": True}
+async def session(request: Request, identity: str = Depends(verify_session)):
+    return {"ok": True, "identity": identity, "role": getattr(request.state, "role", None)}

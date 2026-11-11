@@ -4,6 +4,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from ..services.integration_auth import verify_operator
+from ..services.integration_auth import require_human_write
+from fastapi import Request
 from ..services.reference_ad import ReferenceAdIntake, analyze_reference_ad, get_reference_strategy
 
 
@@ -11,7 +13,8 @@ router = APIRouter(prefix="/api/studio/reference-ads", tags=["reference-ads"])
 
 
 @router.post("/analyze")
-async def analyze_reference(request: ReferenceAdIntake, _=Depends(verify_operator)) -> dict:
+async def analyze_reference(request: ReferenceAdIntake, http: Request, identity: str = Depends(verify_operator)) -> dict:
+    require_human_write(http, identity)
     return await analyze_reference_ad(request)
 
 

@@ -59,7 +59,7 @@ def forward(message: Any, *, base_url: str, token: str, opener=_secure_open) -> 
     notification = "id" not in message
     request_id = message.get("id")
     if not token:
-        return None if notification else _error(request_id, -32001, "BLASTER_API_KEY is not configured")
+        return None if notification else _error(request_id, -32001, "BLASTER_AGENT_TOKEN or BLASTER_API_KEY is not configured")
 
     endpoint = _endpoint(base_url)
     if endpoint is None:
@@ -118,7 +118,8 @@ def main() -> None:
         stdin=sys.stdin,
         stdout=sys.stdout,
         base_url=os.getenv("BLASTER_API_URL", "http://localhost:8000"),
-        token=os.getenv("BLASTER_API_KEY", ""),
+        # Prefer a scoped agent token (bba_...); the operator key is the human fallback.
+        token=os.getenv("BLASTER_AGENT_TOKEN", "") or os.getenv("BLASTER_API_KEY", ""),
     )
 
 

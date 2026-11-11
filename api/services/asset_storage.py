@@ -69,7 +69,11 @@ class AssetStorage:
         *,
         object_name: str,
         content_type: str | None = None,
+        upsert: bool = True,
     ) -> dict[str, Any]:
+        """Upload an object. ``upsert=False`` refuses to overwrite an existing
+        key; rendered finals use it with digest-versioned keys so a reviewed
+        asset cannot be silently replaced in place."""
         if not self.configured:
             return {"ok": False, "error": "asset_storage_not_configured"}
         if not source.is_file():
@@ -80,7 +84,7 @@ class AssetStorage:
         async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(
                 f"{self.base_url}/storage/v1/object/{quote(self.bucket, safe='')}/{encoded}",
-                headers={**self._headers(content_type=media_type), "x-upsert": "true"},
+                headers={**self._headers(content_type=media_type), "x-upsert": "true" if upsert else "false"},
                 content=data,
             )
         if response.is_error:

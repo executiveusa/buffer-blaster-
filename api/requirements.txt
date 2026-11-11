@@ -14,3 +14,13 @@ cryptography==50.0.1
 redis==8.1.0
 pytest==9.1.1
 pytest-asyncio==1.4.0
+faster-whisper==1.2.1
+ctranslate2==4.9.0
+# PyAV is faster-whisper's audio-decoding dependency (declared av>=11,
+# unbounded). av 19 removed the metadata_errors kwarg that faster-whisper
+# 1.2.1 passes to av.open (CI on py3.12 resolved av 19.0.2 and failed with
+# TypeError in faster_whisper/audio.py:46); av 17/18 kept the kwarg but
+# ship no cp312 wheels, so CI would source-build against ffmpeg dev
+# headers. Pin the newest release that both accepts metadata_errors and
+# ships cp312 wheels.
+av==16.1.0

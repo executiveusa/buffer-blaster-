@@ -11,6 +11,7 @@ import {
   type Client,
   type ContentUnit,
 } from "./demo-data";
+import { signInWithEmail, signOutSupabase, supabaseAuthEnabled } from "./supabase";
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 const PUBLIC_CONSOLE = process.env.NEXT_PUBLIC_PUBLIC_CONSOLE === "true";
@@ -51,14 +52,28 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function verifyPassword(password: string): Promise<{ ok: boolean }> {
+export function usesSupabaseAuth(): boolean {
+  return !DEMO_MODE && !PUBLIC_CONSOLE && supabaseAuthEnabled();
+}
+
+/** Sign in: Supabase Auth when configured, otherwise the legacy shared password. */
+export async function signIn(identifier: string, password: string): Promise<{ ok: boolean }> {
   if (DEMO_MODE || PUBLIC_CONSOLE) return { ok: true };
+  if (supabaseAuthEnabled()) {
+    setToken(await signInWithEmail(identifier, password));
+    return { ok: true };
+  }
   const response = await apiFetch<{ session_token: string }>("/api/auth/verify", {
     method: "POST",
     body: JSON.stringify({ password }),
   });
   setToken(response.session_token);
   return { ok: true };
+}
+
+export async function signOut(): Promise<void> {
+  await signOutSupabase();
+  clearToken();
 }
 
 export interface DashboardData {

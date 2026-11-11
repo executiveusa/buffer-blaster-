@@ -18,7 +18,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 
 from .media_contracts import ProviderCapabilities
-from .provider_contracts import UGCProviderJob
+from .provider_contracts import UGCProviderJob, audio_url_error, fields_collide, reference_list_error
 
 
 def _csv(name: str) -> list[str]:
@@ -84,9 +84,19 @@ class UniversalVideoGatewayProvider:
         self.poll_method = os.getenv("GENERATION_GATEWAY_POLL_METHOD", "GET").strip().upper() or "GET"
         self.model_in_body = _bool_env("GENERATION_GATEWAY_MODEL_IN_BODY", True)
         self.image_input_field = os.getenv("GENERATION_GATEWAY_IMAGE_INPUT_FIELD", "image_url").strip() or "image_url"
+        # Model-specific list/audio-URL capabilities, env-declared and
+        # fail-closed when unset - never renames of the scalar/boolean fields.
+        self.reference_images_field = os.getenv("GENERATION_GATEWAY_REFERENCE_IMAGES_FIELD", "").strip()
+        self.audio_url_field = os.getenv("GENERATION_GATEWAY_AUDIO_URL_FIELD", "").strip()
         self.duration_field = os.getenv("GENERATION_GATEWAY_DURATION_FIELD", "duration").strip() or "duration"
         self.aspect_ratio_field = os.getenv("GENERATION_GATEWAY_ASPECT_RATIO_FIELD", "aspect_ratio").strip() or "aspect_ratio"
         self.audio_field = os.getenv("GENERATION_GATEWAY_AUDIO_FIELD", "generate_audio").strip()
+        # Field-collision guards + route allowlist: env field NAMES are not
+        # route capabilities. Colliding declarations disable the capability;
+        # audio URLs are sent only on operator-declared routes.
+        self._refs_field_collision = fields_collide(self.reference_images_field, self.image_input_field, self.audio_field, self.audio_url_field)
+        self._audio_field_collision = fields_collide(self.audio_url_field, self.audio_field, self.image_input_field, self.reference_images_field)
+        self.audio_url_models = set(_csv("GENERATION_GATEWAY_AUDIO_URL_MODELS"))
         self.extra_body = self._load_extra_body()
 
     def _load_model_costs(self) -> dict[str, int]:
@@ -138,8 +148,34 @@ class UniversalVideoGatewayProvider:
             return ""
         return default_model
 
-    def estimate_clip_cost_cents(self, model_name: str | None = None, *, image_url: str | None = None) -> int | None:
+
+    def _reference_capability(self) -> tuple[bool, list[str]]:
+        if not self.reference_images_field:
+            return False, ["GENERATION_GATEWAY_REFERENCE_IMAGES_FIELD"]
+        if self._refs_field_collision:
+            return False, ["GENERATION_GATEWAY_REFERENCE_IMAGES_FIELD disjoint from GENERATION_GATEWAY_IMAGE_INPUT_FIELD/GENERATION_GATEWAY_AUDIO_FIELD/GENERATION_GATEWAY_AUDIO_URL_FIELD"]
+        return True, []
+
+    def _audio_url_capability(self, model: str | None = None) -> tuple[bool, list[str]]:
+        if not self.audio_url_field:
+            return False, ["GENERATION_GATEWAY_AUDIO_URL_FIELD"]
+        if self._audio_field_collision:
+            return False, ["GENERATION_GATEWAY_AUDIO_URL_FIELD disjoint from GENERATION_GATEWAY_AUDIO_FIELD/GENERATION_GATEWAY_IMAGE_INPUT_FIELD/GENERATION_GATEWAY_REFERENCE_IMAGES_FIELD"]
+        if model is not None and model not in self.audio_url_models:
+            return False, ["GENERATION_GATEWAY_AUDIO_URL_MODELS to include the selected route"]
+        return True, []
+
+    def estimate_clip_cost_cents(self, model_name: str | None = None, *, image_url: str | None = None, reference_image_urls: list[str] | None = None, audio_url: str | None = None) -> int | None:
+        refs = [str(url) for url in (reference_image_urls or []) if str(url).strip()]
         model = self._model(image_url=image_url, model_name=model_name)
+        if refs:
+            capable, _ = self._reference_capability()
+            if not capable or reference_list_error(refs) is not None:
+                return None  # unconfigured/invalid/over-cap capability cannot be priced: fail closed
+        if audio_url:
+            capable, _ = self._audio_url_capability(model)
+            if not capable or audio_url_error(audio_url) is not None:
+                return None  # unconfigured/invalid/wrong-route capability cannot be priced: fail closed
         if not model:
             return None
         if model in self.model_costs:
@@ -220,16 +256,42 @@ class UniversalVideoGatewayProvider:
         )
 
     def plan_job(self, job: UGCProviderJob) -> UGCProviderJob:
+        # Jobs carrying reference/audio inputs this gateway is not configured
+        # to serve fail EXPLICITLY - their inputs are never silently dropped,
+        # and an unpriceable job is never planned at 0 cents.
+        refs = list(job.reference_image_urls or [])
+        if refs:
+            capable, missing = self._reference_capability()
+            if not capable:
+                return job.model_copy(update={
+                    "provider": self.name, "model_name": None, "estimated_cost_cents": 0, "state": "failed",
+                    "failure": {"error": "gateway_reference_images_not_configured", "missing": missing, "charge_outcome": "not_sent"},
+                })
+        if job.audio_url:
+            capable, missing = self._audio_url_capability(self._model(image_url=job.actor_reference_url, model_name=job.model_name))
+            if not capable:
+                return job.model_copy(update={
+                    "provider": self.name, "model_name": None, "estimated_cost_cents": 0, "state": "failed",
+                    "failure": {"error": "gateway_audio_url_not_configured", "missing": missing, "charge_outcome": "not_sent"},
+                })
         model = self._model(image_url=job.actor_reference_url, model_name=job.model_name)
+        estimate = self.estimate_clip_cost_cents(job.model_name, image_url=job.actor_reference_url, reference_image_urls=refs or None, audio_url=job.audio_url)
+        if estimate is None:
+            return job.model_copy(update={
+                "provider": self.name, "model_name": model or None, "estimated_cost_cents": 0, "state": "failed",
+                "failure": {"error": "gateway_job_inputs_not_priceable", "charge_outcome": "not_sent"},
+            })
         return job.model_copy(update={
             "provider": self.name,
             "model_name": model or None,
-            "estimated_cost_cents": self.estimate_clip_cost_cents(job.model_name, image_url=job.actor_reference_url) or 0,
+            "estimated_cost_cents": estimate,
             "state": "planned",
         })
 
     async def submit_job(self, job: UGCProviderJob) -> UGCProviderJob:
         planned = self.plan_job(job)
+        if planned.state == "failed":
+            return planned
         if planned.approval_state != "approved":
             return planned.model_copy(update={"state": "spend_blocked", "failure": {"error": "approval_required"}})
         if not planned.within_cost_ceiling:
@@ -248,6 +310,8 @@ class UniversalVideoGatewayProvider:
             aspect_ratio=planned.aspect_ratio,
             generate_audio=planned.generate_audio,
             model_name=planned.model_name,
+            reference_image_urls=list(planned.reference_image_urls) or None,
+            audio_url=planned.audio_url,
         )
         if not receipt.get("ok"):
             return planned.model_copy(update={"state": "failed", "failure": dict(receipt)})
@@ -262,10 +326,28 @@ class UniversalVideoGatewayProvider:
         aspect_ratio: str = "9:16",
         generate_audio: bool = True,
         model_name: str | None = None,
+        reference_image_urls: list[str] | None = None,
+        audio_url: str | None = None,
     ) -> dict[str, Any]:
         if not self.configured:
             return {"ok": False, "error": "generation_gateway_not_configured"}
+        refs = [str(url) for url in (reference_image_urls or []) if str(url).strip()]
         model = self._model(image_url=image_url, model_name=model_name)
+        if refs:
+            capable, missing = self._reference_capability()
+            if not capable:
+                return {"ok": False, "error": "gateway_reference_images_not_configured", "missing": missing, "charge_outcome": "not_sent"}
+            ref_error = reference_list_error(refs)
+            if ref_error == "invalid_reference_url":
+                return {"ok": False, "error": "gateway_invalid_reference_url", "charge_outcome": "not_sent"}
+            if ref_error == "reference_files_cap_exceeded":
+                return {"ok": False, "error": "gateway_reference_files_cap_exceeded", "reference_files": len(refs), "charge_outcome": "not_sent"}
+        if audio_url:
+            capable, missing = self._audio_url_capability(model)
+            if not capable:
+                return {"ok": False, "error": "gateway_audio_url_not_configured", "missing": missing, "charge_outcome": "not_sent"}
+            if audio_url_error(audio_url) is not None:
+                return {"ok": False, "error": "gateway_invalid_audio_url", "charge_outcome": "not_sent"}
         if not model:
             return {"ok": False, "error": "gateway_model_not_allowed_or_configured"}
 
@@ -284,6 +366,12 @@ class UniversalVideoGatewayProvider:
             body["model"] = model
         if image_url:
             body[self.image_input_field] = image_url
+        if refs:
+            body[self.reference_images_field] = refs
+        if audio_url:
+            # Real audio URL on its own env-declared field; the boolean flag
+            # below is untouched by it.
+            body[self.audio_url_field] = audio_url
         if self.audio_field:
             body[self.audio_field] = generate_audio
 

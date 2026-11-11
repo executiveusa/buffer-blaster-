@@ -39,10 +39,13 @@ def test_paid_rest_execution_accepts_bounded_idempotency_key():
 
 def test_mcp_paid_execution_requires_same_idempotency_contract():
     source = (ROOT / "api/routers/mcp.py").read_text(encoding="utf-8")
+    runner = (ROOT / "api/services/factory_runner.py").read_text(encoding="utf-8")
     assert '"idempotency_key"' in source
-    assert '"wallet_id", "idempotency_key", "approved"' in source
-    assert "idempotency_key=idempotency_key" in source
-    assert "idempotency_key_required" in source
+    assert '"wallet_id", "idempotency_key"' in source
+    assert "run_factory(" in source
+    # REST and MCP share one runner, so the idempotency contract is identical.
+    assert "idempotency_key=idempotency_key" in runner
+    assert "idempotency_key_required" in runner
 
 
 def test_wallet_reservation_is_atomic_replay_safe_and_workspace_owned():
@@ -70,8 +73,13 @@ def test_consequential_routes_remain_operator_authenticated():
     money = (ROOT / "api/routers/money_loop.py").read_text(encoding="utf-8")
     assert "Depends(verify_operator)" in studio
     assert "verify_operator(request)" in mcp
-    assert "Depends(verify_operator)" in money
-    assert "human_approval_required" in studio
+    # money_loop wraps verify_operator with the human execute-role gate (no viewers, no agents)
+    assert "Depends(_verify_money_operator)" in money
+    assert "verify_operator(request)" in money
+    assert "require_execute_role(request)" in money
+    runner = (ROOT / "api/services/factory_runner.py").read_text(encoding="utf-8")
+    assert "run_factory(" in studio
+    assert "human_approval_required" in runner
 
 
 def test_deprecated_paid_render_bypasses_stay_closed():

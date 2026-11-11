@@ -4,13 +4,16 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from ..services.integration_auth import verify_operator
+from ..services.integration_auth import require_human_write
+from fastapi import Request
 from ..services.shopify_context import ShopifyProductContextRequest, create_shopify_context, get_shopify_context
 
 router = APIRouter(prefix="/api/studio/shopify", tags=["shopify-context"])
 
 
 @router.post("/context")
-async def create_context(request: ShopifyProductContextRequest, _=Depends(verify_operator)) -> dict:
+async def create_context(request: ShopifyProductContextRequest, http: Request, identity: str = Depends(verify_operator)) -> dict:
+    require_human_write(http, identity)
     return await create_shopify_context(request)
 
 

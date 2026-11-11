@@ -16,7 +16,10 @@ in source, docs, frontend variables, logs, issue comments, or CI output.
   backend credentials stay server-side and must never use a `NEXT_PUBLIC_*` name.
 - Runtime-editable UI settings are **not a secret store**. The current Redis
   runtime store accepts only non-secret operator settings such as
-  `ACTIVE_LLM_PROVIDER` and `AGENT_MAX_CHILDREN`.
+  `ACTIVE_LLM_PROVIDER` and `AGENT_MAX_CHILDREN`. S4 adds non-secret spend-cap
+  and model-selection keys: `USAGE_CAP_JOB_CENTS`, `USAGE_CAP_DAILY_CENTS`,
+  `USAGE_CAP_MONTHLY_CENTS`, `MODEL_PROVIDER`, `MODEL_NAME`,
+  `MODEL_REASONING_LEVEL`. These are limits and names, never credentials.
 
 ## Core operator/security variables
 
@@ -25,6 +28,10 @@ PLATFORM_NAME=Buffer Blaster
 MASTER_ENCRYPTION_KEY=
 DEMO_PASSWORD=
 BLASTER_API_KEY=
+# Comma-separated IPs of reverse proxies whose X-Forwarded-For is trusted (Next.js server / Caddy as seen by the API). Empty = trust none.
+TRUSTED_PROXY_IPS=
+# Agents: a scoped bba_ token issued via POST /api/agent/tokens. Set in the agent's own environment, never here.
+# BLASTER_AGENT_TOKEN=
 TRIAL_SESSION_SECRET=
 REDIS_PASSWORD=
 REDIS_URL=
@@ -143,3 +150,13 @@ The only supported production deployment paths are:
 Legacy deploy entrypoints delegate to those scripts. They must never discover
 credentials by scanning unrelated filesystem locations or inject a known
 password into an environment.
+
+## Footage connectors (S5)
+
+- `GOOGLE_OAUTH_CLIENT_SECRET`, `ONEDRIVE_CLIENT_SECRET`: OAuth client
+  secrets. Environment-managed, never in responses.
+- `GOOGLE_OAUTH_CLIENT_ID`, `ONEDRIVE_CLIENT_ID`, `DROPBOX_APP_KEY`: public
+  client identifiers (the Dropbox key is embedded in client-side Chooser JS
+  by design).
+- OAuth tokens themselves are AES-256-GCM encrypted at rest under
+  `MASTER_ENCRYPTION_KEY`; only ciphertext reaches Redis/Postgres.

@@ -20,7 +20,11 @@ jobs:
           cache: pip
           cache-dependency-path: api/requirements.txt
       - name: Install API dependencies
-        run: python -m pip install -r api/requirements.txt
+        run: python -m pip install -r requirements-test.txt
+        # caption fixtures/burn-in and the vision tests shell out to
+        # ffmpeg/ffprobe; the runner image does not ship them
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Run Python tests
         run: python -m pytest tests -q
       - name: Compile verified creator corpus
