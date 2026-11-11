@@ -7,6 +7,8 @@ provider spend from the server-owned wallet before invoking this coordinator.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import inspect
 import math
 import os
 import shutil
@@ -15,32 +17,83 @@ from pathlib import Path
 from typing import Any
 
 from .asset_storage import get_asset_storage
+from .provider_contracts import MAX_REFERENCE_FILES
 from .media_generation import get_media_provider
 from .media_ops import get_media_ops
 from .pricing import authorize_generation
-from .studio_ledger import create_job, update_job
+from .studio_ledger import create_job, get_job, job_output_fingerprint, update_job, update_job_if
 from .ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 
 
 
-def estimate_factory_generation_cost(provider: Any, plan: dict[str, Any], provider_model: str | None = None) -> dict[str, Any]:
-    """Price and validate the selected provider/model before wallet reservation."""
+def _estimate_clip(provider: Any, model_name: str | None, *, image_url: str | None, reference_image_urls: list[str] | None, audio_url: str | None = None) -> int | None:
+    """Price one clip call at its FULL input shape (still, reference list,
+    audio URL). Reference/audio inputs are model-specific capabilities:
+    providers whose estimate does not accept them cannot price the call, so
+    pricing fails closed (None) instead of guessing.
+    """
+    fn = getattr(provider, "estimate_clip_cost_cents", None)
+    if fn is None:
+        return None
+    kwargs: dict[str, Any] = {"image_url": image_url}
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        params = {}
+    if reference_image_urls:
+        if "reference_image_urls" not in params:
+            return None
+        kwargs["reference_image_urls"] = reference_image_urls
+    if audio_url:
+        if "audio_url" not in params:
+            return None
+        kwargs["audio_url"] = audio_url
+    return fn(model_name, **kwargs)
+
+
+def estimate_factory_generation_cost(provider: Any, plan: dict[str, Any], provider_model: str | None = None, *, image_url: str | None = None, reference_image_urls: list[str] | None = None, clip_audio_urls: list[str] | None = None) -> dict[str, Any]:
+    """Price and validate the selected provider/model before wallet reservation.
+    Takes the SAME full per-clip input contract the executor will submit, so
+    the reservation cannot drift from what the run enforces."""
     if not getattr(provider, "configured", False):
         return {"ok": False, "error": "media_provider_not_configured"}
     if not hasattr(provider, "estimate_clip_cost_cents"):
         return {"ok": False, "error": "provider_cost_unavailable"}
-    per_clip = provider.estimate_clip_cost_cents(provider_model)
-    if per_clip is None:
-        return {"ok": False, "error": "provider_model_not_allowed_or_cost_unverified", "model": provider_model}
+    refs = [str(url) for url in (reference_image_urls or []) if str(url).strip()]
+    if len(refs) > MAX_REFERENCE_FILES:
+        # Over-cap calls can never be sent; block before any reservation.
+        return {"ok": False, "error": "provider_reference_files_cap_exceeded", "reference_files": len(refs), "cap": MAX_REFERENCE_FILES}
+    audios = list(clip_audio_urls or [])
+    clip1_audio = (audios[0] or None) if len(audios) > 0 else None
+    clip2_audio = (audios[1] or None) if len(audios) > 1 else None
+    # Exact per-call pricing. Clip 1 carries the casting reference only when
+    # supplied (text-to-video otherwise); clip 2 and every seam retry ALWAYS
+    # carry an image input (the trimmed last-frame seed). Pricing the whole
+    # run at the clip-1 rate drifts on providers with per-model costs, and
+    # the reservation must equal what the executor will enforce.
+    clip1_cost = _estimate_clip(provider, provider_model, image_url=image_url, reference_image_urls=reference_image_urls, audio_url=clip1_audio)
+    if clip1_cost is None:
+        return {"ok": False, "error": "provider_model_not_allowed_or_cost_unverified", "model": provider_model, "call": "clip_1", "reference_images": bool(reference_image_urls), "audio_url": bool(clip1_audio)}
+    # Clip 2 (and every seam retry) carries the same identity reference list
+    # PLUS the separate continuity seed start frame.
+    clip2_cost = _estimate_clip(provider, provider_model, image_url=image_url or "seed://last-frame", reference_image_urls=reference_image_urls, audio_url=clip2_audio)
+    if clip2_cost is None:
+        return {"ok": False, "error": "provider_model_not_allowed_or_cost_unverified", "model": provider_model, "call": "clip_2", "reference_images": bool(reference_image_urls), "audio_url": bool(clip2_audio)}
     commercial = plan.get("commercial", {})
-    expected_calls = max(1, int(commercial.get("expected_paid_clip_calls") or 1))
+    expected_calls = max(2, int(commercial.get("expected_paid_clip_calls") or 3))
     safety_bps = max(10000, int(commercial.get("cost_safety_bps") or 10000))
-    estimated_total = math.ceil(int(per_clip) * expected_calls * safety_bps / 10000)
+    seam_retries = max(0, expected_calls - 2)
+    raw_total = int(clip1_cost) + (1 + seam_retries) * int(clip2_cost)
+    estimated_total = math.ceil(raw_total * safety_bps / 10000)
     return {
         "ok": True,
         "provider": provider.status().get("provider"),
         "model": provider_model,
-        "estimated_clip_cost_cents": int(per_clip),
+        "estimated_clip_cost_cents": int(clip1_cost),
+        "clip_costs_cents": {"clip_1": int(clip1_cost), "clip_2": int(clip2_cost), "seam_retry": int(clip2_cost)},
+        "priced_with_image_input": {"clip_1": bool(image_url), "clip_2": True, "seam_retry": True},
+        "priced_with_reference_images": {"clip_1": bool(reference_image_urls), "clip_2": bool(reference_image_urls), "seam_retry": bool(reference_image_urls)},
+        "priced_with_audio_urls": {"clip_1": bool(clip1_audio), "clip_2": bool(clip2_audio), "seam_retry": bool(clip2_audio)},
         "expected_paid_clip_calls": expected_calls,
         "cost_safety_bps": safety_bps,
         "estimated_generation_cost_cents": estimated_total,
@@ -116,18 +169,59 @@ async def _wait_for_video(provider: Any, receipt: dict[str, Any], *, poll_interv
     return {"ok": False, "error": "provider_generation_timeout", "provider_response": last_payload}
 
 
-async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, model_name: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float) -> dict[str, Any]:
-    receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration="10", aspect_ratio="9:16", generate_audio=True, model_name=model_name)
+async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, model_name: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float, reference_image_urls: list[str] | None = None, audio_url: str | None = None) -> dict[str, Any]:
+    # Price THIS call's own input shape before submitting, and carry it on the
+    # receipt: mixed text/image pricing means a run must never be settled at
+    # one flat clip rate (refund, usage ledger and cap settlement all read it).
+    estimated_cents: int | None = _estimate_clip(provider, model_name, image_url=image_url, reference_image_urls=reference_image_urls, audio_url=audio_url)
+    call_meta = {"clip": clip_number, "mode": "image" if image_url else "text", "estimated_cents": estimated_cents,
+                 "reference_images": len(reference_image_urls or []), "audio_url_supplied": bool(audio_url)}
+    # Every call returns an entry with an explicit outcome so settlement never
+    # loses a call to an exception: "accepted" (the call reached the provider),
+    # "rejected" (structured pre-send refusal: definitely not charged), or
+    # "uncertain_after_send" (transport exception at/after send: the provider
+    # may have received and billed it - settled conservatively as ESTIMATED
+    # exposure, never as zero and never labeled an actual charge).
+    try:
+        submit_kwargs: dict[str, Any] = {}
+        if reference_image_urls:
+            submit_kwargs["reference_image_urls"] = list(reference_image_urls)
+        if audio_url:
+            submit_kwargs["audio_url"] = audio_url
+        receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration="10", aspect_ratio="9:16", generate_audio=True, model_name=model_name, **submit_kwargs)
+    except Exception as exc:
+        return {"ok": False, "error": "provider_transport_exception", "outcome": "uncertain_after_send", **call_meta,
+                "receipt": {"ok": False, "error": type(exc).__name__}}
     if not receipt.get("ok"):
-        return {"ok": False, "error": "provider_submit_failed", "clip": clip_number, "receipt": receipt}
-    completed = await _wait_for_video(provider, receipt, poll_interval_seconds=poll_interval_seconds, timeout_seconds=timeout_seconds)
+        # The adapter's own typed charge_outcome decides whether a refused call
+        # could have been billed: only "not_sent" (local pre-send validation)
+        # or "rejected_uncharged" (a vendor-DOCUMENTED uncharged reject) settle
+        # at zero. Anything else - including ok:false returned AFTER the
+        # provider request was sent (the real Fal adapter returns
+        # fal_submit_failed with a 500/502 status from behind client.post) and
+        # any adapter that does not classify its failures - is
+        # uncertain_after_send and settles as ESTIMATED exposure, never zero.
+        charge_outcome = receipt.get("charge_outcome")
+        outcome = "rejected" if charge_outcome in ("not_sent", "rejected_uncharged") else "uncertain_after_send"
+        return {"ok": False, "error": "provider_submit_failed", "outcome": outcome, **call_meta, "receipt": receipt}
+    try:
+        completed = await _wait_for_video(provider, receipt, poll_interval_seconds=poll_interval_seconds, timeout_seconds=timeout_seconds)
+    except Exception as exc:
+        # The submit was accepted (we hold its receipt), so the generation call
+        # was made; only its outcome retrieval failed.
+        return {"ok": False, "error": "provider_poll_exception", "outcome": "accepted", **call_meta,
+                "receipt": receipt, "detail": type(exc).__name__}
     if not completed.get("ok"):
-        return {**completed, "clip": clip_number, "receipt": receipt}
+        return {**completed, **call_meta, "outcome": "accepted", "receipt": receipt}
     destination = workdir / f"clip-{clip_number}.mp4"
-    downloaded = await storage.download_url(completed["video_url"], destination)
+    try:
+        downloaded = await storage.download_url(completed["video_url"], destination)
+    except Exception as exc:
+        return {"ok": False, "error": "generated_video_download_exception", "outcome": "accepted", **call_meta,
+                "receipt": receipt, "provider_response": completed.get("provider_response"), "detail": type(exc).__name__}
     if not downloaded.get("ok"):
-        return {"ok": False, "error": "generated_video_download_failed", "clip": clip_number, "receipt": receipt, "download": downloaded}
-    return {"ok": True, "clip": clip_number, "receipt": receipt, "provider_response": completed.get("provider_response"), "video_url": completed["video_url"], "local_path": destination}
+        return {"ok": False, "error": "generated_video_download_failed", "outcome": "accepted", **call_meta, "receipt": receipt, "download": downloaded}
+    return {"ok": True, **call_meta, "outcome": "accepted", "receipt": receipt, "provider_response": completed.get("provider_response"), "video_url": completed["video_url"], "local_path": destination}
 
 
 def _valid_reserved_allowance(allowance: dict[str, Any] | None, *, expected_cost: int, offer_id: str) -> bool:
@@ -154,6 +248,7 @@ async def execute_ugc_factory_ad(
     work_root: Path | None = None,
     poll_interval_seconds: float | None = None,
     timeout_seconds: float | None = None,
+    clip_receipts_sink: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     plan = build_ugc_factory_plan(brief)
     if not plan.get("ok"):
@@ -164,7 +259,14 @@ async def execute_ugc_factory_ad(
 
     provider = provider or get_media_provider()
     provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
-    pricing = estimate_factory_generation_cost(provider, plan, provider_model)
+    casting_ref = str(plan.get("brief", {}).get("casting_reference_url") or "").strip() or None
+    # Normalized identity reference list (BOTH shots) and per-clip real audio
+    # URLs, carried by the plan brief and bound into the approval payload.
+    casting_refs = [str(url) for url in (plan.get("brief", {}).get("casting_reference_urls") or []) if str(url).strip()] or None
+    plan_clips = plan.get("clips") or [{}, {}]
+    clip1_audio = (plan_clips[0].get("audio_url") if len(plan_clips) > 0 else None) or None
+    clip2_audio = (plan_clips[1].get("audio_url") if len(plan_clips) > 1 else None) or None
+    pricing = estimate_factory_generation_cost(provider, plan, provider_model, image_url=casting_ref, reference_image_urls=casting_refs, clip_audio_urls=[audio for audio in (clip1_audio, clip2_audio)])
     if not pricing.get("ok"):
         return {**pricing, "state": "preflight_blocked"}
     estimated_cost = int(pricing["estimated_generation_cost_cents"])
@@ -178,6 +280,17 @@ async def execute_ugc_factory_ad(
     job_id = str(job.get("id") or "")
     if not job_id:
         return {"ok": False, "error": "ledger_job_creation_failed", "ledger": job}
+    ledger_error = job.get("ledger_error")
+    if ledger_error:
+        # Fail closed: without a durable canonical record there is no review,
+        # refund or audit trail, so no provider call may happen.
+        return {"ok": False, "error": "canonical_ledger_write_failed", "state": "ledger_blocked",
+                "ledger_error": ledger_error, "ledger_status": job.get("ledger_status")}
+    persisted = await get_job(job_id)
+    if not persisted or str(persisted.get("id") or "") != job_id:
+        # A write that cannot be read back is not durable; never start paid
+        # work against a job the canonical ledger cannot prove.
+        return {"ok": False, "error": "canonical_ledger_readback_failed", "state": "ledger_blocked", "job_id": job_id}
     if reserved_allowance is not None:
         if not _valid_reserved_allowance(reserved_allowance, expected_cost=estimated_cost, offer_id=offer_id):
             await update_job(job_id, state="spend_blocked", output={"error": "invalid_spend_reservation"})
@@ -212,16 +325,21 @@ async def execute_ugc_factory_ad(
     workdir.mkdir(parents=True, exist_ok=True)
     poll_interval = float(os.getenv("FAL_POLL_INTERVAL_SECONDS", "2")) if poll_interval_seconds is None else poll_interval_seconds
     timeout = float(os.getenv("FAL_RENDER_TIMEOUT_SECONDS", "600")) if timeout_seconds is None else timeout_seconds
-    clip_receipts: list[dict[str, Any]] = []
+    # The sink lets the caller see completed paid clips even on failure paths,
+    # so refunds can record what the provider actually billed.
+    clip_receipts: list[dict[str, Any]] = clip_receipts_sink if clip_receipts_sink is not None else []
     seam_threshold = float(plan.get("continuity", {}).get("seam_threshold_mean_abs_diff") or (5 / 255))
 
     try:
         await update_job(job_id, state="rendering_clip_1", output={"allowance": allowance})
-        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=None, model_name=provider_model, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
+        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=casting_ref, model_name=provider_model, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout, reference_image_urls=casting_refs, audio_url=clip1_audio)
+        # Append BEFORE the failure branch: a failed paid call may still be
+        # billed by the provider, so refund/usage settlement must see it
+        # (charged conservatively at its own input-shape estimate).
+        clip_receipts.append({"clip": 1, "receipt": clip1.get("receipt"), "provider_response": clip1.get("provider_response"), "mode": clip1.get("mode"), "estimated_cents": clip1.get("estimated_cents"), "outcome": clip1.get("outcome")})
         if not clip1.get("ok"):
             await update_job(job_id, state="clip_1_failed", provider_receipt={"clip_1": clip1})
             return {**clip1, "state": "clip_1_failed", "job_id": job_id, "allowance": allowance}
-        clip_receipts.append({"clip": 1, "receipt": clip1.get("receipt"), "provider_response": clip1.get("provider_response")})
 
         clip1_trim = workdir / "clip-1-trim.mp4"
         trim1 = media_ops.trim_tail(clip1["local_path"], clip1_trim)
@@ -239,14 +357,17 @@ async def execute_ugc_factory_ad(
             return {"ok": False, "error": seed_asset.get("error") or "seed_signed_url_missing", "state": "seed_upload_failed", "job_id": job_id, "allowance": allowance}
 
         async def render_second(attempt: int) -> dict[str, Any]:
+            # Clip 2 (and every seam retry) gets the SAME identity reference
+            # list as clip 1, PLUS the separate continuity seed start frame.
             await update_job(job_id, state=f"rendering_clip_2_attempt_{attempt}")
-            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], model_name=provider_model, clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
+            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], model_name=provider_model, clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout, reference_image_urls=casting_refs, audio_url=clip2_audio)
 
         clip2 = await render_second(1)
+        # Append BEFORE the failure branch (same conservative-settlement rule).
+        clip_receipts.append({"clip": 2, "attempt": 1, "receipt": clip2.get("receipt"), "provider_response": clip2.get("provider_response"), "mode": clip2.get("mode"), "estimated_cents": clip2.get("estimated_cents"), "outcome": clip2.get("outcome")})
         if not clip2.get("ok"):
             await update_job(job_id, state="clip_2_failed", provider_receipt={"clip_1": clip_receipts[0], "clip_2": clip2})
             return {**clip2, "state": "clip_2_failed", "job_id": job_id, "allowance": allowance}
-        clip_receipts.append({"clip": 2, "attempt": 1, "receipt": clip2.get("receipt"), "provider_response": clip2.get("provider_response")})
 
         clip2_trim = workdir / "clip-2-trim.mp4"
         trim2 = media_ops.trim_tail(clip2["local_path"], clip2_trim)
@@ -262,10 +383,11 @@ async def execute_ugc_factory_ad(
 
         if seam >= seam_threshold:
             clip2_retry = await render_second(2)
+            # Append BEFORE the failure branch (same conservative-settlement rule).
+            clip_receipts.append({"clip": 2, "attempt": 2, "receipt": clip2_retry.get("receipt"), "provider_response": clip2_retry.get("provider_response"), "mode": clip2_retry.get("mode"), "estimated_cents": clip2_retry.get("estimated_cents"), "outcome": clip2_retry.get("outcome")})
             if not clip2_retry.get("ok"):
                 await update_job(job_id, state="seam_retry_failed", provider_receipt={"clips": clip_receipts, "retry": clip2_retry})
                 return {**clip2_retry, "state": "seam_retry_failed", "job_id": job_id, "allowance": allowance}
-            clip_receipts.append({"clip": 2, "attempt": 2, "receipt": clip2_retry.get("receipt"), "provider_response": clip2_retry.get("provider_response")})
             trim2 = media_ops.trim_tail(clip2_retry["local_path"], clip2_trim)
             first2_result = media_ops.extract_first_frame(clip2_trim, first2)
             if not trim2.get("ok") or not first2_result.get("ok"):
@@ -282,16 +404,127 @@ async def execute_ugc_factory_ad(
         if not stitched.get("ok"):
             await update_job(job_id, state="stitch_failed", output={"media_op": stitched})
             return {"ok": False, "error": stitched.get("error"), "state": "stitch_failed", "job_id": job_id, "allowance": allowance}
-        final_asset = await storage.upload_file(final_local, object_name=f"jobs/{job_id}/final.mp4", content_type="video/mp4")
+        # Version-bind the stored object to its content digest and forbid
+        # upsert: the ledger records final_asset_sha256, and the object key
+        # carrying that digest means the reviewed asset can never be silently
+        # replaced in place afterwards (a new render produces a new key).
+        final_sha256 = hashlib.sha256(final_local.read_bytes()).hexdigest()
+        final_asset = await storage.upload_file(final_local, object_name=f"jobs/{job_id}/final-{final_sha256[:16]}.mp4", content_type="video/mp4", upsert=False)
         if not final_asset.get("ok"):
             await update_job(job_id, state="final_upload_failed", output={"storage": final_asset})
             return {"ok": False, "error": final_asset.get("error"), "state": "final_upload_failed", "job_id": job_id, "allowance": allowance}
 
-        state = "finished" if stitched.get("audio") else "visual_complete_needs_audio"
+        # Audio presence alone is not UGC acceptance. A render is NEVER
+        # finished inside the execution call: a human must review the actual
+        # output afterwards via record_performance_review and attest mouth
+        # timing, face, hands and continuity against this exact asset digest.
+        state = "needs_performance_review" if stitched.get("audio") else "visual_complete_needs_audio"
         qa = {"seam_diff": seam, "seam_threshold": seam_threshold, "seam_passed": seam < seam_threshold, "audio_present_in_both_clips": bool(stitched.get("audio")), "paid_generation_calls": len(clip_receipts)}
-        result = {"ok": state == "finished", "state": state, "job_id": job_id, "factory_version": plan.get("factory_version"), "allowance": allowance, "provider_pricing": pricing, "qa": qa, "final_asset": final_asset, "provider_receipts": clip_receipts, "approval_required_before_publish": True}
-        await update_job(job_id, state=state, provider_receipt={"clips": clip_receipts}, output={"final_asset": final_asset, "qa": qa, "allowance": allowance})
+        result = {"ok": state == "finished", "state": state, "job_id": job_id, "factory_version": plan.get("factory_version"), "allowance": allowance, "provider_pricing": pricing, "qa": qa, "performance_review": {"required": True, "status": "pending"}, "final_asset": final_asset, "final_asset_sha256": final_sha256, "provider_receipts": clip_receipts, "approval_required_before_publish": True}
+        # The final write MUST be durable and read back exactly: without it the
+        # customer would hold an asset whose review state the canonical ledger
+        # cannot prove, and post-render review/publish could never gate on it.
+        final_record = await update_job(job_id, state=state, provider_receipt={"clips": clip_receipts}, output={"final_asset": final_asset, "final_asset_sha256": final_sha256, "qa": qa, "allowance": allowance})
+        persisted_output = (final_record or {}).get("output") or {}
+        if (
+            not isinstance(final_record, dict)
+            or final_record.get("state") != state
+            or str(persisted_output.get("final_asset_sha256") or "") != final_sha256
+        ):
+            # Honest fail-closed: the asset exists in storage and the paid
+            # exposure accounting above stays on the result (the caller still
+            # refunds the customer in full and records what the provider
+            # billed), but the render is NOT deliverable: no durable review
+            # state means no review, no publish, no success claim.
+            result.update({
+                "ok": False,
+                "error": "final_review_state_not_durable",
+                "state": "ledger_finalize_failed",
+                "customer_deliverable": False,
+                "performance_review": {"required": True, "status": "blocked_ledger_not_durable"},
+            })
         return result
     finally:
         if os.getenv("KEEP_FACTORY_WORKFILES", "false").lower() != "true":
             shutil.rmtree(workdir, ignore_errors=True)
+
+
+# The four speaking-performance checks a human must explicitly attest before a
+# render may be called finished. Each must be a real boolean verdict on the
+# actual output asset; a blanket "passed": true is not a review.
+REQUIRED_PERFORMANCE_CHECKS = ("mouth_timing", "face", "hands", "continuity")
+
+
+async def record_performance_review(job_id: str, review: dict[str, Any]) -> dict[str, Any]:
+    """Record a human post-render performance review bound to the exact asset.
+
+    Never callable by the execution path itself: the review must reference the
+    sha256 of the final asset the job actually stored, so pre-attestation
+    against a render that does not exist yet cannot pass.
+    """
+    if not isinstance(review, dict):
+        return {"ok": False, "error": "performance_review_invalid", "detail": "review must be an object"}
+    reviewer = str(review.get("reviewer") or "").strip()
+    if not reviewer:
+        return {"ok": False, "error": "performance_review_invalid", "detail": "reviewer_required"}
+    digest = str(review.get("asset_sha256") or "").strip().lower()
+    if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
+        return {"ok": False, "error": "performance_review_invalid", "detail": "asset_sha256_must_be_64_hex_chars"}
+    checks = review.get("checks")
+    if not isinstance(checks, dict) or any(not isinstance(checks.get(name), bool) for name in REQUIRED_PERFORMANCE_CHECKS):
+        return {"ok": False, "error": "performance_review_invalid", "detail": f"checks must include explicit booleans for: {', '.join(REQUIRED_PERFORMANCE_CHECKS)}"}
+    evidence_urls = review.get("evidence_urls") or []
+    if not isinstance(evidence_urls, list) or any(not isinstance(url, str) or not url.startswith("https://") for url in evidence_urls):
+        return {"ok": False, "error": "performance_review_invalid", "detail": "evidence_urls must be https URLs"}
+
+    job = await get_job(job_id)
+    if not job:
+        return {"ok": False, "error": "job_not_found", "job_id": job_id}
+    if job.get("state") != "needs_performance_review":
+        return {"ok": False, "error": "job_not_awaiting_performance_review", "job_id": job_id, "state": job.get("state")}
+    stored_digest = str((job.get("output") or {}).get("final_asset_sha256") or "").strip().lower()
+    if not stored_digest or stored_digest != digest:
+        return {"ok": False, "error": "performance_review_asset_mismatch", "job_id": job_id}
+
+    passed = all(checks[name] is True for name in REQUIRED_PERFORMANCE_CHECKS)
+    state = "finished" if passed else "performance_review_failed"
+    # Honest labeling: the four checks are the reviewing human's attestation
+    # about the rendered asset, not an independent verification by the system;
+    # evidence_urls are optional supporting material the reviewer supplies.
+    record = {
+        "reviewer": reviewer,
+        "asset_sha256": digest,
+        "checks": {name: checks[name] is True for name in REQUIRED_PERFORMANCE_CHECKS},
+        "verification_basis": "human_attestation",
+        "independent_verification": False,
+        "evidence_supplied": bool(evidence_urls),
+        "notes": str(review.get("notes") or "")[:2000],
+        "evidence_urls": [str(url) for url in evidence_urls][:20],
+        "passed": passed,
+    }
+    current_output = job.get("output") or {}
+    merged_output = {**current_output, "performance_review": record}
+    # Atomic compare-and-swap bound to the exact awaiting state and the exact
+    # output payload read above (which carries the rendered asset digest). A
+    # concurrent review or any state/asset change between read and write makes
+    # this update lose: it mutates nothing, and the caller must re-read the job
+    # and review the current artifact.
+    updated = await update_job_if(
+        job_id,
+        expected_state="needs_performance_review",
+        expected_output=current_output,
+        state=state,
+        output=merged_output,
+    )
+    if updated is None:
+        return {
+            "ok": False,
+            "error": "performance_review_conflict",
+            "detail": (
+                "The job's state or rendered asset changed concurrently; no review was recorded. "
+                "Re-read the job and review the current artifact."
+            ),
+            "job_id": job_id,
+            "reviewed_output_fingerprint": job_output_fingerprint(current_output),
+        }
+    return {"ok": passed, "state": state, "job_id": job_id, "performance_review": record, "approval_required_before_publish": True}

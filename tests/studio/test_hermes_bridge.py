@@ -1,4 +1,10 @@
 import pytest
+from types import SimpleNamespace
+
+
+def _owner_request():
+    return SimpleNamespace(state=SimpleNamespace(role="owner", scopes=set(), identity=None))
+
 
 from api.routers import hermes_bridge as router
 from api.services.hermes_bridge import experiment_id_for, receipt_id_for
@@ -41,7 +47,7 @@ async def test_handoff_creates_one_deterministic_experiment_and_model_receipt(mo
         pass_threshold=2.0,
         budget_ceiling_cents=5000,
     )
-    result = await router.handoff(payload, None)
+    result = await router.handoff(payload, _owner_request())
 
     expected_id = experiment_id_for(payload.correlation_id)
     assert result["ok"] is True
@@ -80,7 +86,7 @@ async def test_handoff_retry_reuses_existing_experiment_and_receipt(monkeypatch)
     monkeypatch.setattr(router, "create_experiment", should_not_create)
     monkeypatch.setattr(router, "record_receipt", fake_receipt)
 
-    result = await router.handoff(payload, None)
+    result = await router.handoff(payload, _owner_request())
     assert result["ok"] is True
     assert result["experiment_id"] == expected_id
     assert result["idempotent"] is True

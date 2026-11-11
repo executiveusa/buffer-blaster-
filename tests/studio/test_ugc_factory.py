@@ -73,3 +73,37 @@ def test_factory_quote_reserves_cost_safety_buffer(monkeypatch):
 def test_factory_rejects_missing_product_truth():
     with pytest.raises(ValueError):
         build_ugc_factory_plan(_brief(product=""))
+
+
+def test_factory_casting_reference_is_carried_to_clip_one():
+    plan = build_ugc_factory_plan(_brief(casting_reference_url="https://assets.example/creator.png"))
+    assert plan["ok"] is True
+    assert plan["brief"]["casting_reference_url"] == "https://assets.example/creator.png"
+    assert plan["clips"][0]["casting_reference_url"] == "https://assets.example/creator.png"
+    assert plan["clips"][1]["seed_from_previous"] is True
+    # Original scalar contract intact; the additive slice-2 keys are empty here.
+    for key, value in {"reference_present": True, "applied_to": "clip_1", "mode": "single_reference_still"}.items():
+        assert plan["casting"][key] == value
+    assert plan["casting"]["reference_image_urls"] == []
+    assert plan["casting"]["reference_list_applied_to"] == []
+    assert "casting reference image" in plan["clips"][0]["prompt"]
+
+
+def test_factory_without_casting_reference_keeps_text_to_video_clip_one():
+    plan = build_ugc_factory_plan(_brief())
+    assert plan["ok"] is True
+    assert plan["brief"]["casting_reference_url"] == ""
+    assert plan["clips"][0]["casting_reference_url"] is None
+    for key, value in {"reference_present": False, "applied_to": None, "mode": "single_reference_still"}.items():
+        assert plan["casting"][key] == value
+    assert plan["casting"]["reference_image_urls"] == []
+    assert plan["casting"]["reference_list_applied_to"] == []
+    assert "casting reference image" not in plan["clips"][0]["prompt"]
+
+
+def test_factory_gate_rejects_non_https_casting_reference():
+    plan = build_ugc_factory_plan(_brief(casting_reference_url="http://insecure.example/creator.png"))
+    assert plan["ok"] is False
+    assert plan["gate"]["passed"] is False
+    check = next(c for c in plan["gate"]["checks"] if c["name"] == "casting_reference_url_https")
+    assert check["passed"] is False

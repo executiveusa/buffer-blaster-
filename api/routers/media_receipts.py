@@ -4,6 +4,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from ..services.integration_auth import verify_operator
+from ..services.integration_auth import require_human_write
+from fastapi import Request
 from ..services.media_contracts import UGCPlanDraft
 from ..services.media_receipts import create_ugc_plan, get_ugc_plan
 
@@ -11,7 +13,8 @@ router = APIRouter(prefix="/api/studio/ugc", tags=["ugc-receipts"])
 
 
 @router.post("/plans")
-async def create_plan(request: UGCPlanDraft, _=Depends(verify_operator)) -> dict:
+async def create_plan(request: UGCPlanDraft, http: Request, identity: str = Depends(verify_operator)) -> dict:
+    require_human_write(http, identity)
     return await create_ugc_plan(request)
 
 

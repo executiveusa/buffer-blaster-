@@ -11,6 +11,7 @@
     "test:frontmatter": "node --test scripts/frontmatter.test.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.45.0",
     "motion": "^13.4.0",

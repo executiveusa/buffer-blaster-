@@ -1,0 +1,2421 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Buffer Blaster agent API",
+    "version": "0.1.0",
+    "description": "Plan and price UGC ads freely. Rendering and publishing need a human-approved approval_id."
+  },
+  "servers": [
+    {
+      "url": "https://YOUR-API-HOST"
+    }
+  ],
+  "paths": {
+    "/api/agent/whoami": {
+      "get": {
+        "summary": "Whoami",
+        "operationId": "whoami",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Whoami Api Agent Whoami Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/approvals": {
+      "post": {
+        "summary": "Create Approval",
+        "operationId": "requestApproval",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Approval Api Agent Approvals Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Approvals",
+        "operationId": "listApprovals",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Approvals Api Agent Approvals Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/approvals/{approval_id}": {
+      "get": {
+        "summary": "Approval",
+        "operationId": "getApproval",
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Approval Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Approval Api Agent Approvals  Approval Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/status": {
+      "get": {
+        "summary": "Status",
+        "operationId": "studioStatus",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Status Api Studio Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/pricing": {
+      "get": {
+        "summary": "Pricing",
+        "operationId": "getPricing",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Pricing Api Studio Pricing Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/ugc/factory/plan": {
+      "post": {
+        "summary": "Create Ugc Factory Plan",
+        "operationId": "createFactoryPlan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UGCFactoryPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Create Ugc Factory Plan Api Studio Ugc Factory Plan Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/ugc/factory/estimate": {
+      "post": {
+        "summary": "Estimate Factory Route",
+        "operationId": "estimateFactory",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UGCFactoryPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Estimate Factory Route Api Studio Ugc Factory Estimate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/ugc/factory/execute": {
+      "post": {
+        "summary": "Execute Factory",
+        "operationId": "executeFactory",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UGCFactoryExecuteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Execute Factory Api Studio Ugc Factory Execute Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/jobs": {
+      "get": {
+        "summary": "Jobs",
+        "operationId": "listJobs",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Jobs Api Studio Jobs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/jobs/{job_id}": {
+      "get": {
+        "summary": "Job",
+        "operationId": "getJob",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Job Api Studio Jobs  Job Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/billing/wallet/{wallet_id}": {
+      "get": {
+        "summary": "Wallet",
+        "operationId": "getWallet",
+        "parameters": [
+          {
+            "name": "wallet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Wallet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Wallet Api Studio Billing Wallet  Wallet Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/social/schedule": {
+      "post": {
+        "summary": "Schedule Social",
+        "operationId": "scheduleSocialDrop",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Schedule Social Api Studio Social Schedule Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgentCommand": {
+        "properties": {
+          "command": {
+            "type": "string",
+            "title": "Command"
+          }
+        },
+        "type": "object",
+        "required": [
+          "command"
+        ],
+        "title": "AgentCommand"
+      },
+      "ApprovalDecision": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "title": "Decision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "title": "ApprovalDecision"
+      },
+      "ApprovalRequest": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "render",
+              "publish"
+            ],
+            "title": "Kind"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "wallet_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wallet Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "payload"
+        ],
+        "title": "ApprovalRequest"
+      },
+      "AttributionEvent": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "experiment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experiment Id"
+          },
+          "variant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Id"
+          },
+          "external_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Event Id"
+          },
+          "revenue_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue Cents"
+          },
+          "order_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Ref"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "event_type"
+        ],
+        "title": "AttributionEvent"
+      },
+      "BillingActivationRequest": {
+        "properties": {
+          "checkout_session_id": {
+            "type": "string",
+            "title": "Checkout Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checkout_session_id"
+        ],
+        "title": "BillingActivationRequest"
+      },
+      "Body_upload_reference_api_studio_references_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_reference_api_studio_references_upload_post"
+      },
+      "CampaignBrief": {
+        "properties": {
+          "brand": {
+            "type": "string",
+            "title": "Brand"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          },
+          "audience": {
+            "type": "string",
+            "title": "Audience",
+            "default": "customers and prospects"
+          },
+          "offer": {
+            "type": "string",
+            "title": "Offer",
+            "default": ""
+          },
+          "duration_days": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Duration Days",
+            "default": 7
+          },
+          "platforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Platforms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand",
+          "objective"
+        ],
+        "title": "CampaignBrief"
+      },
+      "ClientCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "niche": {
+            "type": "string",
+            "title": "Niche"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "niche",
+          "slug"
+        ],
+        "title": "ClientCreate"
+      },
+      "DiscoverRequest": {
+        "properties": {
+          "intent": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Intent"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "required": [
+          "intent"
+        ],
+        "title": "DiscoverRequest"
+      },
+      "EvaluateRequest": {
+        "properties": {
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/VariantResultInput"
+            },
+            "type": "array",
+            "title": "Variants"
+          }
+        },
+        "type": "object",
+        "required": [
+          "variants"
+        ],
+        "title": "EvaluateRequest"
+      },
+      "ExperimentCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "hypothesis": {
+            "type": "string",
+            "title": "Hypothesis"
+          },
+          "primary_kpi": {
+            "type": "string",
+            "title": "Primary Kpi"
+          },
+          "pass_threshold": {
+            "type": "number",
+            "title": "Pass Threshold"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "kill_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kill Threshold"
+          },
+          "campaign_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Id"
+          },
+          "attribution_window_hours": {
+            "type": "integer",
+            "maximum": 2160.0,
+            "minimum": 1.0,
+            "title": "Attribution Window Hours",
+            "default": 168
+          },
+          "budget_ceiling_cents": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Budget Ceiling Cents",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "hypothesis",
+          "primary_kpi",
+          "pass_threshold"
+        ],
+        "title": "ExperimentCreate"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HermesHandoff": {
+        "properties": {
+          "correlation_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 8,
+            "title": "Correlation Id"
+          },
+          "opportunity_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Opportunity Id"
+          },
+          "prospect": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Prospect"
+          },
+          "constraint": {
+            "type": "string",
+            "title": "Constraint",
+            "default": ""
+          },
+          "proof_hypothesis": {
+            "type": "string",
+            "title": "Proof Hypothesis"
+          },
+          "primary_kpi": {
+            "type": "string",
+            "title": "Primary Kpi"
+          },
+          "pass_threshold": {
+            "type": "number",
+            "title": "Pass Threshold"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "kill_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kill Threshold"
+          },
+          "attribution_window_hours": {
+            "type": "integer",
+            "maximum": 2160.0,
+            "minimum": 1.0,
+            "title": "Attribution Window Hours",
+            "default": 168
+          },
+          "budget_ceiling_cents": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Budget Ceiling Cents",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "correlation_id",
+          "opportunity_id",
+          "proof_hypothesis",
+          "primary_kpi",
+          "pass_threshold"
+        ],
+        "title": "HermesHandoff"
+      },
+      "HermesReceipt": {
+        "properties": {
+          "correlation_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 8,
+            "title": "Correlation Id"
+          },
+          "experiment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experiment Id"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "SCAN",
+              "QUALIFY",
+              "MODEL",
+              "PROVE",
+              "JUDGE",
+              "APPROVE",
+              "TEST",
+              "VERIFY",
+              "CLOSE",
+              "ITERATE",
+              "KILL",
+              "COMPOUND",
+              "HOLD"
+            ],
+            "title": "Stage"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "pass",
+              "fail",
+              "blocked",
+              "complete"
+            ],
+            "title": "Status"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "correlation_id",
+          "stage",
+          "status"
+        ],
+        "title": "HermesReceipt"
+      },
+      "InquiryPayload": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "bot_field": {
+            "type": "string",
+            "title": "Bot Field",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "InquiryPayload"
+      },
+      "InternalWalletRequest": {
+        "properties": {
+          "offer_id": {
+            "type": "string",
+            "title": "Offer Id"
+          },
+          "customer_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Ref"
+          },
+          "internal_ref": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Internal Ref"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offer_id",
+          "internal_ref"
+        ],
+        "title": "InternalWalletRequest"
+      },
+      "PasswordPayload": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "PasswordPayload"
+      },
+      "PerformanceEvent": {
+        "properties": {
+          "content_item_id": {
+            "type": "string",
+            "title": "Content Item Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content_item_id",
+          "source",
+          "metric",
+          "value"
+        ],
+        "title": "PerformanceEvent"
+      },
+      "PostDraft": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt",
+            "default": ""
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "default": "ai-content"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "content"
+        ],
+        "title": "PostDraft"
+      },
+      "ProviderBind": {
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "title": "Variant Id"
+          },
+          "external_ref": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "External Ref"
+          }
+        },
+        "type": "object",
+        "required": [
+          "variant_id",
+          "external_ref"
+        ],
+        "title": "ProviderBind"
+      },
+      "ProviderLaunch": {
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "title": "Variant Id"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved",
+            "default": false
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "variant_id",
+          "payload"
+        ],
+        "title": "ProviderLaunch"
+      },
+      "ProviderRefAction": {
+        "properties": {
+          "external_ref": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "External Ref"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "external_ref"
+        ],
+        "title": "ProviderRefAction"
+      },
+      "ProviderRouteRequest": {
+        "properties": {
+          "capability": {
+            "type": "string",
+            "enum": [
+              "talking_creator",
+              "image_to_video",
+              "text_to_video",
+              "lip_sync",
+              "audio_driven",
+              "body_motion"
+            ],
+            "title": "Capability"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "reference_count": {
+            "type": "integer",
+            "maximum": 16.0,
+            "minimum": 0.0,
+            "title": "Reference Count",
+            "default": 0
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "enum": [
+              "9:16",
+              "16:9",
+              "1:1",
+              "4:5"
+            ],
+            "title": "Aspect Ratio",
+            "default": "9:16"
+          },
+          "duration_seconds": {
+            "type": "integer",
+            "maximum": 300.0,
+            "minimum": 1.0,
+            "title": "Duration Seconds",
+            "default": 10
+          },
+          "preference": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fast",
+              "premium",
+              "sovereign"
+            ],
+            "title": "Preference",
+            "default": "auto"
+          },
+          "wallet_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wallet Id"
+          },
+          "requested_cost_ceiling_cents": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Cost Ceiling Cents"
+          },
+          "requires_person_identity": {
+            "type": "boolean",
+            "title": "Requires Person Identity",
+            "default": false
+          },
+          "consent_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Consent Refs"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "capability",
+          "idempotency_key"
+        ],
+        "title": "ProviderRouteRequest"
+      },
+      "ReferenceAdIntake": {
+        "properties": {
+          "source_uri": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Source Uri"
+          },
+          "source_sha256": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-fA-F]{64}$",
+            "title": "Source Sha256"
+          },
+          "source_owner": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Source Owner"
+          },
+          "rights_state": {
+            "type": "string",
+            "enum": [
+              "owned",
+              "licensed",
+              "authorized_analysis"
+            ],
+            "title": "Rights State"
+          },
+          "mime_type": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Mime Type",
+            "default": "video/mp4"
+          },
+          "transcript": {
+            "type": "string",
+            "maxLength": 40000,
+            "minLength": 1,
+            "title": "Transcript"
+          },
+          "duration_seconds": {
+            "type": "integer",
+            "maximum": 3600.0,
+            "minimum": 1.0,
+            "title": "Duration Seconds",
+            "default": 30
+          },
+          "shot_notes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Shot Notes"
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "product_source_refs": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Product Source Refs"
+          },
+          "client_product": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Client Product"
+          },
+          "target_audience": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Target Audience"
+          },
+          "approved_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Approved Claims"
+          },
+          "protected_brand_terms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Protected Brand Terms"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_uri",
+          "source_sha256",
+          "source_owner",
+          "rights_state",
+          "transcript",
+          "product_source_refs",
+          "client_product",
+          "target_audience",
+          "idempotency_key"
+        ],
+        "title": "ReferenceAdIntake"
+      },
+      "RepurposePlanRequest": {
+        "properties": {
+          "source_asset_key": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Source Asset Key"
+          },
+          "source_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 64,
+                "pattern": "^[0-9a-fA-F]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Sha256"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "default": "Long-form source"
+          },
+          "source_duration_seconds": {
+            "type": "number",
+            "maximum": 86400.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Source Duration Seconds"
+          },
+          "transcript": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptSegment"
+            },
+            "type": "array",
+            "maxItems": 5000,
+            "minItems": 1,
+            "title": "Transcript"
+          },
+          "max_clips": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Max Clips",
+            "default": 5
+          },
+          "target_clip_seconds": {
+            "type": "integer",
+            "maximum": 90.0,
+            "minimum": 10.0,
+            "title": "Target Clip Seconds",
+            "default": 30
+          },
+          "platform": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Platform",
+            "default": "short-form"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_asset_key",
+          "source_duration_seconds",
+          "transcript",
+          "idempotency_key"
+        ],
+        "title": "RepurposePlanRequest"
+      },
+      "ScheduleRequest": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format",
+            "default": "post"
+          },
+          "platforms": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Platforms"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "title": "Scheduled At"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved",
+            "default": false
+          },
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          },
+          "media_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Media Urls"
+          },
+          "campaign_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "content",
+          "platforms",
+          "scheduled_at"
+        ],
+        "title": "ScheduleRequest"
+      },
+      "SettingUpdate": {
+        "properties": {
+          "env": {
+            "type": "string",
+            "title": "Env"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "env",
+          "value"
+        ],
+        "title": "SettingUpdate"
+      },
+      "ShopifyProductContextRequest": {
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Client Id"
+          },
+          "shop_domain": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 3,
+            "title": "Shop Domain"
+          },
+          "product_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Product Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Description",
+            "default": ""
+          },
+          "vendor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor"
+          },
+          "product_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Type"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Tags"
+          },
+          "image_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Image Urls"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/ShopifyVariant"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Variants"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "client_id",
+          "shop_domain",
+          "product_id",
+          "title",
+          "idempotency_key"
+        ],
+        "title": "ShopifyProductContextRequest"
+      },
+      "ShopifyVariant": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "title": "Title",
+            "default": "Default"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "sku": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sku"
+          },
+          "available": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "ShopifyVariant"
+      },
+      "TokenCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "scopes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "plan",
+                "render",
+                "publish"
+              ]
+            },
+            "type": "array",
+            "title": "Scopes"
+          },
+          "ttl_days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Ttl Days",
+            "default": 30
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "scopes"
+        ],
+        "title": "TokenCreate"
+      },
+      "TranscriptSegment": {
+        "properties": {
+          "start_seconds": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Start Seconds"
+          },
+          "end_seconds": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "End Seconds"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start_seconds",
+          "end_seconds",
+          "text"
+        ],
+        "title": "TranscriptSegment"
+      },
+      "UGCBrief": {
+        "properties": {
+          "idea": {
+            "type": "string",
+            "title": "Idea"
+          },
+          "product": {
+            "type": "string",
+            "title": "Product",
+            "default": ""
+          },
+          "camera": {
+            "type": "string",
+            "title": "Camera",
+            "default": "stable handheld medium shot with one smooth push-in"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject",
+            "default": "a natural creator demonstrating the product"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "default": "a believable everyday setting"
+          },
+          "lighting": {
+            "type": "string",
+            "title": "Lighting",
+            "default": "soft natural light"
+          },
+          "style": {
+            "type": "string",
+            "title": "Style",
+            "default": "realistic"
+          },
+          "motion": {
+            "type": "string",
+            "title": "Motion",
+            "default": "small continuous movements with natural pacing"
+          },
+          "dialogue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dialogue"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "default": "instagram"
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "9:16"
+          }
+        },
+        "type": "object",
+        "required": [
+          "idea"
+        ],
+        "title": "UGCBrief"
+      },
+      "UGCFactoryExecuteRequest": {
+        "properties": {
+          "product": {
+            "type": "string",
+            "title": "Product"
+          },
+          "audience": {
+            "type": "string",
+            "title": "Audience"
+          },
+          "pain": {
+            "type": "string",
+            "title": "Pain"
+          },
+          "mechanism": {
+            "type": "string",
+            "title": "Mechanism"
+          },
+          "offer": {
+            "type": "string",
+            "title": "Offer",
+            "default": ""
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "default": "instagram"
+          },
+          "actor_description": {
+            "type": "string",
+            "title": "Actor Description",
+            "default": "a natural creator speaking like they are sharing something they actually use"
+          },
+          "delivery_tone": {
+            "type": "string",
+            "title": "Delivery Tone",
+            "default": "calm, honest and direct"
+          },
+          "visual_lane": {
+            "type": "string",
+            "title": "Visual Lane",
+            "default": "lane_zero"
+          },
+          "provider_model": {
+            "type": "string",
+            "maxLength": 255,
+            "title": "Provider Model",
+            "default": ""
+          },
+          "wallet_id": {
+            "type": "string",
+            "title": "Wallet Id"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "title": "Idempotency Key"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved",
+            "default": false
+          },
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "product",
+          "audience",
+          "pain",
+          "mechanism",
+          "wallet_id",
+          "idempotency_key"
+        ],
+        "title": "UGCFactoryExecuteRequest"
+      },
+      "UGCFactoryPlanRequest": {
+        "properties": {
+          "product": {
+            "type": "string",
+            "title": "Product"
+          },
+          "audience": {
+            "type": "string",
+            "title": "Audience"
+          },
+          "pain": {
+            "type": "string",
+            "title": "Pain"
+          },
+          "mechanism": {
+            "type": "string",
+            "title": "Mechanism"
+          },
+          "offer": {
+            "type": "string",
+            "title": "Offer",
+            "default": ""
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "default": "instagram"
+          },
+          "actor_description": {
+            "type": "string",
+            "title": "Actor Description",
+            "default": "a natural creator speaking like they are sharing something they actually use"
+          },
+          "delivery_tone": {
+            "type": "string",
+            "title": "Delivery Tone",
+            "default": "calm, honest and direct"
+          },
+          "visual_lane": {
+            "type": "string",
+            "title": "Visual Lane",
+            "default": "lane_zero"
+          },
+          "provider_model": {
+            "type": "string",
+            "maxLength": 255,
+            "title": "Provider Model",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "product",
+          "audience",
+          "pain",
+          "mechanism"
+        ],
+        "title": "UGCFactoryPlanRequest"
+      },
+      "UGCPlanDraft": {
+        "properties": {
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "product_source_refs": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Product Source Refs"
+          },
+          "creator_source_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creator Source Ref"
+          },
+          "setting_style_refs": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Setting Style Refs"
+          },
+          "strategy_receipt_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategy Receipt Ref"
+          },
+          "script": {
+            "type": "string",
+            "maxLength": 12000,
+            "minLength": 1,
+            "title": "Script"
+          },
+          "shot_plan": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Shot Plan"
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "enum": [
+              "9:16",
+              "16:9",
+              "1:1",
+              "4:5"
+            ],
+            "title": "Aspect Ratio",
+            "default": "9:16"
+          },
+          "duration_seconds": {
+            "type": "integer",
+            "maximum": 300.0,
+            "minimum": 1.0,
+            "title": "Duration Seconds",
+            "default": 10
+          },
+          "finish_mode": {
+            "type": "string",
+            "enum": [
+              "raw_ugc",
+              "creator_premium",
+              "product_cinematic",
+              "editorial_brand"
+            ],
+            "title": "Finish Mode",
+            "default": "raw_ugc"
+          },
+          "provider_preference": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fast",
+              "premium",
+              "sovereign"
+            ],
+            "title": "Provider Preference",
+            "default": "auto"
+          },
+          "estimated_cost_ceiling_cents": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Estimated Cost Ceiling Cents"
+          },
+          "approval_state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "approved",
+              "rejected"
+            ],
+            "title": "Approval State",
+            "default": "draft"
+          },
+          "consent_rights_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Consent Rights Refs"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "title": "Idempotency Key"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "product_source_refs",
+          "script",
+          "shot_plan",
+          "estimated_cost_ceiling_cents",
+          "idempotency_key"
+        ],
+        "title": "UGCPlanDraft",
+        "description": "External no-spend plan input; workspace identity is injected server-side."
+      },
+      "UrlReference": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": ""
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "default": "reference"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "UrlReference"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VariantCreate": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "control",
+              "variant"
+            ],
+            "title": "Role"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "content_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Item Id"
+          },
+          "hypothesis_delta": {
+            "type": "string",
+            "title": "Hypothesis Delta",
+            "default": ""
+          },
+          "external_ad_refs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "External Ad Refs"
+          },
+          "state": {
+            "type": "string",
+            "title": "State",
+            "default": "draft"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "label"
+        ],
+        "title": "VariantCreate"
+      },
+      "VariantResultInput": {
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "title": "Variant Id"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "control",
+              "variant"
+            ],
+            "title": "Role"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "spend_cents": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Spend Cents",
+            "default": 0
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Sample Size",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "variant_id",
+          "role",
+          "value"
+        ],
+        "title": "VariantResultInput"
+      },
+      "VoiceCommand": {
+        "properties": {
+          "transcript": {
+            "type": "string",
+            "title": "Transcript"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "web"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transcript"
+        ],
+        "title": "VoiceCommand"
+      }
+    },
+    "securitySchemes": {
+      "agentToken": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "security": [
+    {
+      "agentToken": []
+    }
+  ]
+}

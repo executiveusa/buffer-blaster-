@@ -13,7 +13,7 @@ import {
   ArrowLeft,
   LogOut,
 } from "lucide-react";
-import { clearToken, getToken, isDemoMode, isPublicConsole } from "@/lib/api";
+import { getToken, isDemoMode, isPublicConsole, signOut } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -41,8 +41,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   }, [openConsole, pathname, router, token]);
 
   function handleLogout() {
-    clearToken();
-    router.replace("/admin");
+    void signOut().finally(() => router.replace("/admin"));
   }
 
   if (!openConsole && pathname !== "/admin" && !token) {

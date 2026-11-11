@@ -118,8 +118,9 @@ def test_self_hosted_http_origin_is_allowed_only_when_exact(monkeypatch):
 
 
 def test_studio_prices_selected_model_before_wallet_reservation():
-    router = (ROOT / "api/routers/studio.py").read_text(encoding="utf-8")
-    pricing_index = router.index("estimate_factory_generation_cost(provider, plan, provider_model)")
+    router = (ROOT / "api/services/factory_runner.py").read_text(encoding="utf-8")
+    pricing_index = router.index("estimate_factory_generation_cost(provider, plan, model, image_url=casting_ref, reference_image_urls=casting_refs, clip_audio_urls=clip_audios)")
+    assert "priced_with_image_input" in (ROOT / "api/services/ugc_executor.py").read_text(encoding="utf-8")
     reserve_index = router.index("reservation = await reserve_generation(")
     assert pricing_index < reserve_index
     assert 'estimated_provider_cost_cents=estimated_cost' in router

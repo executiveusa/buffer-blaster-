@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import re
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, field_validator
 
 from ..deps import verify_session
+from ..services.integration_auth import require_execute_role
 from ..db import client_isolation
 from ..db.repositories import clients as client_repository
 
@@ -55,7 +56,8 @@ async def list_clients(_=Depends(verify_session)) -> dict:
 
 
 @router.post("", status_code=201)
-async def create_client(payload: ClientCreate, _=Depends(verify_session)) -> dict:
+async def create_client(payload: ClientCreate, request: Request, _=Depends(verify_session)) -> dict:
+    require_execute_role(request)
     schema = _schema_name(payload.slug)
     if not re.match(r"^schema_[a-z0-9_]+$", schema):
         raise HTTPException(status_code=400, detail="invalid slug")
@@ -74,7 +76,8 @@ async def get_client(slug: str, _=Depends(verify_session)) -> dict:
 
 
 @router.post("/{slug}/sync-airtable")
-async def sync_airtable(slug: str, _=Depends(verify_session)) -> dict:
+async def sync_airtable(slug: str, request: Request, _=Depends(verify_session)) -> dict:
+    require_execute_role(request)
     return {
         "client": slug,
         "status": "queued",

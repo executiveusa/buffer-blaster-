@@ -11,10 +11,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from ..deps import verify_session
+from ..services.integration_auth import require_execute_role
 
 router = APIRouter(prefix="/api/blog", tags=["blog"])
 
@@ -86,7 +87,8 @@ class PostDraft(BaseModel):
 
 
 @router.post("/posts")
-async def create_draft(payload: PostDraft, _=Depends(verify_session)) -> dict:
+async def create_draft(payload: PostDraft, request: Request, _=Depends(verify_session)) -> dict:
+    require_execute_role(request)
     slug = re.sub(r"[^a-z0-9]+", "-", payload.title.lower()).strip("-")
     path = _POSTS_DIR / f"{slug}.mdx"
     body = (

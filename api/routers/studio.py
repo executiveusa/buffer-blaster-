@@ -6,19 +6,23 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ..services.asset_storage import get_asset_storage
 from ..services.billing import activate_checkout_session
-from ..services.integration_auth import verify_operator
+from ..services.agent_access import gate_publish
+from ..services.factory_runner import estimate_factory, run_factory
+from ..services.integration_auth import (request_role, require_approver_role, require_execute_role,
+                                        require_human_write, require_scope, verify_operator)
+from ..services.agent_access import is_agent
 from ..services.media_generation import get_media_provider
 from ..services.media_ops import get_media_ops
 from ..services.pricing import public_pricing
 from ..services.publishing import PublishRequest, get_publisher
 from ..services.social_drop import SocialDrop, platform_payload
 from ..services.studio_ledger import create_campaign, get_job, list_jobs, summary
-from ..services.ugc_executor import execute_ugc_factory_ad, estimate_factory_generation_cost
+from ..services.ugc_executor import execute_ugc_factory_ad, estimate_factory_generation_cost, record_performance_review
 from ..services.ugc_factory import UGCFactoryBrief as ServiceUGCFactoryBrief, build_ugc_factory_plan
 from ..services.video_prompt import VideoPromptInput, compile_video_prompt
 from ..services.voice_intent import parse_voice_intent
@@ -61,12 +65,16 @@ class UGCFactoryPlanRequest(BaseModel):
     delivery_tone: str = "calm, honest and direct"
     visual_lane: str = "lane_zero"
     provider_model: str = Field(default="", max_length=255)
+    casting_reference_url: str = Field(default="", max_length=2048)
+    casting_reference_urls: list[str] = Field(default_factory=list, max_length=12)
+    clip_audio_urls: list[str] = Field(default_factory=list, max_length=2)
 
 
 class UGCFactoryExecuteRequest(UGCFactoryPlanRequest):
     wallet_id: str
     idempotency_key: str = Field(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$")
     approved: bool = False
+    approval_id: str | None = None
 
 
 class BillingActivationRequest(BaseModel):
@@ -86,6 +94,7 @@ class ScheduleRequest(BaseModel):
     platforms: list[dict[str, Any]]
     scheduled_at: str
     approved: bool = False
+    approval_id: str | None = None
     media_urls: list[str] = Field(default_factory=list)
     campaign_id: str | None = None
 
@@ -156,12 +165,14 @@ async def job(job_id: str, _=Depends(verify_operator)) -> dict[str, Any]:
 
 
 @router.post("/billing/activate")
-async def activate_billing(request: BillingActivationRequest, _=Depends(verify_operator)) -> dict[str, Any]:
+async def activate_billing(request: BillingActivationRequest, http: Request, identity: str = Depends(verify_operator)) -> dict[str, Any]:
+    require_human_write(http, identity)
     return await activate_checkout_session(request.checkout_session_id)
 
 
 @router.post("/billing/internal-wallet")
-async def create_internal_team_wallet(request: InternalWalletRequest, _=Depends(verify_operator)) -> dict[str, Any]:
+async def create_internal_team_wallet(request: InternalWalletRequest, http: Request, identity: str = Depends(verify_operator)) -> dict[str, Any]:
+    require_human_write(http, identity)
     """Free-for-the-team wallet provisioning. Off unless the server opts in.
 
     No Stripe, no customer charge. The wallet keeps package economics, so
@@ -185,7 +196,8 @@ async def wallet(wallet_id: str, _=Depends(verify_operator)) -> dict[str, Any]:
 
 
 @router.post("/campaigns/plan")
-async def plan_campaign(brief: CampaignBrief, _=Depends(verify_operator)) -> dict[str, Any]:
+async def plan_campaign(brief: CampaignBrief, http: Request, identity: str = Depends(verify_operator)) -> dict[str, Any]:
+    require_human_write(http, identity)
     plan = _campaign_plan(brief)
     persisted = await create_campaign(plan)
     return {"ok": not bool(persisted.get("ledger_error")), "plan": plan, "ledger": persisted}
@@ -203,50 +215,58 @@ async def create_ugc_factory_plan(brief: UGCFactoryPlanRequest, _=Depends(verify
 
 
 @router.post("/ugc/factory/execute")
-async def execute_factory(request: UGCFactoryExecuteRequest, _=Depends(verify_operator)) -> dict[str, Any]:
-    if not request.approved:
-        return {"ok": False, "error": "human_approval_required", "approval_required": True, "state": "planned"}
-    wallet_state = await get_wallet(request.wallet_id)
-    if not wallet_state:
-        return {"ok": False, "error": "wallet_not_found"}
-    if wallet_state.get("state") != "active":
-        return {"ok": False, "error": "wallet_not_active", "wallet_state": wallet_state.get("state")}
-
-    brief_fields = request.model_dump(exclude={"wallet_id", "idempotency_key", "approved"})
-    service_brief = ServiceUGCFactoryBrief(**brief_fields)
-    plan = build_ugc_factory_plan(service_brief)
-    if not plan.get("ok"):
-        return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
-    provider = get_media_provider()
-    if not provider.configured:
-        return {"ok": False, "error": "media_provider_not_configured", "state": "preflight_blocked"}
-    provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
-    pricing = estimate_factory_generation_cost(provider, plan, provider_model)
-    if not pricing.get("ok"):
-        return {**pricing, "state": "preflight_blocked"}
-    estimated_cost = int(pricing["estimated_generation_cost_cents"])
-
-    if not get_asset_storage().configured:
-        return {"ok": False, "error": "asset_storage_not_configured", "state": "preflight_blocked"}
-    if not get_media_ops().available():
-        return {"ok": False, "error": "ffmpeg_not_available", "state": "preflight_blocked"}
-
-    reservation = await reserve_generation(
-        request.wallet_id,
-        estimated_provider_cost_cents=estimated_cost,
+async def execute_factory(request: UGCFactoryExecuteRequest, http: Request, identity: str = Depends(verify_operator)) -> dict[str, Any]:
+    require_scope(http, "render")
+    if request.approved and not is_agent(identity):
+        require_execute_role(http)
+    return await run_factory(
+        request.model_dump(),
+        wallet_id=request.wallet_id,
         idempotency_key=request.idempotency_key,
+        approved=request.approved,
+        identity=identity,
+        approval_id=request.approval_id,
+        role=request_role(http),
     )
-    if not reservation.get("ok"):
-        return {**reservation, "state": "spend_blocked"}
-    reservation["offer_id"] = wallet_state["offer_id"]
 
-    return await execute_ugc_factory_ad(
-        service_brief,
-        approved=True,
-        offer_id=str(wallet_state["offer_id"]),
-        reserved_allowance=reservation,
-        provider=provider,
-    )
+
+class UGCPerformanceReviewRequest(BaseModel):
+    job_id: str = Field(min_length=1, max_length=128)
+    asset_sha256: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    checks: dict[str, bool]
+    notes: str = Field(default="", max_length=2000)
+    evidence_urls: list[str] = Field(default_factory=list, max_length=20)
+
+
+@router.post("/ugc/factory/review")
+async def review_factory_performance(request: UGCPerformanceReviewRequest, http: Request, identity: str = Depends(verify_operator)) -> dict[str, Any]:
+    """Human-only post-render performance review, bound to the stored asset digest.
+
+    Approving that a speaking performance is ready is an approval decision, so
+    it requires the approver contract (owner/approver role), not just a render
+    scope: a read-only workspace viewer must never mark a job finished. Agents
+    are refused outright (they carry no role and cannot self-attest).
+    """
+    if is_agent(identity):
+        return {"ok": False, "error": "agent_performance_review_not_accepted",
+                "detail": "Speaking-performance readiness must be attested by a human operator, never self-attested by an agent."}
+    require_approver_role(http)
+    result = await record_performance_review(request.job_id, {
+        "reviewer": identity,
+        "asset_sha256": request.asset_sha256,
+        "checks": dict(request.checks),
+        "notes": request.notes,
+        "evidence_urls": list(request.evidence_urls),
+    })
+    if result.get("error") == "performance_review_conflict":
+        raise HTTPException(status_code=409, detail=result.get("detail"))
+    return result
+
+
+@router.post("/ugc/factory/estimate")
+async def estimate_factory_route(brief: UGCFactoryPlanRequest, http: Request, _: str = Depends(verify_operator)) -> dict[str, Any]:
+    require_scope(http, "plan")
+    return estimate_factory(brief.model_dump())
 
 
 @router.post("/ugc/render")
@@ -271,10 +291,15 @@ async def social_accounts(_=Depends(verify_operator)) -> dict[str, Any]:
 
 
 @router.post("/social/schedule")
-async def schedule_social(request: ScheduleRequest, _=Depends(verify_operator)) -> dict[str, Any]:
-    if not request.approved:
-        return {"ok": False, "error": "human_approval_required"}
-    drop = SocialDrop(id=request.id, content=request.content, format=request.format, platforms=request.platforms, scheduled_at=request.scheduled_at, media_urls=request.media_urls, approved=request.approved, campaign_id=request.campaign_id)
+async def schedule_social(request: ScheduleRequest, http: Request, identity: str = Depends(verify_operator)) -> dict[str, Any]:
+    require_scope(http, "publish")
+    if request.approved and not is_agent(identity):
+        require_execute_role(http)
+    gate = await gate_publish(identity=identity, fields=request.model_dump(), approved=request.approved,
+                              approval_id=getattr(request, "approval_id", None), role=request_role(http))
+    if not gate.get("ok"):
+        return {"ok": False, **{k: v for k, v in gate.items() if k != "ok"}}
+    drop = SocialDrop(id=request.id, content=request.content, format=request.format, platforms=request.platforms, scheduled_at=request.scheduled_at, media_urls=request.media_urls, approved=True, campaign_id=request.campaign_id)
     errors = drop.validate()
     if errors:
         return {"ok": False, "error": "invalid_social_drop", "details": errors}

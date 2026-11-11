@@ -85,6 +85,36 @@ return {'OK', tostring(new_budget), tostring(new_credits)}
 """
 
 
+# Refund a reservation exactly once. Never credits more than was reserved; the
+# reservation hash is kept (marked released) for audit instead of deleted.
+_RELEASE_LUA = r"""
+-- op:release
+local key = KEYS[1]
+local reservation_key = KEYS[2]
+local now_epoch = ARGV[1]
+local reason = ARGV[2]
+local incurred = ARGV[3]
+if redis.call('EXISTS', key) == 0 then
+  return {'ERR', 'wallet_not_found'}
+end
+if redis.call('EXISTS', reservation_key) == 0 then
+  return {'ERR', 'reservation_not_found'}
+end
+local cost = tonumber(redis.call('HGET', reservation_key, 'estimated_provider_cost_cents') or '0')
+local credits = tonumber(redis.call('HGET', reservation_key, 'ad_credits_required') or '0')
+if redis.call('HGET', reservation_key, 'released') == '1' then
+  return {'REPLAY', tostring(cost), tostring(credits),
+    redis.call('HGET', key, 'remaining_provider_budget_cents') or '0',
+    redis.call('HGET', key, 'remaining_ad_credits') or '0'}
+end
+local new_budget = redis.call('HINCRBY', key, 'remaining_provider_budget_cents', cost)
+local new_credits = redis.call('HINCRBY', key, 'remaining_ad_credits', credits)
+redis.call('HSET', key, 'updated_at_epoch', now_epoch)
+redis.call('HSET', reservation_key, 'released', '1', 'released_at_epoch', now_epoch,
+  'release_reason', reason, 'provider_cost_incurred_cents', incurred)
+return {'OK', tostring(cost), tostring(credits), tostring(new_budget), tostring(new_credits)}
+"""
+
 def _redis_url() -> str:
     return os.getenv("REDIS_URL", "").strip()
 
@@ -329,5 +359,81 @@ async def reserve_generation(
         }
     except redis.RedisError as exc:
         return {"ok": False, "error": "wallet_reservation_failed", "detail": type(exc).__name__}
+    finally:
+        await client.aclose()
+
+
+async def _mirror_release(wallet_id: str, idempotency_key: str, budget: int, credits: int, incurred: int, reason: str) -> None:
+    base = os.getenv("SUPABASE_URL", "").rstrip("/")
+    key = os.getenv("SUPABASE_SERVICE_KEY", "")
+    workspace_id = _workspace_id()
+    if not (base and key and workspace_id):
+        return
+    payload = {
+        "id": f"{wallet_id}:{idempotency_key}", "workspace_id": workspace_id, "wallet_id": wallet_id,
+        "idempotency_key": idempotency_key, "refunded_provider_budget_cents": budget, "refunded_ad_credits": credits,
+        "provider_cost_incurred_cents": incurred, "reason": reason[:120],
+    }
+    headers = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
+               "Content-Profile": "buffer_blaster", "Prefer": "resolution=ignore-duplicates,return=minimal"}
+    try:
+        async with httpx.AsyncClient(timeout=8) as http:
+            await http.post(f"{base}/rest/v1/wallet_reservation_releases?on_conflict=id", headers=headers, json=payload)
+    except httpx.HTTPError:
+        return
+
+
+async def release_reservation(
+    wallet_id: str,
+    *,
+    idempotency_key: str,
+    reason: str,
+    provider_cost_incurred_cents: int = 0,
+) -> dict[str, Any]:
+    """Refund a reservation in full, exactly once per (wallet_id, idempotency_key).
+
+    Policy (owner decision): the customer is refunded whenever no final ad is
+    stored and returned. What the provider actually billed is recorded
+    separately as ``provider_cost_incurred_cents`` so platform loss is visible.
+    Errors are returned, never swallowed, so a failed release can be retried.
+    """
+    if not idempotency_key:
+        return {"ok": False, "error": "idempotency_key_required"}
+    client = _client()
+    if client is None:
+        return {"ok": False, "error": "wallet_store_unavailable", "retryable": True}
+    try:
+        result = await client.eval(
+            _RELEASE_LUA,
+            2,
+            f"{_PREFIX}{wallet_id}",
+            _reservation_key(wallet_id, idempotency_key),
+            int(time.time()),
+            (reason or "unspecified")[:120],
+            max(0, int(provider_cost_incurred_cents)),
+        )
+        if not result or result[0] not in {"OK", "REPLAY"}:
+            return {"ok": False, "error": result[1] if result and len(result) > 1 else "wallet_release_failed"}
+        replay = result[0] == "REPLAY"
+        if not replay:
+            wallet = await get_wallet(wallet_id, client=client)
+            if wallet:
+                await _mirror_wallet(wallet)
+            await _mirror_release(wallet_id, idempotency_key, int(result[1]), int(result[2]),
+                                  max(0, int(provider_cost_incurred_cents)), reason or "unspecified")
+        return {
+            "ok": True,
+            "wallet_id": wallet_id,
+            "idempotency_key": idempotency_key,
+            "refunded_provider_budget_cents": int(result[1]),
+            "refunded_ad_credits": int(result[2]),
+            "remaining_provider_budget_cents": int(result[3]),
+            "remaining_ad_credits": int(result[4]),
+            "provider_cost_incurred_cents": max(0, int(provider_cost_incurred_cents)),
+            "reason": reason,
+            "idempotent_replay": replay,
+        }
+    except redis.RedisError as exc:
+        return {"ok": False, "error": "wallet_release_failed", "detail": type(exc).__name__, "retryable": True}
     finally:
         await client.aclose()

@@ -1,0 +1,120 @@
+{
+  "model": "base",
+  "faster_whisper": "1.2.1",
+  "ctranslate2": "4.9.0",
+  "fixture": "tests/fixtures/jfk.wav (public domain JFK clip via whisper.cpp samples)",
+  "language": "en",
+  "words": [
+    {
+      "start": 0.0,
+      "end": 0.52,
+      "text": "And"
+    },
+    {
+      "start": 0.52,
+      "end": 0.84,
+      "text": "so"
+    },
+    {
+      "start": 0.84,
+      "end": 1.2,
+      "text": "my"
+    },
+    {
+      "start": 1.2,
+      "end": 1.58,
+      "text": "fellow"
+    },
+    {
+      "start": 1.58,
+      "end": 2.1,
+      "text": "Americans,"
+    },
+    {
+      "start": 2.76,
+      "end": 3.74,
+      "text": "ask"
+    },
+    {
+      "start": 3.74,
+      "end": 4.24,
+      "text": "not"
+    },
+    {
+      "start": 4.24,
+      "end": 5.52,
+      "text": "what"
+    },
+    {
+      "start": 5.52,
+      "end": 5.76,
+      "text": "your"
+    },
+    {
+      "start": 5.76,
+      "end": 6.24,
+      "text": "country"
+    },
+    {
+      "start": 6.24,
+      "end": 6.62,
+      "text": "can"
+    },
+    {
+      "start": 6.62,
+      "end": 6.82,
+      "text": "do"
+    },
+    {
+      "start": 6.82,
+      "end": 7.08,
+      "text": "for"
+    },
+    {
+      "start": 7.08,
+      "end": 7.34,
+      "text": "you,"
+    },
+    {
+      "start": 7.72,
+      "end": 8.48,
+      "text": "ask"
+    },
+    {
+      "start": 8.48,
+      "end": 8.76,
+      "text": "what"
+    },
+    {
+      "start": 8.76,
+      "end": 9.04,
+      "text": "you"
+    },
+    {
+      "start": 9.04,
+      "end": 9.32,
+      "text": "can"
+    },
+    {
+      "start": 9.32,
+      "end": 9.56,
+      "text": "do"
+    },
+    {
+      "start": 9.56,
+      "end": 9.78,
+      "text": "for"
+    },
+    {
+      "start": 9.78,
+      "end": 9.96,
+      "text": "your"
+    },
+    {
+      "start": 9.96,
+      "end": 10.36,
+      "text": "country."
+    }
+  ],
+  "note": "Captured 2026-11-10, two consecutive runs byte-identical; golden tolerance +/-150ms per DoD."
+}

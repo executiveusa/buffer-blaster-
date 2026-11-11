@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "buffer-blaster": {
+      "type": "http",
+      "url": "${BLASTER_API_URL}/api/mcp",
+      "headers": { "Authorization": "Bearer ${BLASTER_AGENT_TOKEN}" }
+    }
+  }
+}

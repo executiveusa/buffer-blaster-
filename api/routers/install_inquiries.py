@@ -1,6 +1,7 @@
 """Public install-interest intake. No operator secret is accepted or returned."""
 from __future__ import annotations
 
+from ..deps import _client_ip
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
@@ -16,6 +17,5 @@ class InquiryPayload(BaseModel):
 
 @router.post("")
 async def create(payload: InquiryPayload, request: Request) -> dict:
-    forwarded = request.headers.get("x-forwarded-for", "")
-    source = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
+    source = _client_ip(request)
     return await create_install_inquiry(email=payload.email, honeypot=payload.bot_field, source=source)

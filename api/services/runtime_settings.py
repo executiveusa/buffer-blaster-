@@ -13,7 +13,9 @@ from typing import Any
 import redis.asyncio as redis
 
 
-_ALLOWED = {"ACTIVE_LLM_PROVIDER", "AGENT_MAX_CHILDREN"}
+_ALLOWED = {"ACTIVE_LLM_PROVIDER", "AGENT_MAX_CHILDREN",
+            "USAGE_CAP_JOB_CENTS", "USAGE_CAP_DAILY_CENTS", "USAGE_CAP_MONTHLY_CENTS",
+            "MODEL_PROVIDER", "MODEL_NAME", "MODEL_REASONING_LEVEL"}
 _HASH_KEY = "buffer_blaster:runtime_settings:v1"
 
 
@@ -55,6 +57,19 @@ async def set_value(key: str, value: str) -> dict[str, Any]:
         if count < 1 or count > 100:
             return {"ok": False, "error": "out_of_range", "env": key, "minimum": 1, "maximum": 100}
         clean = str(count)
+    elif key.startswith("USAGE_CAP_"):
+        try:
+            cap = int(clean)
+        except ValueError:
+            return {"ok": False, "error": "invalid_cap_value", "env": key,
+                    "detail": "Caps must be non-negative whole cents; an invalid value never silently disables a cap."}
+        if cap < 0:
+            return {"ok": False, "error": "invalid_cap_value", "env": key,
+                    "detail": "Caps must be non-negative whole cents; an invalid value never silently disables a cap."}
+        clean = str(cap)
+    elif key == "MODEL_REASONING_LEVEL" and clean not in {"none", "minimal", "low", "medium", "high", "xhigh", "max"}:
+        return {"ok": False, "error": "invalid_reasoning_level", "env": key,
+                "allowed": ["none", "minimal", "low", "medium", "high", "xhigh", "max"]}
     elif key == "ACTIVE_LLM_PROVIDER" and clean not in {"anthropic", "openai", "google", "ollama"}:
         return {
             "ok": False,

@@ -6,7 +6,14 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from ..services.integration_auth import verify_operator
+from ..services.integration_auth import require_execute_role, verify_operator
+from fastapi import Request as _Request
+
+
+async def _verify_money_operator(request: _Request) -> str:
+    identity = await verify_operator(request)
+    require_execute_role(request)
+    return identity
 from ..services.money_loop import (
     add_variant,
     bind_variant_provider_ref,
@@ -93,42 +100,42 @@ class ProviderBind(BaseModel):
 
 
 @router.post("/experiments")
-async def create(payload: ExperimentCreate, _=Depends(verify_operator)) -> dict[str, Any]:
+async def create(payload: ExperimentCreate, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     return await create_experiment(payload.model_dump())
 
 
 @router.post("/experiments/{experiment_id}/variants")
-async def variant(experiment_id: str, payload: VariantCreate, _=Depends(verify_operator)) -> dict[str, Any]:
+async def variant(experiment_id: str, payload: VariantCreate, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     return await add_variant(experiment_id, payload.model_dump())
 
 
 @router.post("/performance")
-async def performance(payload: PerformanceEvent, _=Depends(verify_operator)) -> dict[str, Any]:
+async def performance(payload: PerformanceEvent, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     return await ingest_performance_event(payload.model_dump())
 
 
 @router.post("/attribution")
-async def attribution(payload: AttributionEvent, _=Depends(verify_operator)) -> dict[str, Any]:
+async def attribution(payload: AttributionEvent, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     return await ingest_attribution_event(payload.model_dump())
 
 
 @router.post("/experiments/{experiment_id}/evaluate")
-async def decide(experiment_id: str, payload: EvaluateRequest, _=Depends(verify_operator)) -> dict[str, Any]:
+async def decide(experiment_id: str, payload: EvaluateRequest, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     return await evaluate(experiment_id, [row.model_dump() for row in payload.variants])
 
 
 @router.post("/experiments/{experiment_id}/sync")
-async def sync(experiment_id: str, _=Depends(verify_operator)) -> dict[str, Any]:
+async def sync(experiment_id: str, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     return await sync_experiment(experiment_id)
 
 
 @router.get("/providers")
-async def providers(_=Depends(verify_operator)) -> dict[str, Any]:
+async def providers(_=Depends(_verify_money_operator)) -> dict[str, Any]:
     return {"providers": provider_statuses()}
 
 
 @router.post("/providers/{provider_name}/launch")
-async def launch_provider(provider_name: str, payload: ProviderLaunch, _=Depends(verify_operator)) -> dict[str, Any]:
+async def launch_provider(provider_name: str, payload: ProviderLaunch, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     try:
         provider = get_ads_provider(provider_name)
     except KeyError:
@@ -142,7 +149,7 @@ async def launch_provider(provider_name: str, payload: ProviderLaunch, _=Depends
 
 
 @router.post("/providers/{provider_name}/activate")
-async def activate_provider(provider_name: str, payload: ProviderRefAction, _=Depends(verify_operator)) -> dict[str, Any]:
+async def activate_provider(provider_name: str, payload: ProviderRefAction, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     try:
         provider = get_ads_provider(provider_name)
     except KeyError:
@@ -151,7 +158,7 @@ async def activate_provider(provider_name: str, payload: ProviderRefAction, _=De
 
 
 @router.post("/providers/{provider_name}/bind")
-async def bind_provider(provider_name: str, payload: ProviderBind, _=Depends(verify_operator)) -> dict[str, Any]:
+async def bind_provider(provider_name: str, payload: ProviderBind, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     try:
         get_ads_provider(provider_name)
     except KeyError:
@@ -160,7 +167,7 @@ async def bind_provider(provider_name: str, payload: ProviderBind, _=Depends(ver
 
 
 @router.post("/providers/{provider_name}/pause")
-async def pause_provider(provider_name: str, payload: ProviderRefAction, _=Depends(verify_operator)) -> dict[str, Any]:
+async def pause_provider(provider_name: str, payload: ProviderRefAction, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     try:
         provider = get_ads_provider(provider_name)
     except KeyError:
@@ -169,7 +176,7 @@ async def pause_provider(provider_name: str, payload: ProviderRefAction, _=Depen
 
 
 @router.post("/providers/{provider_name}/read")
-async def read_provider(provider_name: str, payload: ProviderRefAction, _=Depends(verify_operator)) -> dict[str, Any]:
+async def read_provider(provider_name: str, payload: ProviderRefAction, _=Depends(_verify_money_operator)) -> dict[str, Any]:
     try:
         provider = get_ads_provider(provider_name)
     except KeyError:
@@ -178,7 +185,7 @@ async def read_provider(provider_name: str, payload: ProviderRefAction, _=Depend
 
 
 @router.get("/contract")
-async def contract(_=Depends(verify_operator)) -> dict[str, Any]:
+async def contract(_=Depends(_verify_money_operator)) -> dict[str, Any]:
     return {
         "version": "money-loop-v1",
         "ownership": {

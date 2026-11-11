@@ -171,10 +171,18 @@ def test_stage_07_full_journey_finishes_a_video(journey, monkeypatch):
         headers=journey["auth"],
     )
     body = executed.json()
-    assert body["ok"] is True, body
-    assert body["state"] == "finished"
-    assert body["final_asset"]["signed_url"].endswith("final.mp4")
+    assert body["ok"] is False, body
+    assert body["state"] == "needs_performance_review"
+    assert "/final-" in body["final_asset"]["signed_url"] and body["final_asset"]["signed_url"].endswith(".mp4")
     assert body["qa"]["seam_passed"] is True
+
+    reviewed = journey["client"].post(
+        "/api/studio/ugc/factory/review",
+        json={"job_id": body["job_id"], "asset_sha256": body["final_asset_sha256"],
+              "checks": {"mouth_timing": True, "face": True, "hands": True, "continuity": True}},
+        headers=journey["auth"],
+    ).json()
+    assert reviewed["ok"] is True and reviewed["state"] == "finished"
     assert body["allowance"]["remaining_provider_budget_after_cents"] == 100
     assert body["allowance"]["remaining_ad_credits_after"] == 0
     assert journey["doubles"]["provider"].calls >= 2

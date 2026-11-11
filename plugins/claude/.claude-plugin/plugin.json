@@ -1,0 +1,6 @@
+{
+  "name": "buffer-blaster",
+  "version": "1.0.0",
+  "description": "Plan, price, and (with human approval) render UGC video ads through Buffer Blaster's governed MCP server.",
+  "author": { "name": "The Pauli Effect" }
+}

@@ -11,8 +11,16 @@ if str(ROOT) not in sys.path:
 
 # Tests use synthetic credentials that are unrelated to any operator/runtime secret.
 os.environ.setdefault("DEMO_PASSWORD", "buffer-blaster-test-password")
+os.environ.setdefault("DEMO_PASSWORD_LOGIN_ENABLED", "true")
 os.environ.setdefault("MASTER_ENCRYPTION_KEY", "buffer-blaster-test-key")
 
+
+# Pinned BEFORE any native import: the captions transcriber's int8 CPU decode
+# is only reproducible with single-threaded math libraries, and OpenMP latches
+# its thread count at first use (api.services.native loads native code below).
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
 
 import pytest
 from api.services.native import get_core

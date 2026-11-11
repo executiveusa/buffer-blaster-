@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { clearToken, getToken } from "@/lib/api";
+import { clearToken, getToken, setToken, usesSupabaseAuth } from "@/lib/api";
+import { freshAccessToken } from "@/lib/supabase";
 
 const API_URL = "/api/backend";
 
@@ -12,8 +13,21 @@ export function OperatorGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const token = getToken();
     const login = `/admin?next=${encodeURIComponent(pathname || "/studio")}`;
+    if (usesSupabaseAuth()) {
+      let cancelled = false;
+      (async () => {
+        const fresh = await freshAccessToken();
+        if (cancelled) return;
+        if (!fresh) { clearToken(); router.replace(login); return; }
+        setToken(fresh);
+        fetch(`${API_URL}/api/auth/session`, { headers: { Authorization: `Bearer ${fresh}` }, cache: "no-store" })
+          .then((response) => { if (!response.ok) throw new Error("invalid_session"); if (!cancelled) setReady(true); })
+          .catch(() => { if (cancelled) return; clearToken(); router.replace(login); });
+      })();
+      return () => { cancelled = true; };
+    }
+    const token = getToken();
     if (!token) { router.replace(login); return; }
     fetch(`${API_URL}/api/auth/session`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
       .then((response) => { if (!response.ok) throw new Error("invalid_session"); setReady(true); })

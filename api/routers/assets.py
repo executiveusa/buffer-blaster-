@@ -4,10 +4,11 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from pydantic import BaseModel
 
 from ..services.integration_auth import verify_operator
+from ..services.integration_auth import require_human_write
 from ..services.source_assets import create_uploaded_reference, create_url_reference, list_references
 
 router = APIRouter(prefix="/api/studio/references", tags=["studio-references"])
@@ -26,16 +27,19 @@ async def references(limit: int = 100, _=Depends(verify_operator)) -> dict:
 
 
 @router.post("/url")
-async def add_url_reference(payload: UrlReference, _=Depends(verify_operator)) -> dict:
+async def add_url_reference(payload: UrlReference, http: Request, identity: str = Depends(verify_operator)) -> dict:
+    require_human_write(http, identity)
     return await create_url_reference(url=payload.url, kind=payload.kind, metadata={"label": payload.label})
 
 
 @router.post("/upload")
 async def upload_reference(
+    http: Request,
     file: UploadFile = File(...),
     label: str = Form(default=""),
-    _=Depends(verify_operator),
+    identity: str = Depends(verify_operator),
 ) -> dict:
+    require_human_write(http, identity)
     allowed = {"image/jpeg", "image/png", "image/webp"}
     content_type = file.content_type or "application/octet-stream"
     if content_type not in allowed:
