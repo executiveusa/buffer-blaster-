@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel
 
 from ..services.integration_auth import verify_operator
-from ..services.source_assets import create_uploaded_reference, create_url_reference, list_references
+from ..services.source_assets import create_uploaded_reference, create_url_reference, list_references, get_reference
 
 router = APIRouter(prefix="/api/studio/references", tags=["studio-references"])
 
@@ -23,6 +23,12 @@ class UrlReference(BaseModel):
 async def references(limit: int = 100, _=Depends(verify_operator)) -> dict:
     assets = await list_references(limit)
     return {"ok": True, "assets": assets, "count": len(assets)}
+
+
+@router.get("/{reference_id}")
+async def reference(reference_id: str, _=Depends(verify_operator)) -> dict:
+    """Read metadata for exactly one asset in the active Buffer Blaster workspace."""
+    return await get_reference(reference_id)
 
 
 @router.post("/url")
