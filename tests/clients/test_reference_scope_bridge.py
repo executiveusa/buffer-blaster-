@@ -103,3 +103,80 @@ async def test_redis_reference_read_refuses_foreign_workspace(monkeypatch):
     result = await source_assets.get_reference(ASSET)
     assert result["ok"] is False
     assert result["error"] == "reference_not_found"
+
+
+@pytest.mark.asyncio
+async def test_redis_listing_scans_past_foreign_workspace_entries(monkeypatch):
+    """Global Redis zset may have a full first page of newer foreign records."""
+    import json
+
+    monkeypatch.setenv("BUFFER_BLASTER_WORKSPACE_ID", WORKSPACE)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/7")
+
+    foreign_ids = [str(uuid4()) for _ in range(50)]
+    owned_id = ASSET
+    ordered_ids = foreign_ids + [owned_id]
+
+    class FakeRedis:
+        def __init__(self):
+            self.pages = []
+
+        async def zrevrange(self, key, start, stop):
+            assert key == source_assets._ZSET
+            self.pages.append((start, stop))
+            return ordered_ids[start:stop + 1]
+
+        async def mget(self, keys):
+            result = []
+            for key in keys:
+                asset_id = key.rsplit(":", 1)[-1]
+                is_ours = asset_id == owned_id
+                result.append(json.dumps({
+                    "id": asset_id,
+                    "workspace_id": WORKSPACE if is_ours else FOREIGN,
+                }))
+            return result
+
+        async def aclose(self):
+            pass
+
+    fake = FakeRedis()
+    monkeypatch.setattr(source_assets.redis, "from_url", lambda *a, **kw: fake)
+    values = await source_assets.list_references(1)
+    assert len(values) == 1
+    assert values[0]["id"] == ASSET
+    assert fake.pages == [(0, 49), (50, 99)]
+
+
+@pytest.mark.asyncio
+async def test_redis_listing_returns_exact_requested_count_after_workspace_filter(monkeypatch):
+    import json
+    monkeypatch.setenv("BUFFER_BLASTER_WORKSPACE_ID", WORKSPACE)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/7")
+    target_ids = [str(uuid4()) for _ in range(3)]
+    items = [
+        {"id": str(uuid4()), "workspace_id": FOREIGN},
+        {"id": target_ids[0], "workspace_id": WORKSPACE},
+        {"id": str(uuid4()), "workspace_id": FOREIGN},
+        {"id": target_ids[1], "workspace_id": WORKSPACE},
+        {"id": target_ids[2], "workspace_id": WORKSPACE},
+    ]
+
+    class FakeRedis:
+        async def zrevrange(self, key, start, stop):
+            return [r["id"] for r in items[start:stop + 1]]
+
+        async def mget(self, keys):
+            by_id = {r["id"]: r for r in items}
+            return [json.dumps(by_id[key.rsplit(":", 1)[-1]]) for key in keys]
+
+        async def aclose(self):
+            pass
+
+    monkeypatch.setattr(source_assets.redis, "from_url", lambda *a, **kw: FakeRedis())
+    found = await source_assets.list_references(2)
+    assert [r["id"] for r in found] == target_ids[:2]
