@@ -17,6 +17,22 @@ from .asset_storage import get_asset_storage
 _ZSET = "buffer_blaster:studio:source_assets:v1"
 
 
+def _workspace_id() -> str | None:
+    """Canonicalize the server-owned workspace consistently across reads and writes."""
+    raw = (os.getenv("BUFFER_BLASTER_WORKSPACE_ID") or "").strip()
+    try:
+        return str(uuid.UUID(raw)) if raw else None
+    except ValueError:
+        return None
+
+
+def _same_uuid(value: Any, expected: str) -> bool:
+    try:
+        return str(uuid.UUID(str(value))) == expected
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -33,13 +49,17 @@ def _headers(prefer: str | None = None) -> dict[str, str]:
 
 
 async def create_url_reference(*, url: str, kind: str = "reference", metadata: dict[str, Any] | None = None) -> dict[str, Any]:
+    if not _workspace_id():
+        return {"ok": False, "error": "workspace_not_configured"}
     if not url.startswith("https://"):
         return {"ok": False, "error": "https_reference_required"}
-    record = {"id": str(uuid.uuid4()), "workspace_id": os.getenv("BUFFER_BLASTER_WORKSPACE_ID") or None, "client_id": None, "kind": kind, "source_url": url, "storage_url": None, "metadata": metadata or {}, "created_at": _now()}
+    record = {"id": str(uuid.uuid4()), "workspace_id": _workspace_id(), "client_id": None, "kind": kind, "source_url": url, "storage_url": None, "metadata": metadata or {}, "created_at": _now()}
     return await _persist(record)
 
 
 async def create_uploaded_reference(*, source: Path, filename: str, content_type: str, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
+    if not _workspace_id():
+        return {"ok": False, "error": "workspace_not_configured"}
     asset_id = str(uuid.uuid4())
     suffix = Path(filename).suffix.lower()[:10]
     storage = get_asset_storage()
@@ -52,6 +72,8 @@ async def create_uploaded_reference(*, source: Path, filename: str, content_type
 
 
 async def _persist(record: dict[str, Any]) -> dict[str, Any]:
+    if not _same_uuid(record.get("workspace_id"), _workspace_id() or ""):
+        return {"ok": False, "error": "workspace_not_configured"}
     if _supabase():
         base = os.getenv("SUPABASE_URL", "").rstrip("/")
         payload = {key: value for key, value in record.items() if key != "signed_url"}
@@ -78,7 +100,7 @@ async def _persist(record: dict[str, Any]) -> dict[str, Any]:
 
 async def list_references(limit: int = 100) -> list[dict[str, Any]]:
     limit = max(1, min(int(limit), 200))
-    workspace_id = (os.getenv("BUFFER_BLASTER_WORKSPACE_ID") or "").strip()
+    workspace_id = _workspace_id()
     if not workspace_id:
         return []
     if _supabase():
@@ -91,7 +113,7 @@ async def list_references(limit: int = 100) -> list[dict[str, Any]]:
                 headers=_headers(),
             )
         rows = response.json() if response.is_success and isinstance(response.json(), list) else []
-        return [row for row in rows if str(row.get("workspace_id") or "") == workspace_id]
+        return [row for row in rows if _same_uuid(row.get("workspace_id"), workspace_id)]
     url = os.getenv("REDIS_URL", "").strip()
     if not url: return []
     client = redis.from_url(url, decode_responses=True)
@@ -140,7 +162,6 @@ async def get_reference(reference_id: str) -> dict[str, Any]:
         return {"ok": False, "error": "workspace_not_configured", "asset": None}
     try:
         ident = str(uuid.UUID(str(reference_id)))
-        workspace_id = str(uuid.UUID(workspace_id))
     except (ValueError, TypeError, AttributeError):
         return {"ok": False, "error": "invalid_reference_or_workspace_id", "asset": None}
     if _supabase():
@@ -171,8 +192,8 @@ async def get_reference(reference_id: str) -> dict[str, Any]:
             return {"ok": False, "error": "reference_backend_unavailable", "asset": None}
         finally:
             await client.aclose()
-    if (not isinstance(row, dict) or str(row.get("workspace_id") or "") != workspace_id
-            or str(row.get("id") or "") != ident):
+    if (not isinstance(row, dict) or not _same_uuid(row.get("workspace_id"), workspace_id)
+            or not _same_uuid(row.get("id"), ident)):
         return {"ok": False, "error": "reference_not_found", "asset": None}
     return {"ok": True, "asset": row, "workspace_id": workspace_id,
             "rights_verified": False, "paid_generation": False}
