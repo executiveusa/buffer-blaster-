@@ -241,3 +241,15 @@ async def test_uppercase_workspace_supabase_query_and_row_compare(monkeypatch):
     assert result["ok"]
     assert result["workspace_id"] == WORKSPACE
     assert all(call["params"]["workspace_id"] == f"eq.{WORKSPACE}" for call in log)
+
+
+@pytest.mark.asyncio
+async def test_malformed_workspace_id_denied_without_backend_access(monkeypatch):
+    monkeypatch.setenv("BUFFER_BLASTER_WORKSPACE_ID", "not-a-workspace-uuid")
+    monkeypatch.setenv("SUPABASE_URL", "https://private-storage.example.test")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "unit-test-key")
+    assert await source_assets.list_references(5) == []
+    assert (await source_assets.get_reference(ASSET))["error"] == "workspace_not_configured"
+    result = await source_assets.create_url_reference(url="https://example.test/actual-media.jpg")
+    assert result["ok"] is False
+    assert result["error"] == "workspace_not_configured"
