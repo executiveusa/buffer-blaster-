@@ -122,6 +122,7 @@ async def list_references(limit: int = 100) -> list[dict[str, Any]]:
         # Filter BEFORE applying the response limit or foreign entries can
         # starve a workspace with valid older assets.
         out = []
+        seen_ids: set[str] = set()
         offset = 0
         page_size = max(50, min(200, limit * 2))
         while len(out) < limit:
@@ -131,14 +132,22 @@ async def list_references(limit: int = 100) -> list[dict[str, Any]]:
             values = await client.mget([
                 f"buffer_blaster:studio:source_asset:{asset_id}" for asset_id in ids
             ])
-            for raw in values:
+            for asset_id, raw in zip(ids, values):
+                # Global sorted-set positions can shift during a concurrent upload.
+                # Never return the same source twice across different pages.
+                canonical_id = str(asset_id)
+                if canonical_id in seen_ids:
+                    continue
+                seen_ids.add(canonical_id)
                 if not raw:
                     continue
                 try:
                     row = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
-                if isinstance(row, dict) and str(row.get("workspace_id") or "") == workspace_id:
+                if (isinstance(row, dict)
+                        and _same_uuid(row.get("workspace_id"), workspace_id)
+                        and _same_uuid(row.get("id"), canonical_id)):
                     out.append(row)
                     if len(out) >= limit:
                         break
