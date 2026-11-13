@@ -253,3 +253,62 @@ async def test_malformed_workspace_id_denied_without_backend_access(monkeypatch)
     result = await source_assets.create_url_reference(url="https://example.test/actual-media.jpg")
     assert result["ok"] is False
     assert result["error"] == "workspace_not_configured"
+
+
+@pytest.mark.asyncio
+async def test_redis_list_skips_row_repeated_after_concurrent_index_shift(monkeypatch):
+    import json
+    monkeypatch.setenv("BUFFER_BLASTER_WORKSPACE_ID", WORKSPACE)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/7")
+    second_id = str(uuid4())
+    foreign_ids = [str(uuid4()) for _ in range(49)]
+    first_page = foreign_ids + [ASSET]
+    second_page = [ASSET, second_id]  # Same owned row slides after a new insert.
+
+    class FakeRedis:
+        async def zrevrange(self, key, start, stop):
+            assert key == source_assets._ZSET
+            return first_page if start == 0 else second_page
+
+        async def mget(self, keys):
+            rows = []
+            for key in keys:
+                ref = key.rsplit(":", 1)[-1]
+                rows.append(json.dumps({
+                    "id": ref,
+                    "workspace_id": WORKSPACE if ref in {ASSET, second_id} else FOREIGN,
+                }))
+            return rows
+
+        async def aclose(self):
+            pass
+
+    monkeypatch.setattr(source_assets.redis, "from_url", lambda *a, **kw: FakeRedis())
+    rows = await source_assets.list_references(2)
+    assert [row["id"] for row in rows] == [ASSET, second_id]
+
+
+@pytest.mark.asyncio
+async def test_redis_list_recognizes_preexisting_uppercase_workspace_metadata(monkeypatch):
+    import json
+    monkeypatch.setenv("BUFFER_BLASTER_WORKSPACE_ID", WORKSPACE)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/7")
+
+    class FakeRedis:
+        async def zrevrange(self, key, start, stop):
+            return [ASSET] if start == 0 else []
+
+        async def mget(self, keys):
+            return [json.dumps({"id": ASSET.upper(), "workspace_id": WORKSPACE.upper()})]
+
+        async def aclose(self):
+            pass
+
+    monkeypatch.setattr(source_assets.redis, "from_url", lambda *a, **kw: FakeRedis())
+    rows = await source_assets.list_references(1)
+    assert len(rows) == 1
+    assert rows[0]["workspace_id"] == WORKSPACE.upper()
