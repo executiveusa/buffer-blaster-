@@ -78,11 +78,20 @@ async def _persist(record: dict[str, Any]) -> dict[str, Any]:
 
 async def list_references(limit: int = 100) -> list[dict[str, Any]]:
     limit = max(1, min(int(limit), 200))
+    workspace_id = (os.getenv("BUFFER_BLASTER_WORKSPACE_ID") or "").strip()
+    if not workspace_id:
+        return []
     if _supabase():
         base = os.getenv("SUPABASE_URL", "").rstrip("/")
         async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(f"{base}/rest/v1/source_assets", params={"select": "*", "order": "created_at.desc", "limit": str(limit)}, headers=_headers())
-        return response.json() if response.is_success and isinstance(response.json(), list) else []
+            response = await client.get(
+                f"{base}/rest/v1/source_assets",
+                params={"select": "*", "workspace_id": f"eq.{workspace_id}",
+                        "order": "created_at.desc", "limit": str(limit)},
+                headers=_headers(),
+            )
+        rows = response.json() if response.is_success and isinstance(response.json(), list) else []
+        return [row for row in rows if str(row.get("workspace_id") or "") == workspace_id]
     url = os.getenv("REDIS_URL", "").strip()
     if not url: return []
     client = redis.from_url(url, decode_responses=True)
@@ -92,10 +101,62 @@ async def list_references(limit: int = 100) -> list[dict[str, Any]]:
         out = []
         for raw in values:
             if raw:
-                try: out.append(json.loads(raw))
-                except json.JSONDecodeError: pass
+                try:
+                    row = json.loads(raw)
+                    if isinstance(row, dict) and str(row.get("workspace_id") or "") == workspace_id:
+                        out.append(row)
+                except json.JSONDecodeError:
+                    pass
         return out
     except redis.RedisError:
         return []
     finally:
         await client.aclose()
+
+
+async def get_reference(reference_id: str) -> dict[str, Any]:
+    """Read one reference metadata record scoped to the server-owned workspace.
+
+    Reference membership is NOT a rights/consent attestation.
+    """
+    workspace_id = (os.getenv("BUFFER_BLASTER_WORKSPACE_ID") or "").strip()
+    if not workspace_id:
+        return {"ok": False, "error": "workspace_not_configured", "asset": None}
+    try:
+        ident = str(uuid.UUID(str(reference_id)))
+        workspace_id = str(uuid.UUID(workspace_id))
+    except (ValueError, TypeError, AttributeError):
+        return {"ok": False, "error": "invalid_reference_or_workspace_id", "asset": None}
+    if _supabase():
+        base = os.getenv("SUPABASE_URL", "").rstrip("/")
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(
+                    f"{base}/rest/v1/source_assets",
+                    params={"select": "*", "id": f"eq.{ident}",
+                            "workspace_id": f"eq.{workspace_id}", "limit": "1"},
+                    headers=_headers(),
+                )
+        except httpx.HTTPError:
+            return {"ok": False, "error": "reference_backend_unavailable", "asset": None}
+        if not response.is_success:
+            return {"ok": False, "error": "reference_read_failed", "asset": None}
+        data = response.json()
+        row = data[0] if isinstance(data, list) and data else None
+    else:
+        url = os.getenv("REDIS_URL", "").strip()
+        if not url:
+            return {"ok": False, "error": "reference_backend_unavailable", "asset": None}
+        client = redis.from_url(url, decode_responses=True)
+        try:
+            raw = await client.get(f"buffer_blaster:studio:source_asset:{ident}")
+            row = json.loads(raw) if raw else None
+        except (redis.RedisError, json.JSONDecodeError):
+            return {"ok": False, "error": "reference_backend_unavailable", "asset": None}
+        finally:
+            await client.aclose()
+    if (not isinstance(row, dict) or str(row.get("workspace_id") or "") != workspace_id
+            or str(row.get("id") or "") != ident):
+        return {"ok": False, "error": "reference_not_found", "asset": None}
+    return {"ok": True, "asset": row, "workspace_id": workspace_id,
+            "rights_verified": False, "paid_generation": False}
