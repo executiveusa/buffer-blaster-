@@ -96,18 +96,34 @@ async def list_references(limit: int = 100) -> list[dict[str, Any]]:
     if not url: return []
     client = redis.from_url(url, decode_responses=True)
     try:
-        ids = await client.zrevrange(_ZSET, 0, limit - 1)
-        values = await client.mget([f"buffer_blaster:studio:source_asset:{asset_id}" for asset_id in ids]) if ids else []
+        # This legacy sorted set contains records from multiple workspaces.
+        # Filter BEFORE applying the response limit or foreign entries can
+        # starve a workspace with valid older assets.
         out = []
-        for raw in values:
-            if raw:
+        offset = 0
+        page_size = max(50, min(200, limit * 2))
+        while len(out) < limit:
+            ids = await client.zrevrange(_ZSET, offset, offset + page_size - 1)
+            if not ids:
+                break
+            values = await client.mget([
+                f"buffer_blaster:studio:source_asset:{asset_id}" for asset_id in ids
+            ])
+            for raw in values:
+                if not raw:
+                    continue
                 try:
                     row = json.loads(raw)
-                    if isinstance(row, dict) and str(row.get("workspace_id") or "") == workspace_id:
-                        out.append(row)
                 except json.JSONDecodeError:
-                    pass
-        return out
+                    continue
+                if isinstance(row, dict) and str(row.get("workspace_id") or "") == workspace_id:
+                    out.append(row)
+                    if len(out) >= limit:
+                        break
+            offset += len(ids)
+            if len(ids) < page_size:
+                break
+        return out[:limit]
     except redis.RedisError:
         return []
     finally:
