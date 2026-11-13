@@ -180,3 +180,64 @@ async def test_redis_listing_returns_exact_requested_count_after_workspace_filte
     monkeypatch.setattr(source_assets.redis, "from_url", lambda *a, **kw: FakeRedis())
     found = await source_assets.list_references(2)
     assert [r["id"] for r in found] == target_ids[:2]
+
+
+@pytest.mark.asyncio
+async def test_uppercase_workspace_id_is_canonicalized_on_insert_and_read(monkeypatch):
+    import json
+    monkeypatch.setenv("BUFFER_BLASTER_WORKSPACE_ID", WORKSPACE.upper())
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/7")
+    assert source_assets._workspace_id() == WORKSPACE
+
+    class FakeRedis:
+        def __init__(self):
+            self.values = {}
+            self.keys = []
+
+        async def set(self, key, val):
+            self.values[key] = val
+
+        async def zadd(self, index, mapping):
+            self.keys.extend(mapping.keys())
+
+        async def zrevrange(self, index, first, last):
+            return self.keys[first:last + 1]
+
+        async def mget(self, keys):
+            return [self.values.get(k) for k in keys]
+
+        async def get(self, key):
+            return self.values.get(key)
+
+        async def aclose(self):
+            pass
+
+    fake = FakeRedis()
+    monkeypatch.setattr(source_assets.redis, "from_url", lambda *a, **kw: fake)
+    created = await source_assets.create_url_reference(url="https://example.test/source.jpg")
+    assert created["ok"]
+    row = created["asset"]
+    assert row["workspace_id"] == WORKSPACE
+    exact = await source_assets.get_reference(row["id"])
+    assert exact["ok"]
+    visible = await source_assets.list_references(5)
+    assert len(visible) == 1
+    assert visible[0]["workspace_id"] == WORKSPACE
+
+
+@pytest.mark.asyncio
+async def test_uppercase_workspace_supabase_query_and_row_compare(monkeypatch):
+    monkeypatch.setenv("BUFFER_BLASTER_WORKSPACE_ID", WORKSPACE.upper())
+    monkeypatch.setenv("SUPABASE_URL", "https://private-storage.example.test")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "unit-test-key")
+    log = []
+    rows = [{"id": ASSET.upper(), "workspace_id": WORKSPACE.lower(), "kind": "uploaded_reference"}]
+    monkeypatch.setattr(source_assets.httpx, "AsyncClient", lambda **kw: FakeClient(rows, log))
+    listed = await source_assets.list_references(5)
+    assert len(listed) == 1
+    result = await source_assets.get_reference(ASSET)
+    assert result["ok"]
+    assert result["workspace_id"] == WORKSPACE
+    assert all(call["params"]["workspace_id"] == f"eq.{WORKSPACE}" for call in log)
