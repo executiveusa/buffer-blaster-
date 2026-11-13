@@ -157,7 +157,7 @@ async def get_reference(reference_id: str) -> dict[str, Any]:
 
     Reference membership is NOT a rights/consent attestation.
     """
-    workspace_id = (os.getenv("BUFFER_BLASTER_WORKSPACE_ID") or "").strip()
+    workspace_id = _workspace_id()
     if not workspace_id:
         return {"ok": False, "error": "workspace_not_configured", "asset": None}
     try:
