@@ -61,6 +61,15 @@ class UGCFactoryPlanRequest(BaseModel):
     delivery_tone: str = "calm, honest and direct"
     visual_lane: str = "lane_zero"
     provider_model: str = Field(default="", max_length=255)
+    scripts: list[str] = Field(default_factory=list, max_length=2)
+    clip_count: int = Field(default=2, ge=1, le=2)
+    clip_duration_seconds: int = Field(default=10, ge=3, le=15)
+    product_reference_url: str = Field(default="", max_length=2048)
+    setting: str = Field(default="", max_length=500)
+    pronunciation_notes: str = Field(default="", max_length=500)
+    avoid: str = Field(default="", max_length=500)
+    end_card_lines: list[str] = Field(default_factory=list, max_length=4)
+    end_card_seconds: float = Field(default=2.0, ge=0, le=5)
 
 
 class UGCFactoryExecuteRequest(UGCFactoryPlanRequest):
