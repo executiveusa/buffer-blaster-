@@ -8,7 +8,7 @@ voice description, delivery and pronunciation from `characters/<id>/character.js
 
 | Id | Who | Voice locked on a provider? |
 |---|---|---|
-| `jalen` | Young Black man in the deep navy Postatees x Mariner hoodie, driver's seat of a parked car. See [jalen/BIBLE.md](jalen/BIBLE.md). | Not yet (described in text only) |
+| `jalen` | Young Black man in the deep navy Postatees x Mariner hoodie, driver's seat of a parked car. See [jalen/BIBLE.md](jalen/BIBLE.md). | Yes: Fal Kling voice `952742773105512039` (saved 2026-11-21) |
 
 ## What a character folder holds
 

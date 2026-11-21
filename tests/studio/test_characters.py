@@ -28,9 +28,28 @@ def _brief(**overrides):
     return UGCFactoryBrief(**values)
 
 
+SAVED_VOICE = "952742773105512039"
+
+
 @pytest.fixture(autouse=True)
 def _no_voice_env(monkeypatch):
     monkeypatch.delenv("CHARACTER_JALEN_KLING_VOICE_ID", raising=False)
+    load_character.cache_clear()
+    yield
+    load_character.cache_clear()
+
+
+@pytest.fixture
+def unlocked(tmp_path, monkeypatch):
+    """A copy of the cast where Jalen has no saved voice yet."""
+    import json, shutil
+    root = tmp_path / "characters"
+    shutil.copytree(characters.CHARACTERS_DIR, root)
+    path = root / "jalen" / "character.json"
+    data = json.loads(path.read_text())
+    data["voice"]["kling_voice_id"] = ""
+    path.write_text(json.dumps(data))
+    monkeypatch.setattr(characters, "CHARACTERS_DIR", root)
     load_character.cache_clear()
 
 
@@ -40,7 +59,8 @@ def test_jalen_ships_with_refs_and_voice_sample():
     assert [p.name for p in reference_paths(jalen)][0] == "ref-hero-hood-down.jpg"
     assert len(reference_paths(jalen)) == 3
     assert voice_sample_path(jalen) is not None
-    assert {"id": "jalen", "name": "Jalen", "voice_locked": False} in list_characters()
+    assert {"id": "jalen", "name": "Jalen", "voice_locked": True} in list_characters()
+    assert jalen["voice"]["kling_voice_id"] == SAVED_VOICE
 
 
 def test_unknown_or_unsafe_character_ids_are_refused():
@@ -57,7 +77,7 @@ def test_character_fills_brief_and_merges_rules():
     assert "sleeve lettering" in filled["avoid"] and "MLB logos" in filled["avoid"]
 
 
-def test_plan_prompt_carries_look_voice_delivery_and_phonetic_name():
+def test_plan_prompt_carries_look_voice_delivery_and_phonetic_name(unlocked):
     plan = build_ugc_factory_plan(_brief())
     assert plan["ok"], plan["gate"]
     prompt = plan["clips"][0]["prompt"]
@@ -77,22 +97,22 @@ def test_brief_without_character_is_unchanged():
     assert "Jalen" not in plan["clips"][0]["prompt"]
 
 
-def test_saved_voice_id_binds_face_and_voice(monkeypatch):
-    monkeypatch.setenv("CHARACTER_JALEN_KLING_VOICE_ID", "829877809978941442")
+def test_saved_voice_id_binds_face_and_voice():
     plan = build_ugc_factory_plan(_brief())
     assert plan["character"]["voice_locked"] is True
     assert plan["clips"][0]["bind_character"] is True
     assert "@Element1" in plan["clips"][0]["prompt"]
     elements = kling_elements(load_character("jalen"))
-    assert elements[0]["voice_id"] == "829877809978941442"
+    assert elements[0]["voice_id"] == SAVED_VOICE
     assert elements[0]["frontal_image_url"].startswith("data:image/jpeg;base64,")
     assert 1 <= len(elements[0]["reference_image_urls"]) <= 3
 
 
 @pytest.mark.asyncio
-async def test_executor_sends_elements_only_when_voice_locked(tmp_path, monkeypatch):
+async def test_executor_sends_elements_only_when_voice_locked(tmp_path, monkeypatch, unlocked):
     for voice, expect in (("", False), ("829877809978941442", True)):
         monkeypatch.setenv("CHARACTER_JALEN_KLING_VOICE_ID", voice)
+        load_character.cache_clear()
         provider = RecordingProvider()
         await execute_ugc_factory_ad(
             _brief(product_reference_url="https://cdn.example/frame.jpg"),
@@ -115,8 +135,14 @@ def build_brief_for_keyframe():
     return _brief(**{k: v for k, v in plan_fields.items() if k != "voice_description"}, voice_description=plan_fields["voice_description"])
 
 
-def test_voice_create_refuses_without_approval(monkeypatch):
+def test_voice_create_refuses_without_approval(monkeypatch, unlocked):
     import asyncio
     monkeypatch.setenv("FAL_KEY", "test-not-real")
     result = asyncio.run(render_local.voice_create("jalen", 0))
     assert result == {"ok": False, "error": "approval_below_quote", "quote_cents": 1, "approved_cents": 0}
+
+
+def test_voice_create_is_a_no_op_once_locked(monkeypatch):
+    import asyncio
+    monkeypatch.setenv("FAL_KEY", "test-not-real")
+    assert asyncio.run(render_local.voice_create("jalen", 0)) == {"ok": True, "already_locked": True, "voice_id": SAVED_VOICE}

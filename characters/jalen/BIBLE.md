@@ -82,10 +82,10 @@ Video and speech models read the spoken text literally, so put the phonetic spel
 | Look, wardrobe, setting, prompt block | Locked in this bible and in both apps |
 | Reference images | Locked (720p from the ad) |
 | Voice description and delivery | Locked as text |
-| Exact voice (clone) | **Not locked yet.** Needs one paid call, see below |
+| Exact voice (clone) | **Locked** 2026-11-21: Fal Kling voice id `952742773105512039` (from `voice-clone-source.mp3`) |
 
 ## 10. Upgrades that cost money (not done, need Bambu's OK)
 
-- **Fal Kling voice clone** (`fal-ai/kling-video/create-voice`): **$0.007 once**, returns a `voice_id`. Buffer Blaster then binds it to Jalen in every Kling v3 render. Voice-controlled clips cost $0.196/s instead of $0.168/s, so a 10 s clip goes from about **$1.68 to $1.96**.
+- **Fal Kling voice clone**: DONE 2026-11-21, voice id `952742773105512039` (`fal-ai/kling-video/create-voice`, $0.007), returns a `voice_id`. Buffer Blaster then binds it to Jalen in every Kling v3 render. Voice-controlled clips cost $0.196/s instead of $0.168/s, so a 10 s clip goes from about **$1.68 to $1.96**.
 - **1080p hero still** (Nano Banana edit on Fal from the three refs): about **$0.04** per image.
 - **ElevenLabs Instant Voice Clone**: needs the Starter plan, **$1 for the first month, then $6 a month**. Not needed if the Kling voice is used.

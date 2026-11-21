@@ -18,7 +18,7 @@
   },
   "voice": {
     "clone_source": "voice/clone-source.mp3",
-    "kling_voice_id": "",
+    "kling_voice_id": "952742773105512039",
     "kling_voice_id_env": "CHARACTER_JALEN_KLING_VOICE_ID"
   }
 }
