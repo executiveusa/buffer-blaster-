@@ -70,6 +70,7 @@ class UGCFactoryPlanRequest(BaseModel):
     avoid: str = Field(default="", max_length=500)
     end_card_lines: list[str] = Field(default_factory=list, max_length=4)
     end_card_seconds: float = Field(default=2.0, ge=0, le=5)
+    end_card_image_url: str = Field(default="", max_length=2048)
 
 
 class UGCFactoryExecuteRequest(UGCFactoryPlanRequest):

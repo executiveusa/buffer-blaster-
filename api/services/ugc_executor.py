@@ -221,13 +221,14 @@ async def execute_ugc_factory_ad(
     end_card_lines = list(plan_brief.get("end_card_lines") or [])
     end_card_seconds = float(plan_brief.get("end_card_seconds") or 2.0)
     reference_url = plan["clips"][0].get("reference_image_url")
+    end_card_image_url = plan_brief.get("end_card_image_url") or reference_url
 
     async def finish(final_local: Path, *, audio: bool, seam: float | None) -> dict[str, Any]:
         if end_card_lines:
             background = None
-            if reference_url:
-                ref_path = workdir / "product-reference"
-                fetched_ref = await storage.download_url(reference_url, ref_path)
+            if end_card_image_url:
+                ref_path = workdir / "end-card-background"
+                fetched_ref = await storage.download_url(end_card_image_url, ref_path)
                 background = ref_path if fetched_ref.get("ok") else None
             carded = workdir / "final-with-card.mp4"
             card = media_ops.append_end_card(final_local, carded, end_card_lines, seconds=end_card_seconds, background_image=background)

@@ -58,6 +58,8 @@ class UGCFactoryBrief:
     # Text lines for a local ffmpeg end card (no paid generation), e.g. ["Postatees x Mariner", "$70"].
     end_card_lines: tuple[str, ...] = ()
     end_card_seconds: float = 2.0
+    # Optional end-card background (e.g. the product mockup). Defaults to product_reference_url.
+    end_card_image_url: str = ""
 
 
 def _require(label: str, value: str) -> str:
@@ -70,6 +72,11 @@ def _require(label: str, value: str) -> str:
 def _take_words(value: str, limit: int) -> str:
     clean = " ".join(value.split()).strip(" .")
     return " ".join(clean.split()[:limit])
+
+
+def _is_image_source(value: str) -> bool:
+    """https URLs, or inline data:image URIs (Fal accepts both for image inputs)."""
+    return value.startswith("https://") or value.startswith("data:image/")
 
 
 def _word_count(value: str) -> int:
@@ -162,7 +169,7 @@ def _clip_prompt(*, brief: UGCFactoryBrief, script: str, clip_number: int) -> st
 
 def _commercial_quote(clip_count: int = 2) -> dict[str, Any]:
     price_cents = _money_env("UGC_FACTORY_PRICE_CENTS", 9900)
-    clip_cost_cents = _money_env("UGC_FACTORY_CLIP_COST_CENTS", 80)
+    clip_cost_cents = _money_env("UGC_FACTORY_CLIP_COST_CENTS", 150)
     if clip_count == 1:
         # A single clip has no seam retry, so exactly one paid call.
         expected_clips = 1
@@ -199,8 +206,11 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
     if not 3 <= duration <= 15:
         raise ValueError("clip_duration_seconds_out_of_range")
     reference = (brief.product_reference_url or "").strip()
-    if reference and not reference.startswith("https://"):
+    if reference and not _is_image_source(reference):
         raise ValueError("product_reference_url_must_be_https")
+    end_card_image = (brief.end_card_image_url or "").strip()
+    if end_card_image and not _is_image_source(end_card_image):
+        raise ValueError("end_card_image_url_must_be_https")
     custom_scripts = tuple(" ".join(line.split()).strip() for line in brief.scripts if line and line.strip())
 
     normalized = UGCFactoryBrief(
@@ -223,6 +233,7 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
         avoid=" ".join(brief.avoid.split()).strip(),
         end_card_lines=tuple(" ".join(line.split()).strip() for line in brief.end_card_lines if line and line.strip()),
         end_card_seconds=max(0.0, min(5.0, float(brief.end_card_seconds))),
+        end_card_image_url=end_card_image,
     )
 
     if custom_scripts:
@@ -292,6 +303,7 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
             "avoid": normalized.avoid,
             "end_card_lines": list(normalized.end_card_lines),
             "end_card_seconds": normalized.end_card_seconds,
+            "end_card_image_url": normalized.end_card_image_url,
             "custom_scripts": bool(custom_scripts),
         },
         "gate": gate,

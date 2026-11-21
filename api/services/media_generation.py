@@ -64,7 +64,7 @@ class FalVideoProvider:
         configured_model = self.image_model if image_url else self.text_model
         if model_name and model_name != configured_model:
             return None
-        return _money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 80) if configured_model else None
+        return _money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 150) if configured_model else None
 
     def status(self) -> dict[str, Any]:
         return {
@@ -101,7 +101,7 @@ class FalVideoProvider:
             update={
                 "provider": "fal",
                 "model_name": model or None,
-                "estimated_cost_cents": _money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 80),
+                "estimated_cost_cents": _money_env("FAL_ESTIMATED_CLIP_COST_CENTS", 150),
                 "state": "planned",
             }
         )

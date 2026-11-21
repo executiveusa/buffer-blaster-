@@ -54,6 +54,7 @@ _FACTORY_PROPERTIES = {
     "avoid": {"type": "string"},
     "end_card_lines": {"type": "array", "items": {"type": "string"}, "maxItems": 4},
     "end_card_seconds": {"type": "number", "minimum": 0, "maximum": 5},
+    "end_card_image_url": {"type": "string", "description": "https URL for the end-card background; defaults to product_reference_url."},
 }
 
 _UGC_PLAN_SCHEMA = UGCPlanDraft.model_json_schema()
