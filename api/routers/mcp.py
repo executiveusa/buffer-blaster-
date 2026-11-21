@@ -52,6 +52,7 @@ _FACTORY_PROPERTIES = {
     "setting": {"type": "string"},
     "pronunciation_notes": {"type": "string"},
     "avoid": {"type": "string"},
+    "character": {"type": "string", "description": "Locked house character id, e.g. jalen. Fills the actor, setting, voice, delivery and pronunciation."},
     "end_card_lines": {"type": "array", "items": {"type": "string"}, "maxItems": 4},
     "end_card_seconds": {"type": "number", "minimum": 0, "maximum": 5},
     "end_card_image_url": {"type": "string", "description": "https URL for the end-card background; defaults to product_reference_url."},

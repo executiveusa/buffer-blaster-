@@ -149,6 +149,7 @@ class FalVideoProvider:
         aspect_ratio: str = "9:16",
         generate_audio: bool = True,
         model_name: str | None = None,
+        elements: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         configured_model = self.image_model if image_url else self.text_model
         if model_name and model_name != configured_model:
@@ -184,6 +185,9 @@ class FalVideoProvider:
             body["resolution"] = self.resolution
         if self.prompt_expansion_mode:
             body["prompt_expansion_mode"] = self.prompt_expansion_mode
+        if elements:
+            # Kling v3: a locked character (face references + saved voice_id), referenced as @Element1.
+            body["elements"] = elements
 
         async with httpx.AsyncClient(timeout=45) as client:
             response = await client.post(

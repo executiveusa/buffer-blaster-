@@ -1,0 +1,17 @@
+{
+  "character": "jalen",
+  "product": "Postatees x Mariner High Marauder hoodie",
+  "audience": "Mariner High School students, alumni and families in Everett, WA",
+  "pain": "school gear that looks like everyone else's",
+  "mechanism": "a one-run collab hoodie made with Mariner High, part of proceeds to Mariner Football",
+  "offer": "$70 pre-sale",
+  "platform": "instagram",
+  "clip_count": 1,
+  "clip_duration_seconds": 10,
+  "scripts": [
+    "Everett don't get collabs. Till now. Postatees and Mariner High, embroidered, not printed. Seventy on pre-sale. One run only."
+  ],
+  "avoid": "Seattle Mariners MLB logos or teal",
+  "end_card_lines": ["Postatees x Mariner High", "$70 pre-sale", "postatees.com"],
+  "end_card_seconds": 2
+}

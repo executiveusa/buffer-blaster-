@@ -9,6 +9,13 @@ variable only and is never printed or written.
     python -m cli.render_local quote    BRIEF.json [--first-frame IMG]
     python -m cli.render_local keyframe BRIEF.json --reference IMG [--reference IMG] --out FRAME.png --approve-cents N
     python -m cli.render_local render   BRIEF.json --first-frame FRAME.png --out FINAL.mp4 --approve-cents N [--end-card-image IMG]
+    python -m cli.render_local characters
+    python -m cli.render_local voice-create CHARACTER --approve-cents 1
+
+A brief with ``"character": "jalen"`` uses that locked character: his look,
+setting, voice description, delivery and pronunciation go into every prompt,
+``keyframe`` adds his reference photos, and once ``voice-create`` has saved a
+Kling voice id the render binds his face and voice (Kling v3 ``elements``).
 
 ``keyframe`` turns product references (a flat mockup is fine) into a realistic
 9:16 first frame using FAL_KEYFRAME_MODEL (an image-edit model such as
@@ -39,6 +46,7 @@ from api.services.asset_storage import AssetStorage
 from api.services.media_generation import FalVideoProvider, get_media_provider
 from api.services.media_ops import get_media_ops
 from api.services.ugc_executor import estimate_factory_generation_cost, execute_ugc_factory_ad
+from api.services.characters import list_characters, saved_voice_id, load_character, reference_paths, voice_sample_path
 from api.services.ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 
 MAX_INLINE_IMAGE_BYTES = 8 * 1024 * 1024
@@ -126,6 +134,7 @@ def keyframe_prompt(brief: UGCFactoryBrief) -> str:
     parts = [
         "Photorealistic vertical 9:16 smartphone video still, first frame of a casual selfie video.",
         f"Subject: {brief.actor_description}.",
+        "The person is the same man shown in the first reference images: keep his face, hair, skin tone and build exactly." if brief.character else "",
         f"Setting: {brief.setting}." if brief.setting else "",
         f"The subject wears the exact {brief.product} shown in the reference images: copy its colors, logos and graphics faithfully.",
         "Natural light, real skin texture, phone-camera look, subject framed chest-up and looking into the lens, mouth closed.",
@@ -162,6 +171,7 @@ def quote(brief: UGCFactoryBrief, *, with_first_frame: bool) -> dict[str, Any]:
         "approve_cents_needed_for_render": pricing.get("estimated_generation_cost_cents"),
         "keyframe_cost_cents": _keyframe_cost_cents() if os.getenv("FAL_KEYFRAME_MODEL") else None,
         "end_card": plan.get("brief", {}).get("end_card_lines"),
+        "character": plan.get("character"),
     }
 
 
@@ -201,7 +211,17 @@ def _first_image_url(payload: Any) -> str | None:
     return None
 
 
+def character_references(brief: UGCFactoryBrief, references: list[Path]) -> list[Path]:
+    """The locked character's photos first, then the product references."""
+    if not brief.character:
+        return references
+    return reference_paths(load_character(brief.character)) + references
+
+
 async def keyframe(brief: UGCFactoryBrief, references: list[Path], out: Path, approve_cents: int) -> dict[str, Any]:
+    references = character_references(brief, references)
+    if not references:
+        return {"ok": False, "error": "reference_required", "hint": "pass --reference or set a character on the brief"}
     model = os.getenv("FAL_KEYFRAME_MODEL", "").strip()
     if not os.getenv("FAL_KEY"):
         return {"ok": False, "error": "FAL_KEY_not_set"}
@@ -274,6 +294,46 @@ async def render(brief: UGCFactoryBrief, out: Path, approve_cents: int) -> dict[
         shutil.rmtree(work, ignore_errors=True)
 
 
+def _voice_create_cost_cents() -> int:
+    # fal-ai/kling-video/create-voice is $0.007 per voice (checked 2026-11-21); round up.
+    try:
+        return max(1, int(os.getenv("FAL_VOICE_CREATE_COST_CENTS", "1")))
+    except ValueError:
+        return 1
+
+
+async def voice_create(character_id: str, approve_cents: int) -> dict[str, Any]:
+    """Save the character's voice on Fal (Kling) once and print the voice id to lock."""
+    character = load_character(character_id)
+    if saved_voice_id(character):
+        return {"ok": True, "already_locked": True, "voice_id": saved_voice_id(character)}
+    sample = voice_sample_path(character)
+    if not sample:
+        return {"ok": False, "error": "voice_sample_missing"}
+    if not os.getenv("FAL_KEY"):
+        return {"ok": False, "error": "FAL_KEY_not_set"}
+    cost = _voice_create_cost_cents()
+    if approve_cents < cost:
+        return {"ok": False, "error": "approval_below_quote", "quote_cents": cost, "approved_cents": approve_cents}
+    raw = sample.read_bytes()
+    mime = mimetypes.guess_type(sample.name)[0] or "audio/mpeg"
+    body = {"voice_url": f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"}
+    model = os.getenv("FAL_VOICE_CREATE_MODEL", "fal-ai/kling-video/create-voice")
+    result = await _fal_queue_run(model, body, timeout_seconds=180)
+    if not result.get("ok"):
+        return result
+    voice_id = (result.get("data") or {}).get("voice_id")
+    if not voice_id:
+        return {"ok": False, "error": "voice_id_missing", "response": result.get("data")}
+    env_name = character.get("voice", {}).get("kling_voice_id_env", "")
+    return {
+        "ok": True,
+        "voice_id": voice_id,
+        "quote_cents": cost,
+        "next": f'Put "{voice_id}" in characters/{character_id}/character.json under voice.kling_voice_id, or export {env_name}={voice_id}.',
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m cli.render_local", description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -282,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
     q.add_argument("--first-frame", action="store_true", help="price the image-to-video model")
     k = sub.add_parser("keyframe")
     k.add_argument("brief")
-    k.add_argument("--reference", action="append", required=True, type=Path)
+    k.add_argument("--reference", action="append", default=[], type=Path, help="product photos; a brief character adds its own")
     k.add_argument("--out", required=True, type=Path)
     k.add_argument("--approve-cents", required=True, type=int)
     r = sub.add_parser("render")
@@ -291,10 +351,18 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--end-card-image", type=Path)
     r.add_argument("--out", required=True, type=Path)
     r.add_argument("--approve-cents", required=True, type=int)
+    sub.add_parser("characters")
+    v = sub.add_parser("voice-create")
+    v.add_argument("character")
+    v.add_argument("--approve-cents", required=True, type=int)
     args = parser.parse_args(argv)
 
     if args.command == "quote":
         result = quote(load_brief(args.brief), with_first_frame=args.first_frame)
+    elif args.command == "characters":
+        result = {"ok": True, "characters": list_characters()}
+    elif args.command == "voice-create":
+        result = asyncio.run(voice_create(args.character, args.approve_cents))
     elif args.command == "keyframe":
         result = asyncio.run(keyframe(load_brief(args.brief), args.reference, args.out, args.approve_cents))
     else:

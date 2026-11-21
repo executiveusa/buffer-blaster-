@@ -11,6 +11,7 @@ import math
 import os
 from typing import Any
 
+from .characters import apply_character, saved_voice_id, load_character, spoken
 from .video_prompt import VideoPromptInput, compile_video_prompt
 
 
@@ -60,6 +61,10 @@ class UGCFactoryBrief:
     end_card_seconds: float = 2.0
     # Optional end-card background (e.g. the product mockup). Defaults to product_reference_url.
     end_card_image_url: str = ""
+    # Locked house character id (see characters/). Fills actor, setting, delivery and pronunciation.
+    character: str = ""
+    # Filled from the character: how the voice should sound. Not set by hand.
+    voice_description: str = ""
 
 
 def _require(label: str, value: str) -> str:
@@ -149,6 +154,12 @@ def _clip_prompt(*, brief: UGCFactoryBrief, script: str, clip_number: int) -> st
     notes = [note for note in (brief.pronunciation_notes, f"Avoid: {brief.avoid.rstrip('.')}." if brief.avoid else "") if note]
     if notes:
         idea = f"{idea} {' '.join(notes)}"
+    character = load_character(brief.character) if brief.character else None
+    if character:
+        script = spoken(script, character)
+        if saved_voice_id(character):
+            # The video model binds the saved face and voice to @Element1.
+            subject = f"@Element1, {subject}"
 
     return compile_video_prompt(
         VideoPromptInput(
@@ -161,6 +172,8 @@ def _clip_prompt(*, brief: UGCFactoryBrief, script: str, clip_number: int) -> st
             style="realistic",
             motion=motion,
             dialogue=script,
+            delivery=brief.delivery_tone,
+            voice=brief.voice_description,
             platform=brief.platform,
             aspect_ratio="9:16",
         )
@@ -196,6 +209,16 @@ def _commercial_quote(clip_count: int = 2) -> dict[str, Any]:
 
 def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
     """Compile one product brief into a gated two-clip production plan."""
+    if brief.character:
+        filled = apply_character({
+            "character": brief.character,
+            "actor_description": brief.actor_description,
+            "delivery_tone": brief.delivery_tone,
+            "setting": brief.setting,
+            "pronunciation_notes": brief.pronunciation_notes,
+            "avoid": brief.avoid,
+        })
+        brief = UGCFactoryBrief(**{**{f: getattr(brief, f) for f in brief.__dataclass_fields__}, **filled})
     product = _require("product", brief.product)
     audience = _require("audience", brief.audience)
     pain = _require("pain", brief.pain)
@@ -234,7 +257,11 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
         end_card_lines=tuple(" ".join(line.split()).strip() for line in brief.end_card_lines if line and line.strip()),
         end_card_seconds=max(0.0, min(5.0, float(brief.end_card_seconds))),
         end_card_image_url=end_card_image,
+        character=brief.character,
+        voice_description=" ".join(brief.voice_description.split()).strip(),
     )
+    character = load_character(brief.character) if brief.character else None
+    voice_locked = bool(character and saved_voice_id(character))
 
     if custom_scripts:
         scripts = custom_scripts
@@ -253,6 +280,7 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
             "prompt": _clip_prompt(brief=normalized, script=scripts[0], clip_number=1),
             "seed_from_previous": False,
             "reference_image_url": reference or None,
+            "bind_character": voice_locked,
         },
     ]
     if brief.clip_count == 2:
@@ -265,6 +293,7 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
             "prompt": _clip_prompt(brief=normalized, script=scripts[1], clip_number=2),
             "seed_from_previous": True,
             "reference_image_url": None,
+            "bind_character": voice_locked,
         })
     continuity_steps = (
         ["generate_clip_1", "trim_clip_1_tail"]
@@ -305,7 +334,14 @@ def build_ugc_factory_plan(brief: UGCFactoryBrief) -> dict[str, Any]:
             "end_card_seconds": normalized.end_card_seconds,
             "end_card_image_url": normalized.end_card_image_url,
             "custom_scripts": bool(custom_scripts),
+            "character": normalized.character,
         },
+        "character": {
+            "id": character["id"],
+            "name": character.get("name", character["id"]),
+            "voice_locked": voice_locked,
+            "note": "The saved face and voice are bound to the clip; voice-controlled clips are priced higher (set FAL_ESTIMATED_CLIP_COST_CENTS)." if voice_locked else "Voice not locked yet: the prompt carries the voice description only.",
+        } if character else None,
         "gate": gate,
         "clips": clips,
         "continuity": {

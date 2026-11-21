@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from ..services.asset_storage import get_asset_storage
+from ..services.characters import list_characters
 from ..services.billing import activate_checkout_session
 from ..services.integration_auth import verify_operator
 from ..services.media_generation import get_media_provider
@@ -71,6 +72,8 @@ class UGCFactoryPlanRequest(BaseModel):
     end_card_lines: list[str] = Field(default_factory=list, max_length=4)
     end_card_seconds: float = Field(default=2.0, ge=0, le=5)
     end_card_image_url: str = Field(default="", max_length=2048)
+    # Locked house character id, e.g. "jalen" (GET /api/studio/characters lists them).
+    character: str = Field(default="", max_length=40, pattern=r"^$|^[a-z0-9][a-z0-9-]*$")
 
 
 class UGCFactoryExecuteRequest(UGCFactoryPlanRequest):
@@ -205,6 +208,12 @@ async def plan_campaign(brief: CampaignBrief, _=Depends(verify_operator)) -> dic
 async def create_ugc_prompt(brief: UGCBrief, _=Depends(verify_operator)) -> dict[str, Any]:
     prompt = compile_video_prompt(VideoPromptInput(**brief.model_dump()))
     return {"ok": True, "prompt": prompt, "brief": brief.model_dump(), "paid_generation": False}
+
+
+@router.get("/characters")
+async def get_characters(_=Depends(verify_operator)) -> dict[str, Any]:
+    """Locked house characters a UGC brief can name in `character`."""
+    return {"ok": True, "characters": list_characters()}
 
 
 @router.post("/ugc/factory/plan")

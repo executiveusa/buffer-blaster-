@@ -19,6 +19,9 @@ class VideoPromptInput:
     style: str = "realistic"
     motion: str = "small continuous movements with natural pacing"
     dialogue: str | None = None
+    # How the line is delivered and how the voice sounds (kept separate from what is said).
+    delivery: str | None = None
+    voice: str | None = None
     product: str | None = None
     platform: str = "instagram"
     aspect_ratio: str = "9:16"
@@ -43,5 +46,9 @@ def compile_video_prompt(brief: VideoPromptInput) -> str:
     ]
     if brief.dialogue and brief.dialogue.strip():
         sections.append(f'DIALOGUE: "{brief.dialogue.strip()}" Spoken naturally, not like a staged sales read.')
+        if brief.delivery and brief.delivery.strip():
+            sections.append(f"DELIVERY: {brief.delivery.strip().rstrip('.')}.")
+        if brief.voice and brief.voice.strip():
+            sections.append(f"VOICE: {brief.voice.strip().rstrip('.')}.")
     sections.append("QUALITY: Preserve product identity, readable packaging, natural hands, consistent subject identity, and believable physics. Avoid excessive cuts, overacting, warped text, duplicate objects, and abrupt camera changes.")
     return "\n".join(sections)
