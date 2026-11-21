@@ -29,7 +29,8 @@ def estimate_factory_generation_cost(provider: Any, plan: dict[str, Any], provid
         return {"ok": False, "error": "media_provider_not_configured"}
     if not hasattr(provider, "estimate_clip_cost_cents"):
         return {"ok": False, "error": "provider_cost_unavailable"}
-    per_clip = provider.estimate_clip_cost_cents(provider_model)
+    reference = next((clip.get("reference_image_url") for clip in plan.get("clips", []) if clip.get("reference_image_url")), None)
+    per_clip = provider.estimate_clip_cost_cents(provider_model, image_url=reference) if reference else provider.estimate_clip_cost_cents(provider_model)
     if per_clip is None:
         return {"ok": False, "error": "provider_model_not_allowed_or_cost_unverified", "model": provider_model}
     commercial = plan.get("commercial", {})
@@ -116,8 +117,8 @@ async def _wait_for_video(provider: Any, receipt: dict[str, Any], *, poll_interv
     return {"ok": False, "error": "provider_generation_timeout", "provider_response": last_payload}
 
 
-async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, model_name: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float) -> dict[str, Any]:
-    receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration="10", aspect_ratio="9:16", generate_audio=True, model_name=model_name)
+async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, model_name: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float, duration_seconds: int = 10) -> dict[str, Any]:
+    receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration=str(duration_seconds), aspect_ratio="9:16", generate_audio=True, model_name=model_name)
     if not receipt.get("ok"):
         return {"ok": False, "error": "provider_submit_failed", "clip": clip_number, "receipt": receipt}
     completed = await _wait_for_video(provider, receipt, poll_interval_seconds=poll_interval_seconds, timeout_seconds=timeout_seconds)
@@ -214,10 +215,52 @@ async def execute_ugc_factory_ad(
     timeout = float(os.getenv("FAL_RENDER_TIMEOUT_SECONDS", "600")) if timeout_seconds is None else timeout_seconds
     clip_receipts: list[dict[str, Any]] = []
     seam_threshold = float(plan.get("continuity", {}).get("seam_threshold_mean_abs_diff") or (5 / 255))
+    plan_brief = plan.get("brief", {})
+    clip_count = int(plan_brief.get("clip_count") or 2)
+    clip_duration = int(plan_brief.get("clip_duration_seconds") or 10)
+    end_card_lines = list(plan_brief.get("end_card_lines") or [])
+    end_card_seconds = float(plan_brief.get("end_card_seconds") or 2.0)
+    reference_url = plan["clips"][0].get("reference_image_url")
+    end_card_image_url = plan_brief.get("end_card_image_url") or reference_url
+
+    async def finish(final_local: Path, *, audio: bool, seam: float | None) -> dict[str, Any]:
+        if end_card_lines:
+            background = None
+            if end_card_image_url:
+                ref_path = workdir / "end-card-background"
+                fetched_ref = await storage.download_url(end_card_image_url, ref_path)
+                background = ref_path if fetched_ref.get("ok") else None
+            carded = workdir / "final-with-card.mp4"
+            card = media_ops.append_end_card(final_local, carded, end_card_lines, seconds=end_card_seconds, background_image=background)
+            if not card.get("ok") and background is not None:
+                # A photo ffmpeg can't read should not sink a paid render: fall back to a plain card.
+                card = media_ops.append_end_card(final_local, carded, end_card_lines, seconds=end_card_seconds)
+            if not card.get("ok"):
+                await update_job(job_id, state="end_card_failed", output={"media_op": card})
+                return {"ok": False, "error": card.get("error"), "state": "end_card_failed", "job_id": job_id, "allowance": allowance}
+            final_local = carded
+        final_asset = await storage.upload_file(final_local, object_name=f"jobs/{job_id}/final.mp4", content_type="video/mp4")
+        if not final_asset.get("ok"):
+            await update_job(job_id, state="final_upload_failed", output={"storage": final_asset})
+            return {"ok": False, "error": final_asset.get("error"), "state": "final_upload_failed", "job_id": job_id, "allowance": allowance}
+        state = "finished" if audio else "visual_complete_needs_audio"
+        qa = {
+            "clip_count": clip_count,
+            "seam_diff": seam,
+            "seam_threshold": seam_threshold if seam is not None else None,
+            "seam_passed": True if seam is None else seam < seam_threshold,
+            "audio_present_in_all_clips": bool(audio),
+            "audio_present_in_both_clips": bool(audio),
+            "end_card": bool(end_card_lines),
+            "paid_generation_calls": len(clip_receipts),
+        }
+        result = {"ok": state == "finished", "state": state, "job_id": job_id, "factory_version": plan.get("factory_version"), "allowance": allowance, "provider_pricing": pricing, "qa": qa, "final_asset": final_asset, "provider_receipts": clip_receipts, "approval_required_before_publish": True}
+        await update_job(job_id, state=state, provider_receipt={"clips": clip_receipts}, output={"final_asset": final_asset, "qa": qa, "allowance": allowance})
+        return result
 
     try:
         await update_job(job_id, state="rendering_clip_1", output={"allowance": allowance})
-        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=None, model_name=provider_model, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
+        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=reference_url, model_name=provider_model, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout, duration_seconds=clip_duration)
         if not clip1.get("ok"):
             await update_job(job_id, state="clip_1_failed", provider_receipt={"clip_1": clip1})
             return {**clip1, "state": "clip_1_failed", "job_id": job_id, "allowance": allowance}
@@ -228,6 +271,9 @@ async def execute_ugc_factory_ad(
         if not trim1.get("ok"):
             await update_job(job_id, state="clip_1_trim_failed", output={"media_op": trim1})
             return {"ok": False, "error": trim1.get("error"), "state": "clip_1_trim_failed", "job_id": job_id, "allowance": allowance}
+        if clip_count == 1:
+            has_audio = media_ops.has_audio(clip1_trim) if hasattr(media_ops, "has_audio") else True
+            return await finish(clip1_trim, audio=has_audio, seam=None)
         seed = workdir / "seed.jpg"
         seed_result = media_ops.extract_last_frame(clip1_trim, seed)
         if not seed_result.get("ok"):
@@ -240,7 +286,7 @@ async def execute_ugc_factory_ad(
 
         async def render_second(attempt: int) -> dict[str, Any]:
             await update_job(job_id, state=f"rendering_clip_2_attempt_{attempt}")
-            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], model_name=provider_model, clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout)
+            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], model_name=provider_model, clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout, duration_seconds=clip_duration)
 
         clip2 = await render_second(1)
         if not clip2.get("ok"):
@@ -282,16 +328,7 @@ async def execute_ugc_factory_ad(
         if not stitched.get("ok"):
             await update_job(job_id, state="stitch_failed", output={"media_op": stitched})
             return {"ok": False, "error": stitched.get("error"), "state": "stitch_failed", "job_id": job_id, "allowance": allowance}
-        final_asset = await storage.upload_file(final_local, object_name=f"jobs/{job_id}/final.mp4", content_type="video/mp4")
-        if not final_asset.get("ok"):
-            await update_job(job_id, state="final_upload_failed", output={"storage": final_asset})
-            return {"ok": False, "error": final_asset.get("error"), "state": "final_upload_failed", "job_id": job_id, "allowance": allowance}
-
-        state = "finished" if stitched.get("audio") else "visual_complete_needs_audio"
-        qa = {"seam_diff": seam, "seam_threshold": seam_threshold, "seam_passed": seam < seam_threshold, "audio_present_in_both_clips": bool(stitched.get("audio")), "paid_generation_calls": len(clip_receipts)}
-        result = {"ok": state == "finished", "state": state, "job_id": job_id, "factory_version": plan.get("factory_version"), "allowance": allowance, "provider_pricing": pricing, "qa": qa, "final_asset": final_asset, "provider_receipts": clip_receipts, "approval_required_before_publish": True}
-        await update_job(job_id, state=state, provider_receipt={"clips": clip_receipts}, output={"final_asset": final_asset, "qa": qa, "allowance": allowance})
-        return result
+        return await finish(final_local, audio=bool(stitched.get("audio")), seam=seam)
     finally:
         if os.getenv("KEEP_FACTORY_WORKFILES", "false").lower() != "true":
             shutil.rmtree(workdir, ignore_errors=True)

@@ -26,7 +26,7 @@ from ..services.repurpose import RepurposePlanRequest, create_repurpose_plan, ge
 from ..services.shopify_context import ShopifyProductContextRequest, create_shopify_context, get_shopify_context
 from ..services.social_drop import SocialDrop, platform_payload
 from ..services.studio_ledger import create_campaign, get_job, list_jobs, summary
-from ..services.ugc_executor import execute_ugc_factory_ad
+from ..services.ugc_executor import estimate_factory_generation_cost, execute_ugc_factory_ad
 from ..services.ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 from ..services.usage_wallet import get_wallet, reserve_generation
 from ..services.video_prompt import VideoPromptInput, compile_video_prompt
@@ -44,6 +44,17 @@ _FACTORY_PROPERTIES = {
     "actor_description": {"type": "string"},
     "delivery_tone": {"type": "string"},
     "visual_lane": {"type": "string"},
+    "provider_model": {"type": "string"},
+    "scripts": {"type": "array", "items": {"type": "string"}, "maxItems": 2, "description": "Exact spoken line per clip; overrides the generic template."},
+    "clip_count": {"type": "integer", "enum": [1, 2], "description": "1 = single self-contained clip; 2 = seeded continuation."},
+    "clip_duration_seconds": {"type": "integer", "minimum": 3, "maximum": 15},
+    "product_reference_url": {"type": "string", "description": "https URL of a real product photo; clip 1 renders image-to-video from it."},
+    "setting": {"type": "string"},
+    "pronunciation_notes": {"type": "string"},
+    "avoid": {"type": "string"},
+    "end_card_lines": {"type": "array", "items": {"type": "string"}, "maxItems": 4},
+    "end_card_seconds": {"type": "number", "minimum": 0, "maximum": 5},
+    "end_card_image_url": {"type": "string", "description": "https URL for the end-card background; defaults to product_reference_url."},
 }
 
 _UGC_PLAN_SCHEMA = UGCPlanDraft.model_json_schema()
@@ -71,8 +82,8 @@ MCP_TOOLS: list[dict[str, Any]] = [
     {"name": "create_shopify_product_context", "description": "Persist minimal Shopify product truth as a no-spend workspace-scoped creative context receipt.", "inputSchema": _SHOPIFY_CONTEXT_SCHEMA},
     {"name": "get_shopify_product_context", "description": "Read one Shopify product-context receipt inside the configured workspace.", "inputSchema": {"type": "object", "required": ["receipt_id"], "properties": {"receipt_id": {"type": "string"}}}},
     {"name": "sync_experiment_evidence", "description": "Read provider metrics plus Shopify attribution for one workspace-scoped experiment and return the deterministic evaluation receipt. Does not launch or activate ads.", "inputSchema": {"type": "object", "required": ["experiment_id"], "properties": {"experiment_id": {"type": "string"}}}},
-    {"name": "create_ugc_ad_factory_plan", "description": "Turn product truth into a gated two-clip UGC production plan with cost estimate and continuity rules. This does not spend.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism"], "properties": _FACTORY_PROPERTIES}},
-    {"name": "execute_ugc_ad_factory", "description": "Execute a full two-clip UGC ad to a durable final asset. Requires approval, an active wallet, and an idempotency key so retries cannot reserve spend twice.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism", "wallet_id", "idempotency_key", "approved"], "properties": {**_FACTORY_PROPERTIES, "wallet_id": {"type": "string"}, "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128}, "approved": {"type": "boolean"}}}},
+    {"name": "create_ugc_ad_factory_plan", "description": "Turn product truth into a gated one- or two-clip UGC production plan with cost estimate and continuity rules. This does not spend.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism"], "properties": _FACTORY_PROPERTIES}},
+    {"name": "execute_ugc_ad_factory", "description": "Execute a full one- or two-clip UGC ad (optional end card) to a durable final asset. Requires approval, an active wallet, and an idempotency key so retries cannot reserve spend twice.", "inputSchema": {"type": "object", "required": ["product", "audience", "pain", "mechanism", "wallet_id", "idempotency_key", "approved"], "properties": {**_FACTORY_PROPERTIES, "wallet_id": {"type": "string"}, "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128}, "approved": {"type": "boolean"}}}},
     {"name": "list_social_accounts", "description": "List social accounts from the optional downstream publishing integration.", "inputSchema": {"type": "object", "properties": {}}},
     {"name": "schedule_social_drop", "description": "Schedule an explicitly approved Social Drop through the optional publishing boundary.", "inputSchema": {"type": "object", "required": ["id", "content", "format", "platforms", "scheduled_at", "approved"], "properties": {"id": {"type": "string"}, "content": {"type": "string"}, "format": {"type": "string"}, "platforms": {"type": "array", "items": {"type": "object"}}, "scheduled_at": {"type": "string"}, "approved": {"type": "boolean"}, "media_urls": {"type": "array", "items": {"type": "string"}}}}},
 ]
@@ -110,9 +121,15 @@ async def _execute_factory(args: dict[str, Any]) -> dict[str, Any]:
     plan = build_ugc_factory_plan(brief)
     if not plan.get("ok"):
         return {"ok": False, "error": "factory_gate_failed", "gate": plan.get("gate")}
-    estimated_cost = int(plan.get("commercial", {}).get("estimated_generation_cost_cents") or 0)
-    if not get_media_provider().configured:
+    provider = get_media_provider()
+    if not provider.configured:
         return {"ok": False, "error": "media_provider_not_configured", "state": "preflight_blocked"}
+    # Reserve exactly what the executor will verify (provider-priced), as the REST route does.
+    provider_model = str(plan.get("brief", {}).get("provider_model") or "").strip() or None
+    pricing = estimate_factory_generation_cost(provider, plan, provider_model)
+    if not pricing.get("ok"):
+        return {**pricing, "state": "preflight_blocked"}
+    estimated_cost = int(pricing["estimated_generation_cost_cents"])
     if not get_asset_storage().configured:
         return {"ok": False, "error": "asset_storage_not_configured", "state": "preflight_blocked"}
     if not get_media_ops().available():
@@ -122,7 +139,7 @@ async def _execute_factory(args: dict[str, Any]) -> dict[str, Any]:
     if not reservation.get("ok"):
         return {**reservation, "state": "spend_blocked"}
     reservation["offer_id"] = wallet["offer_id"]
-    return await execute_ugc_factory_ad(brief, approved=True, offer_id=str(wallet["offer_id"]), reserved_allowance=reservation)
+    return await execute_ugc_factory_ad(brief, approved=True, offer_id=str(wallet["offer_id"]), reserved_allowance=reservation, provider=provider)
 
 
 @router.post("/api/mcp")
