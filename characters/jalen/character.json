@@ -1,0 +1,24 @@
+{
+  "id": "jalen",
+  "name": "Jalen",
+  "version": 1,
+  "source": "Postatees x Mariner car ad, 2026-11-21 (two ElevenLabs takes). AI-generated person, not a real individual.",
+  "actor_description": "Jalen, a young Black man around 19 with warm medium-brown skin, short dark curly hair with a tight taper, a thin mustache and light chin-strap beard and an easy wide smile, wearing a deep navy pullover hoodie with a gold oval orca POSTATEES badge on the left chest and black drawstrings, framed chest-up",
+  "setting": "the driver's seat of a parked car at night beside a high school football field under floodlights, rain beads on the windows, warm dome light on his face, phone selfie at arm's length",
+  "delivery_tone": "cool and confident, smiling while he talks, like hitting record to tell a friend; short lines with a beat after each, energy rising on the shout-out but never yelling",
+  "voice_description": "Young Black American man about 19 from the Seattle area. Low-to-mid warm voice with a little rasp, relaxed and confident, smiling. Casual Pacific Northwest delivery with light AAVE, never a cartoon accent. The same voice for every line.",
+  "pronunciation_notes": "Postatees is pronounced POH-stuh-teez. Everett is said EV-rit.",
+  "spoken_spellings": {
+    "Postatees": "Poh-stuh-teez"
+  },
+  "avoid": "close-ups of the sleeves or any sleeve lettering; changing the hoodie color to royal blue; a higher or different voice partway through; mouth moving after the last line",
+  "references": {
+    "frontal": "refs/ref-hero-hood-down.jpg",
+    "extra": ["refs/ref-smile-hood-down.jpg", "refs/ref-hood-up-face.jpg"]
+  },
+  "voice": {
+    "clone_source": "voice/clone-source.mp3",
+    "kling_voice_id": "",
+    "kling_voice_id_env": "CHARACTER_JALEN_KLING_VOICE_ID"
+  }
+}

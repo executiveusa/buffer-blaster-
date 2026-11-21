@@ -86,3 +86,10 @@ python -m cli.render_local render docs/examples/postatees-mariner-10s.json \
 
 The machine needs HTTPS access to `queue.fal.run` and Fal's media hosts
 (`*.fal.media`).
+
+## 6. Reusing a locked character
+
+Add `"character": "jalen"` to a brief to reuse the Postatees car-ad guy: same
+face, hoodie, car setting, voice and delivery in every ad. Example:
+[`docs/examples/jalen-postatees-10s.json`](examples/jalen-postatees-10s.json).
+How it works and how to lock his voice on Fal: [`characters/README.md`](../characters/README.md).

@@ -19,6 +19,7 @@ from .media_generation import get_media_provider
 from .media_ops import get_media_ops
 from .pricing import authorize_generation
 from .studio_ledger import create_job, update_job
+from .characters import kling_elements, load_character
 from .ugc_factory import UGCFactoryBrief, build_ugc_factory_plan
 
 
@@ -117,8 +118,18 @@ async def _wait_for_video(provider: Any, receipt: dict[str, Any], *, poll_interv
     return {"ok": False, "error": "provider_generation_timeout", "provider_response": last_payload}
 
 
-async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, model_name: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float, duration_seconds: int = 10) -> dict[str, Any]:
-    receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration=str(duration_seconds), aspect_ratio="9:16", generate_audio=True, model_name=model_name)
+def _character_elements(plan: dict[str, Any], clip_index: int) -> list[dict[str, Any]]:
+    """Kling `elements` for a clip that binds the locked character's face and saved voice."""
+    clips = plan.get("clips") or []
+    character_id = (plan.get("brief") or {}).get("character")
+    if not character_id or clip_index >= len(clips) or not clips[clip_index].get("bind_character"):
+        return []
+    return kling_elements(load_character(character_id))
+
+
+async def _submit_and_download(*, provider: Any, storage: Any, prompt: str, image_url: str | None, model_name: str | None, clip_number: int, workdir: Path, poll_interval_seconds: float, timeout_seconds: float, duration_seconds: int = 10, elements: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    extra = {"elements": elements} if elements else {}
+    receipt = await provider.submit_video(prompt=prompt, image_url=image_url, duration=str(duration_seconds), aspect_ratio="9:16", generate_audio=True, model_name=model_name, **extra)
     if not receipt.get("ok"):
         return {"ok": False, "error": "provider_submit_failed", "clip": clip_number, "receipt": receipt}
     completed = await _wait_for_video(provider, receipt, poll_interval_seconds=poll_interval_seconds, timeout_seconds=timeout_seconds)
@@ -260,7 +271,7 @@ async def execute_ugc_factory_ad(
 
     try:
         await update_job(job_id, state="rendering_clip_1", output={"allowance": allowance})
-        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=reference_url, model_name=provider_model, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout, duration_seconds=clip_duration)
+        clip1 = await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][0]["prompt"], image_url=reference_url, model_name=provider_model, clip_number=1, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout, duration_seconds=clip_duration, elements=_character_elements(plan, 0))
         if not clip1.get("ok"):
             await update_job(job_id, state="clip_1_failed", provider_receipt={"clip_1": clip1})
             return {**clip1, "state": "clip_1_failed", "job_id": job_id, "allowance": allowance}
@@ -286,7 +297,7 @@ async def execute_ugc_factory_ad(
 
         async def render_second(attempt: int) -> dict[str, Any]:
             await update_job(job_id, state=f"rendering_clip_2_attempt_{attempt}")
-            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], model_name=provider_model, clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout, duration_seconds=clip_duration)
+            return await _submit_and_download(provider=provider, storage=storage, prompt=plan["clips"][1]["prompt"], image_url=seed_asset["signed_url"], model_name=provider_model, clip_number=2, workdir=workdir, poll_interval_seconds=poll_interval, timeout_seconds=timeout, duration_seconds=clip_duration, elements=_character_elements(plan, 1))
 
         clip2 = await render_second(1)
         if not clip2.get("ok"):
