@@ -1,6 +1,5 @@
 # Normalize line endings — critical for cross-platform (Windows dev + Linux VPS)
 * text=auto eol=lf
-
 # Force LF on these regardless of platform
 *.sh text eol=lf
 *.sql text eol=lf
@@ -14,7 +13,6 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.env* text eol=lf
-
 # Binary
 *.png binary
 *.jpg binary
@@ -24,3 +22,7 @@
 *.ico binary
 *.woff binary
 *.woff2 binary
+ugc/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+ugc/**/*.wav filter=lfs diff=lfs merge=lfs -text
+ugc/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+ugc/**/*.png filter=lfs diff=lfs merge=lfs -text
