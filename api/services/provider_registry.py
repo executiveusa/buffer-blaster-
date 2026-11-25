@@ -61,7 +61,7 @@ def _truthy(name: str, default: bool = False) -> bool:
 def _active_runtime_entry() -> ProviderRegistryEntry:
     provider = get_media_provider()
     caps = provider.capabilities()
-    prefix = "FAL" if caps.provider == "fal" else "GENERATION_GATEWAY"
+    prefix = {"fal": "FAL", "sand": "SAND"}.get(caps.provider, "GENERATION_GATEWAY")
     if caps.commercial_use_status == "review_required" and _truthy(f"{prefix}_COMMERCIAL_USE_APPROVED"):
         caps = caps.model_copy(update={"commercial_use_status": "approved"})
     try:
