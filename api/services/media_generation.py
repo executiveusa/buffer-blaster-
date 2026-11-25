@@ -15,6 +15,7 @@ import httpx
 
 from .media_contracts import ProviderCapabilities
 from .provider_contracts import UGCProviderJob
+from .sand_video import SandVideoProvider
 from .universal_media_gateway import UniversalVideoGatewayProvider
 
 
@@ -243,15 +244,19 @@ class FalVideoProvider:
             return {"ok": True, "data": response.json()}
 
 
-def get_media_provider() -> FalVideoProvider | UniversalVideoGatewayProvider:
+def get_media_provider() -> FalVideoProvider | UniversalVideoGatewayProvider | SandVideoProvider:
     """Return the active server-owned media adapter.
 
     ACTIVE_MEDIA_PROVIDER=fal keeps the existing implementation.
     ACTIVE_MEDIA_PROVIDER=gateway (or muapi/open_higgsfield) enables the
     configurable async gateway adapter, which can target self-hosted gateways
     or compatible hosted aggregators without changing Buffer Blaster business logic.
+    ACTIVE_MEDIA_PROVIDER=sand (or magi/magi-2) enables the Sand.ai MAGI-2
+    adapter as an optional alternate provider; it stays inert until selected.
     """
     selected = (os.getenv("ACTIVE_MEDIA_PROVIDER", "fal") or "fal").strip().lower()
     if selected in {"gateway", "universal", "muapi", "open_higgsfield", "open-higgsfield"}:
         return UniversalVideoGatewayProvider()
+    if selected in {"sand", "sand.ai", "magi", "magi-2", "magi2"}:
+        return SandVideoProvider()
     return FalVideoProvider()
